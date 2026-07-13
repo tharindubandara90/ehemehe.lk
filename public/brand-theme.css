@@ -1,0 +1,78 @@
+
+/* EheMehe.lk brand refresh - logo green theme */
+:root {
+  --primary: #3DC697;
+  --primary-dark: #22A879;
+  --primary-light: #7DE4BF;
+  --ehemehe-green: #3DC697;
+  --ehemehe-green-dark: #22A879;
+  --ehemehe-charcoal: #35302F;
+}
+
+.bg-primary-50 { background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1)) !important; }
+.bg-primary-100 { background-color: rgb(209 250 229 / var(--tw-bg-opacity, 1)) !important; }
+.bg-primary-400 { background-color: rgb(52 211 153 / var(--tw-bg-opacity, 1)) !important; }
+.bg-primary-500 { background-color: rgb(61 198 151 / var(--tw-bg-opacity, 1)) !important; }
+.bg-primary-600 { background-color: rgb(34 168 121 / var(--tw-bg-opacity, 1)) !important; }
+.bg-primary-700 { background-color: rgb(23 138 99 / var(--tw-bg-opacity, 1)) !important; }
+
+.text-primary-500 { color: rgb(61 198 151 / var(--tw-text-opacity, 1)) !important; }
+.text-primary-600 { color: rgb(34 168 121 / var(--tw-text-opacity, 1)) !important; }
+.text-primary-700 { color: rgb(23 138 99 / var(--tw-text-opacity, 1)) !important; }
+
+.border-primary-300 { border-color: rgb(125 228 191 / var(--tw-border-opacity, 1)) !important; }
+.border-primary-400 { border-color: rgb(61 198 151 / var(--tw-border-opacity, 1)) !important; }
+.border-primary-500 { border-color: rgb(61 198 151 / var(--tw-border-opacity, 1)) !important; }
+
+.from-primary-400 { --tw-gradient-from: #7DE4BF var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(125 228 191 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+.from-primary-500 { --tw-gradient-from: #3DC697 var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(61 198 151 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+.via-primary-600 { --tw-gradient-to: rgb(34 168 121 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops: var(--tw-gradient-from), #22A879 var(--tw-gradient-via-position), var(--tw-gradient-to) !important; }
+.to-primary-600 { --tw-gradient-to: #22A879 var(--tw-gradient-to-position) !important; }
+.to-primary-700 { --tw-gradient-to: #178A63 var(--tw-gradient-to-position) !important; }
+
+.hover\:bg-primary-600:hover { background-color: rgb(34 168 121 / var(--tw-bg-opacity, 1)) !important; }
+.hover\:text-primary-600:hover { color: rgb(34 168 121 / var(--tw-text-opacity, 1)) !important; }
+.hover\:from-primary-600:hover { --tw-gradient-from: #22A879 var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(34 168 121 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+.hover\:to-primary-700:hover { --tw-gradient-to: #178A63 var(--tw-gradient-to-position) !important; }
+.focus\:ring-primary-500:focus { --tw-ring-color: rgb(61 198 151 / var(--tw-ring-opacity, 1)) !important; }
+.focus-within\:border-primary-400:focus-within { border-color: rgb(61 198 151 / var(--tw-border-opacity, 1)) !important; }
+.focus-within\:ring-primary-500\/20:focus-within { --tw-ring-color: rgb(61 198 151 / .2) !important; }
+
+.btn-primary, .primary, button.primary {
+  background: linear-gradient(135deg, #3DC697, #22A879) !important;
+  border-color: #22A879 !important;
+}
+
+.ehm-site-logo {
+  display: block;
+  width: 214px;
+  max-width: 34vw;
+  height: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 767px) {
+  .ehm-site-logo {
+    width: 158px;
+    max-width: 44vw;
+  }
+}
+
+.ehm-logo-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .5rem !important;
+  min-width: fit-content;
+}
+
+.ehm-admin-logo {
+  width: 178px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.ehm-logo-replaced > div:not(.ehm-logo-keep),
+.ehm-logo-replaced > span:not(.ehm-logo-keep) {
+  display: none !important;
+}
