@@ -1,0 +1,154 @@
+{
+  "summary": "Admin panel full link/data validation completed with mocked Supabase data.",
+  "source_zip": "youware_to_vercel_helper(5).zip",
+  "fixed_items": [
+    "Preserved selected filter values after render so category/location filters do not reset.",
+    "Updated safeSelect to paginate Supabase results in 1000-row pages so dashboard can load all rows.",
+    "Linked fallback source tables for reports, shops, verifications, pricing, and banners to their update/delete actions.",
+    "Added local serve dependency to package.json so npm run dev can run after npm install."
+  ],
+  "static_checks": {
+    "syntax": {
+      "admin.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "supabase.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "index-filters.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "post-ad.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "marketplace.js": {
+        "ok": true,
+        "stderr": ""
+      }
+    },
+    "sidebar_missing_sections": [],
+    "section_without_tabs": [],
+    "missing_onclick_functions": [],
+    "missing_event_functions": [],
+    "missing_static_dom_ids": [],
+    "route_files": {
+      "/admin": true,
+      "/admin.html": true,
+      "/": true,
+      "/post-ad.html": true,
+      "/ad/1": true
+    }
+  },
+  "dynamic_mock_supabase_checks": {
+    "liveAdsStat": 10,
+    "pendingAdsStat": 2,
+    "usersStat": 4,
+    "revenueStat": "LKR 1,500",
+    "dashboardVisible": true,
+    "tabs": {
+      "overview": {
+        "title": "Overview",
+        "visible": true,
+        "htmlLength": 546
+      },
+      "ads": {
+        "title": "Ad & Listing Management",
+        "visible": true,
+        "htmlLength": 1761
+      },
+      "categories": {
+        "title": "Category Management",
+        "visible": true,
+        "htmlLength": 1389
+      },
+      "promotions": {
+        "title": "Promotions Manager",
+        "visible": true,
+        "htmlLength": 1753
+      },
+      "reports": {
+        "title": "Reported Ads",
+        "visible": true,
+        "htmlLength": 587
+      },
+      "users": {
+        "title": "User Management",
+        "visible": true,
+        "htmlLength": 2050
+      },
+      "shops": {
+        "title": "Business Directories / Shops",
+        "visible": true,
+        "htmlLength": 515
+      },
+      "verification": {
+        "title": "User Verification",
+        "visible": true,
+        "htmlLength": 530
+      },
+      "finance": {
+        "title": "Payment Logs",
+        "visible": true,
+        "htmlLength": 339
+      },
+      "pricing": {
+        "title": "Pricing & Subscriptions",
+        "visible": true,
+        "htmlLength": 434
+      },
+      "invoices": {
+        "title": "Invoices",
+        "visible": true,
+        "htmlLength": 299
+      },
+      "locations": {
+        "title": "Location Settings",
+        "visible": true,
+        "htmlLength": 653
+      },
+      "fields": {
+        "title": "Custom Filters",
+        "visible": true,
+        "htmlLength": 432
+      },
+      "roles": {
+        "title": "Role-Based Access Control",
+        "visible": true,
+        "htmlLength": 1002
+      },
+      "seo": {
+        "title": "SEO Manager",
+        "visible": true,
+        "htmlLength": 546
+      },
+      "api": {
+        "title": "API Settings",
+        "visible": true,
+        "htmlLength": 546
+      },
+      "banners": {
+        "title": "Banner Ads",
+        "visible": true,
+        "htmlLength": 444
+      }
+    },
+    "adsAllCards": 12,
+    "adsApprovedCards": 10,
+    "adsApprovedCars": 5,
+    "categorySelectPreserved": "cars",
+    "rejectUpdated": "rejected",
+    "approveUpdated": "approved",
+    "deleteWorked": true
+  },
+  "expected_mock_dataset": {
+    "approved_live_ads": 10,
+    "pending_ads": 2,
+    "total_ads_in_management_all_status": 12,
+    "users": 4,
+    "payments_success_amount": 1500
+  }
+}

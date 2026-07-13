@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard - ehemehe.lk</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/supabase.js"></script>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --panel:#ffffff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --soft:#f8fafc;
+      --brand:#06b6d4;
+      --brand-dark:#0891b2;
+      --blue:#2563eb;
+      --green:#10b981;
+      --amber:#f59e0b;
+      --red:#ef4444;
+      --purple:#7c3aed;
+      --dark:#0b1220;
+      --shadow:0 16px 42px rgba(15,23,42,.08);
+      --shadow2:0 22px 60px rgba(8,145,178,.18);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:linear-gradient(180deg,#f8fafc 0%,#eef6fb 100%);color:var(--ink)}
+    a{color:inherit;text-decoration:none}
+    button,input,select,textarea{font:inherit}
+    .hidden{display:none!important}
+    .small{font-size:12px;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .login-wrap{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 460px;background:radial-gradient(circle at 15% 10%,rgba(6,182,212,.26),transparent 30%),linear-gradient(135deg,#061122,#10223f)}
+    .login-hero{padding:64px;color:white;display:flex;flex-direction:column;justify-content:space-between}
+    .login-hero h1{font-size:58px;line-height:1;margin:0 0 14px;letter-spacing:-.05em}
+    .login-hero p{max-width:700px;color:#cbd5e1;font-size:18px;line-height:1.6}
+    .brand-row{display:flex;align-items:center;gap:12px;font-weight:950;font-size:24px}
+    .brand-mark{width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--brand),var(--blue));display:grid;place-items:center;font-size:32px;font-weight:950;color:white}
+    .login-card{align-self:center;margin:32px;background:rgba(255,255,255,.96);border-radius:26px;padding:34px;box-shadow:0 30px 80px rgba(0,0,0,.26)}
+    .login-card h2{margin:0 0 8px;font-size:30px;letter-spacing:-.03em}.login-card .hint{color:var(--muted);margin:0 0 24px;line-height:1.5}
+    .field{margin-bottom:14px}.field label{display:block;font-weight:800;font-size:13px;margin-bottom:7px;color:#334155}
+    .input,select,textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:white;color:var(--ink);outline:none}
+    textarea{min-height:98px;resize:vertical}
+    .input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(6,182,212,.13)}
+    .btn{border:0;border-radius:13px;padding:11px 16px;font-weight:900;cursor:pointer;background:#e2e8f0;color:#0f172a;display:inline-flex;align-items:center;gap:8px;justify-content:center;line-height:1}
+    .btn.primary{background:linear-gradient(135deg,var(--brand),var(--blue));color:white;box-shadow:0 10px 22px rgba(6,182,212,.18)}
+    .btn.dark{background:#0f172a;color:white}.btn.danger{background:var(--red);color:white}.btn.warn{background:var(--amber);color:white}.btn.ok{background:var(--green);color:white}.btn.ghost{background:#f1f5f9}.btn.soft{background:#e0f2fe;color:#075985}
+    .btn.small{padding:8px 10px;font-size:12px;border-radius:10px}.btn:disabled{opacity:.45;cursor:not-allowed}
+    .app{display:grid;grid-template-columns:292px minmax(0,1fr);min-height:100vh}
+    .sidebar{background:#0b1220;color:white;padding:22px;position:sticky;top:0;height:100vh;overflow:auto}
+    .side-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}.side-brand .brand-mark{width:46px;height:46px;font-size:25px;border-radius:15px}
+    .side-title{font-weight:950;font-size:18px}.side-sub{font-size:12px;color:#94a3b8;margin-top:2px}
+    .nav-group{margin:18px 0 8px;color:#64748b;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}
+    .nav{display:grid;gap:7px}.nav button,.quick-link{width:100%;justify-content:flex-start;background:transparent;color:#cbd5e1;border:1px solid transparent;border-radius:14px}
+    .nav button.active,.nav button:hover,.quick-link:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.10);color:white}
+    .quick-link{display:flex;padding:11px 16px;font-weight:900;align-items:center;gap:8px;background:rgba(255,255,255,.06)}
+    .side-footer{margin-top:24px;color:#94a3b8;font-size:12px}
+    .main{min-width:0}.topbar{height:76px;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:8}
+    .topbar h1{font-size:24px;margin:0;letter-spacing:-.03em}.top-actions{display:flex;align-items:center;gap:10px}.staff-pill{font-size:13px;background:#e0f2fe;color:#075985;padding:9px 12px;border-radius:999px;font-weight:900}
+    .content{padding:26px}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:16px;margin-bottom:20px}
+    .stat{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+    .stat::after{content:"";position:absolute;right:-32px;top:-32px;width:92px;height:92px;border-radius:999px;background:rgba(6,182,212,.10)}
+    .stat .num{font-size:32px;font-weight:950;letter-spacing:-.04em}.stat .label{color:var(--muted);font-weight:800;font-size:13px}.stat .trend{font-size:12px;margin-top:9px;color:#0f766e;font-weight:850}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px}
+    .panel-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}.panel-head h2{margin:0;font-size:21px;letter-spacing:-.03em}.panel-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
+    .tools{display:flex;gap:10px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}.grid.two{grid-template-columns:1.1fr .9fr}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:white}.table{width:100%;border-collapse:collapse;background:white;min-width:760px}.table th,.table td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:top}.table th{font-size:12px;color:#475569;background:#f8fafc;text-transform:uppercase;letter-spacing:.04em}.table tr:last-child td{border-bottom:0}
+    .badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:950;background:#e2e8f0;color:#334155;text-transform:capitalize}.badge.pending{background:#fef3c7;color:#92400e}.badge.approved,.badge.active,.badge.success,.badge.paid{background:#dcfce7;color:#166534}.badge.rejected,.badge.blocked,.badge.deleted,.badge.failed,.badge.suspended{background:#fee2e2;color:#991b1b}.badge.admin,.badge.super_admin{background:#dbeafe;color:#1d4ed8}.badge.moderator{background:#f3e8ff;color:#7e22ce}.badge.support{background:#ede9fe;color:#5b21b6}.badge.urgent{background:#ffedd5;color:#9a3412}.badge.top{background:#e0f2fe;color:#075985}
+    .empty{padding:30px;text-align:center;color:var(--muted);background:#fff;border:1px dashed #cbd5e1;border-radius:18px}.ad-img{width:74px;height:58px;object-fit:cover;border-radius:10px;background:#e2e8f0}.actions{display:flex;gap:6px;flex-wrap:wrap}
+    .notice{padding:13px 15px;border-radius:16px;background:#ecfeff;border:1px solid #a5f3fc;color:#155e75;margin:12px 0;font-weight:700;font-size:13px}
+    .toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 180px 180px 180px auto;gap:10px;margin:14px 0}
+    .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:14px}
+    .listing-card{border:1px solid var(--line);border-radius:20px;background:white;overflow:hidden;box-shadow:0 10px 26px rgba(15,23,42,.05);display:flex;flex-direction:column}
+    .listing-thumb{height:158px;background:linear-gradient(135deg,#dbeafe,#ecfeff);position:relative;overflow:hidden}.listing-thumb img{width:100%;height:100%;object-fit:cover}.listing-thumb .noimg{height:100%;display:grid;place-items:center;color:#0891b2;font-size:30px;font-weight:950}.listing-status{position:absolute;top:10px;left:10px}
+    .listing-body{padding:14px;display:flex;flex-direction:column;gap:9px;flex:1}.listing-title{font-weight:950;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.listing-price{font-size:20px;font-weight:950;color:#0891b2}.listing-meta{display:flex;gap:8px;flex-wrap:wrap;color:#64748b;font-size:12px}.listing-desc{font-size:13px;line-height:1.45;color:#475569;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.listing-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:auto}
+    .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:40;padding:20px}.modal-card{background:white;border-radius:24px;padding:22px;max-width:720px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.28);max-height:90vh;overflow:auto}.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.modal-head h3{margin:0}
+    .perm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 16px}.perm-grid label{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px;color:#334155;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px}
+    .chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border-radius:999px;background:#eef6ff;color:#075985;font-size:11px;font-weight:900;padding:5px 8px}.chip.off{background:#f1f5f9;color:#94a3b8}
+    .chart-wrap{height:280px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fff,#f8fafc);border:1px solid var(--line);border-radius:20px}.chart-wrap canvas{max-width:100%;height:240px}
+    .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.setting-card{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fff}
+    .mobile-menu{display:none}
+    @media(max-width:1100px){.toolbar{grid-template-columns:1fr 1fr}.grid.two,.grid.three{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:900px){.login-wrap{grid-template-columns:1fr}.login-hero{display:none}.app{grid-template-columns:1fr}.sidebar{position:fixed;left:-310px;transition:.22s;z-index:30}.sidebar.open{left:0}.mobile-menu{display:inline-flex}.topbar{padding:0 16px}.content{padding:16px}.toolbar{grid-template-columns:1fr}.perm-grid{grid-template-columns:1fr}}
+    @media(max-width:560px){.stats{grid-template-columns:1fr}.login-card{margin:18px;padding:22px}.table th,.table td{padding:10px}.card-grid{grid-template-columns:1fr}.top-actions .staff-pill{display:none}}
+  
+    /* ==========================================================
+       Visual polish v20260704
+       Appearance-only update. No data queries or business logic changed.
+       ========================================================== */
+    :root{
+      --bg:#eef3fb;
+      --panel:#ffffff;
+      --ink:#071225;
+      --muted:#687991;
+      --line:#dfe8f3;
+      --soft:#f7faff;
+      --brand:#45afff;
+      --brand-dark:#1c87e8;
+      --blue:#2f80ed;
+      --green:#38c66b;
+      --amber:#f8b84e;
+      --red:#f9566d;
+      --purple:#7667f8;
+      --orange:#ff8b5c;
+      --dark:#263b77;
+      --sidebar:#334987;
+      --sidebar2:#253b77;
+      --shadow:0 10px 28px rgba(23,41,92,.08);
+      --shadow2:0 18px 44px rgba(23,41,92,.13);
+    }
+
+    body{
+      background:#eef3fb!important;
+      color:#071225!important;
+      font-size:14px;
+    }
+
+    .app{
+      grid-template-columns:236px minmax(0,1fr)!important;
+      background:#eef3fb!important;
+      min-height:100vh!important;
+    }
+
+    .sidebar{
+      background:linear-gradient(180deg,#344a87 0%,#263b77 100%)!important;
+      padding:0!important;
+      box-shadow:10px 0 30px rgba(12,24,55,.08)!important;
+      border-right:1px solid rgba(255,255,255,.08)!important;
+    }
+
+    .side-brand{
+      height:86px!important;
+      padding:18px 18px!important;
+      margin:0!important;
+      border-bottom:1px solid rgba(255,255,255,.08)!important;
+    }
+
+    .side-brand .brand-mark{
+      width:44px!important;
+      height:44px!important;
+      border-radius:50%!important;
+      background:linear-gradient(135deg,#56c2ff,#2775ed)!important;
+      box-shadow:0 8px 22px rgba(86,194,255,.28)!important;
+      font-size:24px!important;
+    }
+
+    .side-title{
+      color:#fff!important;
+      font-size:20px!important;
+      letter-spacing:-.04em!important;
+      font-weight:950!important;
+    }
+
+    .side-sub{
+      color:#c8d5ff!important;
+      font-size:11px!important;
+      margin-top:3px!important;
+    }
+
+    .nav{
+      padding:12px 10px 18px!important;
+      gap:2px!important;
+    }
+
+    .nav-group{
+      margin:16px 10px 7px!important;
+      color:#9fb0e5!important;
+      font-size:10px!important;
+      letter-spacing:.08em!important;
+      font-weight:900!important;
+    }
+
+    .nav button,
+    .quick-link{
+      height:38px!important;
+      padding:0 12px!important;
+      border-radius:7px!important;
+      color:#e8efff!important;
+      font-size:12.5px!important;
+      font-weight:800!important;
+      background:transparent!important;
+      border:0!important;
+      transition:.16s ease!important;
+      position:relative!important;
+    }
+
+    .nav button:hover,
+    .quick-link:hover{
+      background:rgba(255,255,255,.09)!important;
+      color:#fff!important;
+      transform:translateX(2px)!important;
+    }
+
+    .nav button.active{
+      background:rgba(18,31,70,.34)!important;
+      color:#fff!important;
+      box-shadow:inset 3px 0 0 #56c2ff!important;
+    }
+
+    .side-footer{
+      padding:10px!important;
+      margin:0 0 18px!important;
+    }
+
+    .quick-link{
+      margin-top:8px!important;
+      background:rgba(255,255,255,.13)!important;
+      justify-content:center!important;
+      border-radius:10px!important;
+      height:42px!important;
+    }
+
+    .main{
+      background:#eef3fb!important;
+      min-width:0!important;
+    }
+
+    .topbar{
+      height:58px!important;
+      background:#ffffff!important;
+      border-bottom:1px solid #dbe5f0!important;
+      box-shadow:0 3px 10px rgba(33,47,88,.04)!important;
+      padding:0 18px!important;
+    }
+
+    .topbar h1{
+      font-size:19px!important;
+      font-weight:950!important;
+      color:#14213d!important;
+      letter-spacing:-.02em!important;
+    }
+
+    .staff-pill{
+      background:#f3f7ff!important;
+      border:1px solid #dde8f7!important;
+      color:#3a4c78!important;
+      height:34px!important;
+      display:inline-flex!important;
+      align-items:center!important;
+      padding:0 12px!important;
+      font-size:11.5px!important;
+    }
+
+    .content{
+      padding:18px!important;
+      max-width:none!important;
+    }
+
+    .stats{
+      display:grid!important;
+      grid-template-columns:repeat(4,minmax(0,1fr))!important;
+      gap:16px!important;
+      margin-bottom:16px!important;
+    }
+
+    .stat{
+      min-height:88px!important;
+      border:0!important;
+      border-radius:34px!important;
+      padding:16px 22px 16px 72px!important;
+      color:#fff!important;
+      overflow:hidden!important;
+      box-shadow:0 12px 28px rgba(30,74,130,.14)!important;
+      position:relative!important;
+      display:flex!important;
+      flex-direction:column!important;
+      justify-content:center!important;
+    }
+
+    .stats .stat:nth-child(1){background:linear-gradient(110deg,#55bbff 0%,#2f80ed 68%,#2d6bc8 100%)!important;}
+    .stats .stat:nth-child(2){background:linear-gradient(110deg,#ff6281 0%,#ff1744 68%,#d31332 100%)!important;}
+    .stats .stat:nth-child(3){background:linear-gradient(110deg,#9488ff 0%,#5d44ff 70%,#5139e8 100%)!important;}
+    .stats .stat:nth-child(4){background:linear-gradient(110deg,#63d979 0%,#40bd58 68%,#279c44 100%)!important;}
+
+    .stat::before{
+      content:"";
+      width:45px;
+      height:45px;
+      border-radius:50%;
+      position:absolute;
+      left:17px;
+      top:50%;
+      transform:translateY(-50%);
+      background:rgba(255,255,255,.16);
+      border:2px solid rgba(255,255,255,.62);
+      box-shadow:inset 0 0 0 7px rgba(255,255,255,.08);
+      z-index:2;
+    }
+
+    .stat::after{
+      content:""!important;
+      position:absolute!important;
+      right:-36px!important;
+      top:-26px!important;
+      width:160px!important;
+      height:160px!important;
+      border-radius:50%!important;
+      background:rgba(0,0,0,.11)!important;
+      transform:skewX(-18deg)!important;
+    }
+
+    .stat .num{
+      color:#fff!important;
+      font-size:26px!important;
+      font-weight:950!important;
+      line-height:1!important;
+      letter-spacing:-.03em!important;
+      position:relative!important;
+      z-index:3!important;
+    }
+
+    .stat .label{
+      color:rgba(255,255,255,.94)!important;
+      font-size:12px!important;
+      font-weight:900!important;
+      position:relative!important;
+      z-index:3!important;
+      margin-bottom:4px!important;
+    }
+
+    .stat .trend{
+      color:rgba(255,255,255,.78)!important;
+      font-size:11px!important;
+      font-weight:800!important;
+      margin-top:8px!important;
+      position:relative!important;
+      z-index:3!important;
+    }
+
+    .panel{
+      background:#fff!important;
+      border:0!important;
+      border-radius:7px!important;
+      box-shadow:0 3px 14px rgba(30,48,96,.06)!important;
+      padding:14px!important;
+      margin-bottom:16px!important;
+    }
+
+    .panel-head{
+      margin-bottom:12px!important;
+      min-height:34px!important;
+      align-items:center!important;
+    }
+
+    .panel-head h2{
+      font-size:15px!important;
+      font-weight:950!important;
+      color:#071225!important;
+      letter-spacing:-.01em!important;
+    }
+
+    .panel-head p{
+      font-size:11.5px!important;
+      color:#6c7c96!important;
+      margin-top:4px!important;
+    }
+
+    .grid.two{
+      grid-template-columns:minmax(0,1.35fr) minmax(330px,.65fr)!important;
+      gap:16px!important;
+    }
+
+    .grid.three{
+      grid-template-columns:repeat(3,minmax(0,1fr))!important;
+      gap:16px!important;
+    }
+
+    .chart-wrap{
+      height:274px!important;
+      border:0!important;
+      border-radius:4px!important;
+      background:
+        repeating-linear-gradient(90deg,transparent 0,transparent 117px,rgba(58,91,150,.07) 118px,transparent 119px),
+        linear-gradient(180deg,#fff 0%,#fbfdff 100%)!important;
+      box-shadow:inset 0 0 0 1px #eef3f9!important;
+    }
+
+    .chart-wrap canvas{
+      height:230px!important;
+      filter:drop-shadow(0 8px 14px rgba(54,116,217,.10))!important;
+    }
+
+    .table-wrap{
+      border:0!important;
+      border-radius:6px!important;
+      overflow:hidden!important;
+      box-shadow:inset 0 0 0 1px #e5edf7!important;
+    }
+
+    .table{
+      min-width:760px!important;
+    }
+
+    .table th{
+      background:#45afff!important;
+      color:#fff!important;
+      font-size:10.5px!important;
+      text-transform:none!important;
+      letter-spacing:0!important;
+      padding:10px 13px!important;
+      font-weight:900!important;
+      border-bottom:0!important;
+    }
+
+    .table td{
+      padding:11px 13px!important;
+      color:#24324a!important;
+      font-size:12px!important;
+      border-bottom:1px solid #e4edf7!important;
+      background:#fff!important;
+    }
+
+    .table tr:nth-child(even) td{
+      background:#fbfdff!important;
+    }
+
+    .badge{
+      font-size:10.5px!important;
+      padding:4px 8px!important;
+      font-weight:950!important;
+      border-radius:99px!important;
+    }
+
+    .toolbar{
+      background:#fff!important;
+      border:1px solid #e2ebf5!important;
+      border-radius:8px!important;
+      padding:10px!important;
+      gap:9px!important;
+      margin:10px 0 14px!important;
+    }
+
+    .input,
+    select,
+    textarea{
+      min-height:38px!important;
+      border-radius:7px!important;
+      border:1px solid #d9e4f2!important;
+      background:#fff!important;
+      font-size:12px!important;
+      color:#253553!important;
+      box-shadow:none!important;
+    }
+
+    .input:focus,
+    select:focus,
+    textarea:focus{
+      border-color:#45afff!important;
+      box-shadow:0 0 0 3px rgba(69,175,255,.13)!important;
+    }
+
+    .btn{
+      border-radius:7px!important;
+      min-height:36px!important;
+      padding:0 12px!important;
+      font-size:12px!important;
+      font-weight:950!important;
+      box-shadow:none!important;
+    }
+
+    .btn.primary{
+      background:linear-gradient(135deg,#45afff,#2f80ed)!important;
+      box-shadow:0 8px 18px rgba(47,128,237,.16)!important;
+    }
+
+    .btn.dark{
+      background:#263b77!important;
+    }
+
+    .btn.ghost{
+      background:#eef3fb!important;
+      color:#41506a!important;
+      border:1px solid #dbe5f0!important;
+    }
+
+    .btn.soft{
+      background:#eaf7ff!important;
+      color:#1479b8!important;
+    }
+
+    .card-grid{
+      gap:14px!important;
+    }
+
+    .listing-card{
+      border:1px solid #e5edf7!important;
+      border-radius:8px!important;
+      box-shadow:0 4px 16px rgba(28,48,98,.06)!important;
+      transition:.16s ease!important;
+    }
+
+    .listing-card:hover{
+      transform:translateY(-2px)!important;
+      box-shadow:0 10px 26px rgba(28,48,98,.10)!important;
+    }
+
+    .listing-thumb{
+      height:146px!important;
+      border-radius:0!important;
+      background:linear-gradient(135deg,#e6f6ff,#eef3ff)!important;
+    }
+
+    .listing-title{
+      font-size:14px!important;
+      color:#101a33!important;
+    }
+
+    .listing-price{
+      color:#2498d5!important;
+      font-size:18px!important;
+    }
+
+    .listing-meta{
+      font-size:11.5px!important;
+      color:#71829b!important;
+    }
+
+    .listing-desc{
+      color:#53657c!important;
+      font-size:12px!important;
+    }
+
+    .setting-card{
+      border:1px solid #e5edf7!important;
+      border-radius:8px!important;
+      box-shadow:0 4px 16px rgba(28,48,98,.05)!important;
+      background:#fff!important;
+    }
+
+    .setting-card h3{
+      margin-top:0!important;
+      font-size:14px!important;
+      font-weight:950!important;
+      color:#101a33!important;
+    }
+
+    .notice{
+      background:#f2fbff!important;
+      border:1px solid #bbeeff!important;
+      color:#1b6685!important;
+      border-radius:7px!important;
+      font-size:12px!important;
+    }
+
+    .empty{
+      border-radius:8px!important;
+      background:#fbfdff!important;
+      border:1px dashed #cbd8e8!important;
+      color:#6b7e98!important;
+      font-size:13px!important;
+    }
+
+    .modal-card{
+      border-radius:12px!important;
+      box-shadow:0 28px 80px rgba(13,28,66,.26)!important;
+    }
+
+    .login-wrap{
+      background:linear-gradient(135deg,#253b77 0%,#0d1833 100%)!important;
+    }
+
+    .login-card{
+      border-radius:18px!important;
+      box-shadow:0 28px 70px rgba(0,0,0,.24)!important;
+    }
+
+    @media(max-width:1300px){
+      .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+      .grid.two{grid-template-columns:1fr!important;}
+    }
+
+    @media(max-width:900px){
+      .app{grid-template-columns:1fr!important;}
+      .sidebar{width:270px!important;}
+      .stats{grid-template-columns:1fr!important;}
+      .content{padding:12px!important;}
+      .panel{border-radius:10px!important;}
+    }
+
+  
+    /* ==========================================================
+       Sidebar font + alignment refinement v20260704
+       Appearance only. Data and logic unchanged.
+       ========================================================== */
+    body{
+      font-weight:400!important;
+      -webkit-font-smoothing:antialiased!important;
+      text-rendering:geometricPrecision!important;
+    }
+
+    .side-title{
+      font-weight:800!important;
+      font-size:18px!important;
+      letter-spacing:-.025em!important;
+    }
+
+    .side-sub{
+      font-weight:500!important;
+      font-size:11px!important;
+    }
+
+    .nav{
+      padding:12px 8px 18px!important;
+    }
+
+    .nav-group{
+      padding-left:12px!important;
+      font-weight:700!important;
+      font-size:10px!important;
+      letter-spacing:.12em!important;
+      color:#b5c4f3!important;
+    }
+
+    .nav button,
+    .quick-link{
+      display:flex!important;
+      align-items:center!important;
+      justify-content:flex-start!important;
+      text-align:left!important;
+      gap:0!important;
+      width:100%!important;
+      padding-left:14px!important;
+      padding-right:10px!important;
+      font-size:12.2px!important;
+      font-weight:600!important;
+      letter-spacing:-.005em!important;
+      line-height:1.1!important;
+    }
+
+    .nav button.active{
+      font-weight:700!important;
+    }
+
+    .nav-icon{
+      width:24px!important;
+      min-width:24px!important;
+      max-width:24px!important;
+      height:20px!important;
+      display:inline-flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+      margin-right:8px!important;
+      font-size:13px!important;
+      line-height:1!important;
+      text-align:center!important;
+      opacity:.96!important;
+    }
+
+    .nav-label{
+      display:block!important;
+      min-width:0!important;
+      flex:1!important;
+      overflow:hidden!important;
+      text-overflow:ellipsis!important;
+      white-space:nowrap!important;
+    }
+
+    .side-footer .quick-link{
+      justify-content:flex-start!important;
+      padding-left:14px!important;
+      font-weight:650!important;
+    }
+
+    .topbar h1{
+      font-weight:800!important;
+    }
+
+    .panel-head h2,
+    .setting-card h3,
+    .listing-title{
+      font-weight:750!important;
+    }
+
+    .stat .num{
+      font-weight:820!important;
+    }
+
+    .stat .label,
+    .stat .trend{
+      font-weight:650!important;
+    }
+
+    .table th{
+      font-weight:750!important;
+    }
+
+    .table td{
+      font-weight:400!important;
+    }
+
+    .btn{
+      font-weight:700!important;
+    }
+
+    .badge{
+      font-weight:700!important;
+    }
+
+    .input,
+    select,
+    textarea{
+      font-weight:400!important;
+    }
+
+  
+    .finance-summary{border:1px solid #dbeafe;background:#f4fbff;border-radius:10px;padding:10px;margin:8px 0;color:#164e63;font-size:12px;line-height:1.45}
+    .finance-summary strong{color:#0f172a}
+    .finance-summary .row{display:flex;justify-content:space-between;gap:10px;margin:3px 0}
+    .finance-mini{font-size:11.5px;color:#155e75;background:#ecfeff;border:1px solid #bae6fd;border-radius:8px;padding:7px 8px;margin-top:4px;line-height:1.45}
+
+  </style>
+</head>
+<body>
+  <section id="loginBox" class="login-wrap">
+    <div class="login-hero">
+      <div class="brand-row"><div class="brand-mark">e</div><div>ehemehe.lk</div></div>
+      <div>
+        <h1>Marketplace control center</h1>
+        <p>Manage listings, users, memberships, revenue, locations, staff roles, SEO, API settings, and banners from one professional dashboard.</p>
+      </div>
+      <div class="small">Secure admin access</div>
+    </div>
+    <div class="login-card">
+      <h2>Admin Login</h2>
+      <p class="hint">Sign in with an authorized admin or moderator account.</p>
+      <div class="field"><label>Email</label><input class="input" id="email" type="email" placeholder="admin@email.com" autocomplete="username"></div>
+      <div class="field"><label>Password</label><input class="input" id="password" type="password" placeholder="Password" autocomplete="current-password"></div>
+      <button class="btn primary" style="width:100%" onclick="login()">Sign in</button>
+    </div>
+  </section>
+
+  <section id="dashboard" class="app hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="side-brand"><div class="brand-mark">e</div><div><div class="side-title">ehemehe.lk</div><div class="side-sub">Admin Dashboard</div></div></div>
+      <nav class="nav">
+        <div class="nav-group">Business</div>
+        <button id="tab-overview" onclick="showTab('overview')"><span class="nav-icon">📊</span><span class="nav-label">Overview</span></button>
+        <button id="tab-ads" onclick="showTab('ads')"><span class="nav-icon">📝</span><span class="nav-label">Ad Management</span></button>
+        <button id="tab-categories" onclick="showTab('categories')"><span class="nav-icon">🗂</span><span class="nav-label">Categories</span></button>
+        <button id="tab-promotions" onclick="showTab('promotions')"><span class="nav-icon">🚀</span><span class="nav-label">Ad Promotions</span></button>
+        <button id="tab-reports" onclick="showTab('reports')"><span class="nav-icon">🚩</span><span class="nav-label">Reported Ads</span></button>
+
+        <div class="nav-group">Users</div>
+        <button id="tab-users" onclick="showTab('users')"><span class="nav-icon">👥</span><span class="nav-label">Users</span></button>
+        <button id="tab-shops" onclick="showTab('shops')"><span class="nav-icon">🏪</span><span class="nav-label">Shops / Business</span></button>
+        <button id="tab-verification" onclick="showTab('verification')"><span class="nav-icon">✅</span><span class="nav-label">Verification</span></button>
+
+        <div class="nav-group">Finance</div>
+        <button id="tab-finance" onclick="showTab('finance')"><span class="nav-icon">💳</span><span class="nav-label">Payments</span></button>
+        <button id="tab-pricing" onclick="showTab('pricing')"><span class="nav-icon">💰</span><span class="nav-label">Pricing</span></button>
+        <button id="tab-vehiclefinance" onclick="showTab('vehiclefinance')"><span class="nav-icon">🚗</span><span class="nav-label">Vehicle Finance</span></button>
+        <button id="tab-invoices" onclick="showTab('invoices')"><span class="nav-icon">🧾</span><span class="nav-label">Invoices</span></button>
+
+        <div class="nav-group">Platform</div>
+        <button id="tab-locations" onclick="showTab('locations')"><span class="nav-icon">📍</span><span class="nav-label">Locations</span></button>
+        <button id="tab-fields" onclick="showTab('fields')"><span class="nav-icon">🔧</span><span class="nav-label">Custom Fields</span></button>
+        <button id="tab-roles" onclick="showTab('roles')"><span class="nav-icon">🛡</span><span class="nav-label">Roles & Staff</span></button>
+        <button id="tab-seo" onclick="showTab('seo')"><span class="nav-icon">🔎</span><span class="nav-label">SEO</span></button>
+        <button id="tab-api" onclick="showTab('api')"><span class="nav-icon">🔌</span><span class="nav-label">API Settings</span></button>
+        <button id="tab-banners" onclick="showTab('banners')"><span class="nav-icon">🖼</span><span class="nav-label">Banner Ads</span></button>
+      </nav>
+      <div class="side-footer">
+        <a class="quick-link" href="/" target="_blank"><span class="nav-icon">🌐</span><span class="nav-label">View Site</span></a>
+        <a class="quick-link" href="/post-ad.html" target="_blank"><span class="nav-icon">＋</span><span class="nav-label">Post Ad Page</span></a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="btn ghost mobile-menu" onclick="toggleSidebar()">☰</button>
+          <h1 id="pageTitle">Overview</h1>
+        </div>
+        <div class="top-actions">
+          <span class="staff-pill" id="staffInfoTop">STAFF</span>
+          <button class="btn ghost" onclick="refreshCurrentTab()">Refresh</button>
+          <button class="btn dark" onclick="logout()">Logout</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <section id="section-overview" class="section">
+          <div class="stats">
+            <div class="stat"><div class="num" id="statLiveAds">0</div><div class="label">Total Live Ads</div><div class="trend" id="trendLiveAds">Approved listings</div></div>
+            <div class="stat"><div class="num" id="statPendingAds">0</div><div class="label">Pending Ads</div><div class="trend">Awaiting review</div></div>
+            <div class="stat"><div class="num" id="statUsers">0</div><div class="label">Total Users</div><div class="trend">Buyers and sellers</div></div>
+            <div class="stat"><div class="num" id="statRevenue">LKR 0</div><div class="label">Revenue</div><div class="trend">Promotions and memberships</div></div>
+          </div>
+          <div class="grid two">
+            <div class="panel">
+              <div class="panel-head">
+                <div><h2>Revenue Graph</h2><p>Daily and monthly revenue from payments, promotions, and memberships.</p></div>
+                <select id="revenueMode" style="max-width:170px" onchange="renderRevenueChart()"><option value="daily">Daily</option><option value="monthly">Monthly</option></select>
+              </div>
+              <div class="chart-wrap"><canvas id="revenueCanvas" width="760" height="260"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><div><h2>Operations Snapshot</h2><p>Review queue and platform health.</p></div></div>
+              <div id="opsSnapshot" class="grid"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Recent Activity</h2><p>Latest listings, users, payments, and reports.</p></div></div>
+            <div id="recentActivity"></div>
+          </div>
+        </section>
+
+        <section id="section-ads" class="section hidden panel">
+          <div class="panel-head">
+            <div><h2>Ad & Listing Management</h2><p>Review, approve, reject, edit, and manage all classified listings.</p></div>
+            <div class="tools"><button class="btn" onclick="loadAds(true)">Refresh</button></div>
+          </div>
+          <div class="toolbar">
+            <input class="input" id="adSearch" placeholder="Search title, seller, phone, location..." oninput="renderAds()">
+            <select id="adStatus" onchange="renderAds()"><option value="all">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+            <select id="adCategory" onchange="renderAds()"><option value="all">All categories</option></select>
+            <select id="adLocation" onchange="renderAds()"><option value="all">All locations</option></select>
+            <button class="btn primary" onclick="openAdCreate()">Add Listing</button>
+          </div>
+          <div id="adsList" class="card-grid"></div>
+        </section>
+
+        <section id="section-categories" class="section hidden panel">
+          <div class="panel-head"><div><h2>Category Management</h2><p>Manage main categories and subcategories.</p></div><button class="btn" onclick="loadCategories(true)">Refresh</button></div>
+          <div class="grid two">
+            <div class="setting-card">
+              <h3>Add / Update Category</h3>
+              <input type="hidden" id="catId">
+              <div class="field"><label>Name</label><input class="input" id="catName" placeholder="Vehicles"></div>
+              <div class="field"><label>Slug</label><input class="input" id="catSlug" placeholder="vehicles"></div>
+              <div class="field"><label>Parent category</label><select id="catParent"><option value="">Main category</option></select></div>
+              <div class="actions"><button class="btn primary" onclick="saveCategory()">Save Category</button><button class="btn ghost" onclick="resetCategoryForm()">Clear</button></div>
+            </div>
+            <div id="categoriesList"></div>
+          </div>
+        </section>
+
+        <section id="section-promotions" class="section hidden panel">
+          <div class="panel-head">
+            <div>
+              <h2>Ad Promotions</h2>
+              <p>Manage Top Ads and banner placements.</p>
+            </div>
+            <div class="tools"><button class="btn" onclick="refreshPromotionsSection()">Refresh</button></div>
+          </div>
+
+          <div class="grid two">
+            <div class="setting-card">
+              <h3>Top Ad Manager</h3>
+              <p class="small">Select an ad and duration. The selected ad appears first inside its category.</p>
+              <input type="hidden" id="topPromoId">
+              <div class="field"><label>Ad</label><select id="topPromoAd"></select></div>
+              <div class="field"><label>Category</label><select id="topPromoCategory"></select></div>
+              <div class="field"><label>Show for days</label><input class="input" id="topPromoDays" type="number" min="1" value="7"></div>
+              <div class="field"><label><input type="checkbox" id="topPromoEnabled" checked> Enabled</label></div>
+              <button class="btn primary" onclick="saveTopAdPromotion()">Save Top Ad</button>
+            </div>
+
+            <div class="setting-card">
+              <h3>Banner Ad Manager</h3>
+              <p class="small">Banner is visible only when enabled and within the selected duration.</p>
+              <input type="hidden" id="promoBannerId">
+              <div class="field"><label><input type="checkbox" id="promoBannerEnabled" checked> Enable banner</label></div>
+              <div class="field"><label>Banner title</label><input class="input" id="promoBannerTitle" placeholder="Special promotion"></div>
+              <div class="field"><label>Image URL</label><input class="input" id="promoBannerImage" placeholder="https://..."></div>
+              <div class="field"><label>Target URL</label><input class="input" id="promoBannerUrl" placeholder="/ad/static-1"></div>
+              <div class="field"><label>Show for days</label><input class="input" id="promoBannerDays" type="number" min="1" value="7"></div>
+              <button class="btn primary" onclick="savePromoBanner()">Save Banner</button>
+            </div>
+          </div>
+
+          <div class="grid two" style="margin-top:16px">
+            <div>
+              <div class="panel-head"><div><h2>Active Top Ads</h2><p>Configured Top Ad promotions.</p></div></div>
+              <div id="topPromotionsList"></div>
+            </div>
+            <div>
+              <div class="panel-head"><div><h2>Banner Ads</h2><p>Configured banner ads.</p></div></div>
+              <div id="promoBannersList"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="section-reports" class="section hidden panel">
+          <div class="panel-head"><div><h2>Reported Ads</h2><p>Review user reports and take action against fraud, spam, or incorrect listings.</p></div><button class="btn" onclick="loadReports(true)">Refresh</button></div>
+          <div class="toolbar">
+            <input class="input" id="reportSearch" placeholder="Search reports..." oninput="renderReports()">
+            <select id="reportStatus" onchange="renderReports()"><option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="all">All statuses</option></select>
+            <span></span><span></span><span></span>
+          </div>
+          <div id="reportsList"></div>
+        </section>
+
+        <section id="section-users" class="section hidden panel">
+          <div class="panel-head"><div><h2>User & Membership Management</h2><p>Manage buyers, sellers, status, roles, and account controls.</p></div><button class="btn" onclick="loadUsers(true)">Refresh</button></div>
+          <div class="toolbar">
+            <input class="input" id="userSearch" placeholder="Search users..." oninput="renderUsers()">
+            <select id="userStatus" onchange="renderUsers()"><option value="all">All statuses</option><option value="approved">Approved</option><option value="pending">Pending</option><option value="blocked">Blocked</option><option value="suspended">Suspended</option></select>
+            <select id="userRole" onchange="renderUsers()"><option value="all">All roles</option><option value="user">User</option><option value="seller">Seller</option><option value="business">Business</option></select>
+            <span></span><span></span>
+          </div>
+          <div id="usersList"></div>
+        </section>
+
+        <section id="section-shops" class="section hidden panel">
+          <div class="panel-head"><div><h2>Business Directories / Shops</h2><p>Manage Pro seller profiles, shops, dealers, and business listings.</p></div><button class="btn" onclick="loadShops(true)">Refresh</button></div>
+          <div class="toolbar">
+            <input class="input" id="shopSearch" placeholder="Search shops..." oninput="renderShops()">
+            <select id="shopStatus" onchange="renderShops()"><option value="all">All statuses</option><option value="active">Active</option><option value="pending">Pending</option><option value="suspended">Suspended</option></select>
+            <span></span><span></span><button class="btn primary" onclick="openShopModal()">Add Shop</button>
+          </div>
+          <div id="shopsList"></div>
+        </section>
+
+        <section id="section-verification" class="section hidden panel">
+          <div class="panel-head"><div><h2>User Verification</h2><p>Review KYC documents, OTP verification, and identity status.</p></div><button class="btn" onclick="loadVerifications(true)">Refresh</button></div>
+          <div class="toolbar">
+            <input class="input" id="verifySearch" placeholder="Search verification requests..." oninput="renderVerifications()">
+            <select id="verifyStatus" onchange="renderVerifications()"><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="all">All statuses</option></select>
+            <span></span><span></span><span></span>
+          </div>
+          <div id="verificationList"></div>
+        </section>
+
+        <section id="section-finance" class="section hidden panel">
+          <div class="panel-head"><div><h2>Financial & Revenue Controls</h2><p>Payment logs from PayHere, bank transfers, cards, and promotions.</p></div><button class="btn" onclick="loadFinance(true)">Refresh</button></div>
+          <div class="toolbar">
+            <input class="input" id="paymentSearch" placeholder="Search payments..." oninput="renderPayments()">
+            <select id="paymentStatus" onchange="renderPayments()"><option value="all">All statuses</option><option value="success">Success</option><option value="pending">Pending</option><option value="failed">Failed</option></select>
+            <select id="paymentGateway" onchange="renderPayments()"><option value="all">All gateways</option><option value="payhere">PayHere</option><option value="bank">Bank Transfer</option><option value="card">Cards</option></select>
+            <span></span><span></span>
+          </div>
+          <div id="paymentsList"></div>
+        </section>
+
+        <section id="section-pricing" class="section hidden panel">
+          <div class="panel-head"><div><h2>Pricing & Subscriptions</h2><p>Manage promotion pricing and monthly membership packages.</p></div><button class="btn" onclick="loadPricing(true)">Refresh</button></div>
+          <div class="grid two">
+            <div class="setting-card">
+              <h3>Add / Update Plan</h3>
+              <input type="hidden" id="planId">
+              <div class="field"><label>Plan name</label><input class="input" id="planName" placeholder="Top Ad"></div>
+              <div class="field"><label>Type</label><select id="planType"><option value="promotion">Promotion</option><option value="membership">Membership</option></select></div>
+              <div class="field"><label>Price</label><input class="input" id="planPrice" type="number" placeholder="1500"></div>
+              <div class="field"><label>Duration days</label><input class="input" id="planDuration" type="number" placeholder="30"></div>
+              <button class="btn primary" onclick="savePlan()">Save Plan</button>
+            </div>
+<div id="pricingList"></div>
+          </div>
+        </section>
+
+        <section id="section-vehiclefinance" class="section hidden panel">
+          <div class="panel-head">
+            <div><h2>Vehicle Finance Settings</h2><p>Set the automatic finance calculation for vehicle listings.</p></div>
+            <button class="btn" onclick="loadSettings(true); fillVehicleFinanceSettingsForm(); bindVehicleFinanceSettingsInputs();">Refresh</button>
+          </div>
+          <div class="grid two">
+
+
+            <div class="setting-card">
+              <h3>Vehicle Finance Settings</h3>
+              <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+                <div class="field"><label>Down Payment %</label><input class="input" id="vehicleDownPaymentPercent" type="number" min="0" max="100" step="0.01" placeholder="40"></div>
+                <div class="field"><label>Annual Finance Rate %</label><input class="input" id="vehicleAnnualRatePercent" type="number" min="0" step="0.01" placeholder="15"></div>
+                <div class="field"><label>Term Months</label><input class="input" id="vehicleFinanceMonths" type="number" min="1" step="1" placeholder="48"></div>
+                <div class="field"><label>Finance Company Phone</label><input class="input" id="vehicleFinancePhone" placeholder="+94 77 000 0000"></div>
+              </div>
+              <div id="vehicleFinancePreview" class="notice" style="margin-top:8px"></div>
+              <button class="btn primary" onclick="saveVehicleFinanceSettings()">Save Finance Settings</button>
+            </div>
+            
+            <div class="setting-card">
+              <h3>How it works</h3>
+              <p class="small">Vehicle ad posters only enter the vehicle price. Down payment and monthly payment are calculated automatically from these admin settings.</p>
+              <div class="notice">Example: if price is LKR 10,000,000 and down payment is 40%, the customer-facing ad shows only the down payment, monthly payment, and finance company contact.</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="section-invoices" class="section hidden panel">
+          <div class="panel-head"><div><h2>Invoices</h2><p>Track generated invoices and transaction records.</p></div><button class="btn" onclick="loadInvoices(true)">Refresh</button></div>
+          <div id="invoicesList"></div>
+        </section>
+
+        <section id="section-locations" class="section hidden panel">
+          <div class="panel-head"><div><h2>Location & Region Settings</h2><p>Manage provinces, districts, and cities used by listing filters.</p></div><button class="btn" onclick="loadLocations(true)">Refresh</button></div>
+          <div class="grid two">
+            <div class="setting-card">
+              <h3>Districts</h3>
+              <div class="field"><label>District name</label><input class="input" id="districtName" placeholder="Colombo"></div>
+              <button class="btn primary" onclick="addDistrict()">Add District</button>
+              <div id="districtsList" style="margin-top:14px"></div>
+            </div>
+            <div class="setting-card">
+              <h3>Cities</h3>
+              <div class="field"><label>City name</label><input class="input" id="cityName" placeholder="Dehiwala"></div>
+              <div class="field"><label>District</label><select id="cityDistrict"></select></div>
+              <button class="btn primary" onclick="addCity()">Add City</button>
+              <div id="citiesList" style="margin-top:14px"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="section-fields" class="section hidden panel">
+          <div class="panel-head"><div><h2>Custom Filters Management</h2><p>Create category-specific filters such as mileage, perches, bedrooms, or brand.</p></div><button class="btn" onclick="loadCustomFields(true)">Refresh</button></div>
+          <div class="grid two">
+            <div class="setting-card">
+              <h3>Add Custom Field</h3>
+              <input type="hidden" id="fieldId">
+              <div class="field"><label>Category</label><select id="fieldCategory"></select></div>
+              <div class="field"><label>Field label</label><input class="input" id="fieldLabel" placeholder="Mileage"></div>
+              <div class="field"><label>Field type</label><select id="fieldType"><option value="text">Text</option><option value="number">Number</option><option value="select">Select</option><option value="checkbox">Checkbox</option></select></div>
+              <div class="field"><label>Options</label><textarea id="fieldOptions" placeholder="One option per line"></textarea></div>
+              <button class="btn primary" onclick="saveCustomField()">Save Field</button>
+            </div>
+            <div id="fieldsList"></div>
+          </div>
+        </section>
+
+        <section id="section-roles" class="section hidden panel">
+          <div class="panel-head"><div><h2>Role-Based Access Control</h2><p>Manage Super Admin, Moderator, and Support Agent access.</p></div><button class="btn" onclick="loadStaff(true)">Refresh</button></div>
+          <div class="grid two">
+            <div class="setting-card">
+              <h3>Add / Update Staff</h3>
+              <div class="field"><label>Email</label><input class="input" id="staffEmail" placeholder="staff@email.com"></div>
+              <div class="field"><label>Role</label><select id="staffRole"><option value="moderator">Moderator</option><option value="support">Support Agent</option><option value="admin">Admin</option><option value="super_admin">Super Admin</option></select></div>
+              <div class="actions" style="margin-bottom:10px"><button class="btn small" onclick="setStaffPreset('moderator')">Moderator preset</button><button class="btn small" onclick="setStaffPreset('support')">Support preset</button><button class="btn small" onclick="setStaffPreset('full')">Full access</button><button class="btn small" onclick="setStaffPreset('clear')">Clear</button></div>
+              <div class="perm-grid" id="staffPerms"></div>
+              <button class="btn primary" onclick="saveStaff()">Save Staff</button>
+            </div>
+            <div>
+              <div class="table-wrap" id="rolesReference"></div>
+              <div id="staffList" style="margin-top:14px"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="section-seo" class="section hidden panel">
+          <div class="panel-head"><div><h2>System Settings & SEO</h2><p>Manage meta titles, descriptions, keywords, and social preview content.</p></div><button class="btn" onclick="loadSettings(true)">Refresh</button></div>
+          <div class="settings-grid">
+            <div class="setting-card"><h3>Homepage SEO</h3><div class="field"><label>Meta title</label><input class="input" id="seoTitle"></div><div class="field"><label>Meta description</label><textarea id="seoDescription"></textarea></div><div class="field"><label>Keywords</label><textarea id="seoKeywords"></textarea></div><button class="btn primary" onclick="saveSeo()">Save SEO</button></div>
+            <div class="setting-card"><h3>Open Graph</h3><div class="field"><label>OG title</label><input class="input" id="ogTitle"></div><div class="field"><label>OG image URL</label><input class="input" id="ogImage"></div><button class="btn primary" onclick="saveOpenGraph()">Save Open Graph</button></div>
+          </div>
+        </section>
+
+        <section id="section-api" class="section hidden panel">
+          <div class="panel-head"><div><h2>API Settings</h2><p>Configure SMS gateways, OTP providers, and payment gateway keys.</p></div><button class="btn" onclick="loadSettings(true)">Refresh</button></div>
+          <div class="settings-grid">
+            <div class="setting-card"><h3>Text.lk SMS / OTP Gateway</h3><div class="notice">API token is stored securely in server environment variables, not in the browser.</div><div class="field"><label>Provider</label><input class="input" id="smsProvider" value="Text.lk"></div><div class="field"><label>Text.lk Endpoint</label><input class="input" id="smsEndpoint" value="https://app.text.lk/api/v3/sms/send" readonly></div><div class="field"><label>Sender ID</label><input class="input" id="smsSender" placeholder="EHEMEHE"></div><div class="field"><label>OTP expiry minutes</label><input class="input" id="otpExpiryMinutes" type="number" min="1" max="30" placeholder="5"></div><div class="field"><label>OTP message template</label><textarea id="otpTemplate" placeholder="Your ehemehe.lk verification code is {{code}}. Do not share this code."></textarea></div><div class="field"><label>Test phone number</label><input class="input" id="smsTestPhone" placeholder="0771234567"></div><div class="actions"><button class="btn primary" onclick="saveApiSettings()">Save SMS Settings</button><button class="btn soft" onclick="sendAdminTestOtp()">Send Test OTP</button></div></div>
+            <div class="setting-card"><h3>Payment Gateway</h3><div class="field"><label>Gateway</label><input class="input" id="paymentProvider" placeholder="PayHere"></div><div class="field"><label>Merchant ID</label><input class="input" id="merchantId"></div><div class="field"><label>Secret / Key</label><input class="input" id="paymentSecret" type="password"></div><button class="btn primary" onclick="savePaymentSettings()">Save Payment Settings</button></div>
+          </div>
+        </section>
+
+        <section id="section-banners" class="section hidden panel">
+          <div class="panel-head"><div><h2>Banner Ads</h2><p>Manage homepage banners, private ads, and promotional placements.</p></div><button class="btn" onclick="loadBanners(true)">Refresh</button></div>
+          <div class="grid two">
+            <div class="setting-card">
+              <h3>Add Banner</h3>
+              <input type="hidden" id="bannerId">
+              <div class="field"><label>Title</label><input class="input" id="bannerTitle"></div>
+              <div class="field"><label>Image URL</label><input class="input" id="bannerImage"></div>
+              <div class="field"><label>Target URL</label><input class="input" id="bannerUrl"></div>
+              <div class="field"><label>Placement</label><select id="bannerPlacement"><option value="home_top">Home top</option><option value="home_middle">Home middle</option><option value="category_top">Category top</option></select></div>
+              <button class="btn primary" onclick="saveBanner()">Save Banner</button>
+            </div>
+            <div id="bannersList"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </section>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><h3 id="modalTitle">Edit</h3><button class="btn ghost" onclick="closeModal()">✕</button></div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="/admin.js?v=20260713-sms-otp"></script>
+</body>
+</html>

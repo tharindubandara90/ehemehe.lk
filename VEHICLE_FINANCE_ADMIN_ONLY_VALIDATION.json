@@ -1,0 +1,31 @@
+{
+  "base_zip": "ehemehe_vehicle_finance_feature_final.zip",
+  "admin_separate_vehicle_finance_tab": true,
+  "vehicle_finance_removed_from_pricing_section": true,
+  "post_ad_page_has_no_rate_input": true,
+  "post_ad_page_has_no_term_input": true,
+  "user_finance_note_hides_rate": true,
+  "admin_controls_rate": true,
+  "syntax": {
+    "admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "marketplace.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  }
+}

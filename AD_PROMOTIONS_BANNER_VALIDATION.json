@@ -1,0 +1,39 @@
+{
+  "base_zip": "ehemehe_admin_login_failed_fetch_fixed.zip",
+  "features": [
+    "top_ad_manager",
+    "banner_ad_manager",
+    "top_ads_sort_first_in_category",
+    "enabled_banner_with_duration",
+    "supabase_schema"
+  ],
+  "syntax": {
+    "admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "marketplace.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  },
+  "checks": {
+    "admin_top_ad_manager": true,
+    "admin_banner_manager": true,
+    "public_top_sort": true,
+    "public_banner": true,
+    "sql_file": true
+  }
+}

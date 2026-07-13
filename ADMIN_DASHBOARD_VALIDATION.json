@@ -1,0 +1,56 @@
+{
+  "syntax": {
+    "admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "marketplace.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  },
+  "routes": {
+    "/admin": true,
+    "/admin.html": true,
+    "/post-ad.html": true,
+    "/index.html": true
+  },
+  "sections": {
+    "section-overview": true,
+    "section-ads": true,
+    "section-categories": true,
+    "section-promotions": true,
+    "section-reports": true,
+    "section-users": true,
+    "section-shops": true,
+    "section-verification": true,
+    "section-finance": true,
+    "section-pricing": true,
+    "section-invoices": true,
+    "section-locations": true,
+    "section-fields": true,
+    "section-roles": true,
+    "section-seo": true,
+    "section-api": true,
+    "section-banners": true
+  },
+  "admin_ui_no_sinhala": {
+    "admin.html": true,
+    "admin.js": true
+  },
+  "http_/admin/": 200,
+  "http_/admin/index.html": 200,
+  "http_/admin.html": 200
+}

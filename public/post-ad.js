@@ -1,0 +1,183 @@
+let CATEGORIES=[], CITIES=[], currentUser=null;
+// USER_FINANCE_RATE_INPUT_REMOVED: users only enter vehicle price; rate is admin-controlled.
+let FINANCE_SETTINGS = {downPaymentPercent:40, annualRatePercent:15, months:48, companyPhone:'+94 77 000 0000'};
+const el=(id)=>document.getElementById(id); const msg=(m)=>alert(m);
+const money=(v)=>{const n=Number(String(v??'').replace(/[^\d.]/g,''));return Number.isFinite(n)?'LKR '+Math.round(n).toLocaleString('en-LK'):'LKR 0'};
+const slug=(v)=>String(v||'').toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+const localKey=(key)=>'ehemeheSiteSetting:'+key;
+
+const SIMPLE_FIELD_DEFINITIONS={
+  vehicles:[['vehicle_brand','Brand / Make'],['vehicle_model','Model'],['year_manufacture','Year of Manufacture'],['year_registered','Year of Registration'],['mileage_km','Mileage (km)'],['fuel_type','Fuel Type'],['transmission','Gear / Transmission'],['engine_capacity','Engine CC'],['ownership','Ownership']],
+  property:[['property_type','Property Type'],['listing_type','Listing Type'],['bedrooms','Bedrooms'],['bathrooms','Bathrooms'],['floor_area_sqft','Floor Area'],['land_size','Land Size'],['deed_type','Deed / Title']],
+  'mobile-phones':[['phone_brand','Brand'],['phone_model','Model'],['storage','Storage'],['ram','RAM'],['battery_health','Battery Health'],['warranty','Warranty']],
+  electronics:[['brand','Brand'],['model','Model'],['warranty','Warranty'],['specifications','Specifications']],
+  general:[['brand','Brand'],['model','Model'],['warranty','Warranty'],['extra_details','Extra Details']]
+};
+let SIMPLE_IMAGES=[];
+function simpleFieldGroup(){
+  const c=selectedCategory();
+  const key=String(c.id||c.slug||c.name||'').toLowerCase();
+  const joined=[c.id,c.slug,c.name,c.parent_id].join(' ').toLowerCase();
+  if(/vehicle|car|motor|bike|van|truck/.test(joined)) return 'vehicles';
+  if(/property|house|land|apartment/.test(joined)) return 'property';
+  if(/mobile|phone|tablet/.test(joined)) return 'mobile-phones';
+  if(/electronic|laptop|tv|computer/.test(joined)) return 'electronics';
+  return SIMPLE_FIELD_DEFINITIONS[key]?key:'general';
+}
+function renderSimpleDynamicFields(){
+  const box=el('simpleDynamicFields'); if(!box) return;
+  const group=simpleFieldGroup();
+  const fields=SIMPLE_FIELD_DEFINITIONS[group]||SIMPLE_FIELD_DEFINITIONS.general;
+  box.classList.remove('hidden');
+  box.innerHTML='<h3>Category Details</h3><div class="grid">'+fields.map(([id,label])=>`<div class="field"><label>${label}</label><input class="input" data-simple-field="${id}"></div>`).join('')+'</div>';
+}
+async function simpleCompressImage(file){
+  const bitmap=await createImageBitmap(file);
+  const max=1600; let w=bitmap.width,h=bitmap.height; const r=Math.min(1,max/Math.max(w,h)); w=Math.round(w*r); h=Math.round(h*r);
+  const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h; const ctx=canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(bitmap,0,0,w,h);
+  return canvas.toDataURL('image/jpeg',0.88);
+}
+async function handleSimpleImages(event){
+  SIMPLE_IMAGES=[];
+  const files=Array.from(event.target.files||[]).slice(0,10);
+  for(const file of files){ if(file.type.startsWith('image/')) SIMPLE_IMAGES.push(await simpleCompressImage(file)); }
+  const preview=el('simpleImagePreview'); if(preview) preview.innerHTML=SIMPLE_IMAGES.map(src=>`<img src="${src}">`).join('');
+}
+function collectSimpleFields(){
+  const out={}; document.querySelectorAll('[data-simple-field]').forEach(n=>{ if(n.value.trim()) out[n.dataset.simpleField]=n.value.trim(); }); return out;
+}
+
+function localSetting(key){try{return localStorage.getItem(localKey(key));}catch(e){return null;}}
+async function init(){ const {data}=await supabaseClient.auth.getSession(); await Promise.all([loadLookups(), loadFinanceSettings()]); if(data.session){currentUser=data.session.user; showPost();} updateFinanceBox(); }
+async function loadFinanceSettings(){
+  const defaults={vehicle_downpayment_percent:40,vehicle_annual_rate_percent:15,vehicle_finance_months:48,vehicle_finance_company_phone:'+94 77 000 0000'};
+  const values={...defaults};
+  Object.keys(values).forEach(k=>{const local=localSetting(k); if(local!==null&&local!=='') values[k]=local;});
+  try{
+    const {data,error}=await supabaseClient.from('site_settings').select('key,value').in('key',Object.keys(defaults));
+    if(!error && Array.isArray(data)) data.forEach(r=>{ values[r.key]=r.value; });
+  }catch(e){}
+  FINANCE_SETTINGS={
+    downPaymentPercent:Number(values.vehicle_downpayment_percent)||40,
+    annualRatePercent:Number(values.vehicle_annual_rate_percent)||15,
+    months:Math.max(1,Math.round(Number(values.vehicle_finance_months)||48)),
+    companyPhone:String(values.vehicle_finance_company_phone||'+94 77 000 0000')
+  };
+}
+async function loadLookups(){ const [cats,cities]=await Promise.all([supabaseClient.from('categories').select('*').eq('is_active',true).order('name'),supabaseClient.from('cities').select('*').eq('is_active',true).order('name')]); CATEGORIES=cats.data||[]; CITIES=cities.data||[]; el('category').innerHTML=CATEGORIES.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); el('city').innerHTML=CITIES.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); }
+function showPost(){ el('authPanel').classList.add('hidden'); el('postPanel').classList.remove('hidden'); updateFinanceBox(); }
+
+function setOtpStatus(id, text, type='pending'){
+  const node=el(id); if(!node) return;
+  node.textContent=text;
+  node.className='otp-status '+type;
+}
+function resetRegisterOtp(){
+  if(window.EHM_OTP) EHM_OTP.reset('register');
+  setOtpStatus('authOtpStatus','Phone verification is required before registration.','pending');
+}
+function resetAdPhoneOtp(){
+  if(window.EHM_OTP) EHM_OTP.reset('post_ad');
+  setOtpStatus('adPhoneOtpStatus','Verify this phone number before submitting the ad.','pending');
+}
+async function sendRegisterOtp(){
+  try{
+    const phone=el('authPhone').value;
+    setOtpStatus('authOtpStatus','Sending OTP...','pending');
+    await EHM_OTP.request(phone,'register');
+    setOtpStatus('authOtpStatus','OTP sent. Check your phone.','pending');
+  }catch(e){ setOtpStatus('authOtpStatus', e.message, 'error'); }
+}
+async function verifyRegisterOtp(){
+  try{
+    const phone=el('authPhone').value;
+    const otp=el('authOtp').value;
+    setOtpStatus('authOtpStatus','Verifying OTP...','pending');
+    await EHM_OTP.verify(phone,'register',otp);
+    setOtpStatus('authOtpStatus','Phone verified successfully. You can register now.','');
+  }catch(e){ setOtpStatus('authOtpStatus', e.message, 'error'); }
+}
+async function sendAdPhoneOtp(){
+  try{
+    const phone=el('phone').value;
+    setOtpStatus('adPhoneOtpStatus','Sending OTP...','pending');
+    await EHM_OTP.request(phone,'post_ad');
+    setOtpStatus('adPhoneOtpStatus','OTP sent. Check your phone.','pending');
+  }catch(e){ setOtpStatus('adPhoneOtpStatus', e.message, 'error'); }
+}
+async function verifyAdPhoneOtp(){
+  try{
+    const phone=el('phone').value;
+    const otp=el('adPhoneOtp').value;
+    setOtpStatus('adPhoneOtpStatus','Verifying OTP...','pending');
+    await EHM_OTP.verify(phone,'post_ad',otp);
+    setOtpStatus('adPhoneOtpStatus','Phone verified successfully.','');
+  }catch(e){ setOtpStatus('adPhoneOtpStatus', e.message, 'error'); }
+}
+
+async function loginUser(){ const email=el('authEmail').value.trim(); const password=el('authPassword').value; const {data,error}=await supabaseClient.auth.signInWithPassword({email,password}); if(error){msg(error.message);return;} currentUser=data.user; showPost(); }
+async function registerUser(){
+  const email=el('authEmail').value.trim();
+  const password=el('authPassword').value;
+  const phone=EHM_OTP.normalizePhone(el('authPhone').value);
+  if(!EHM_OTP.isVerified(phone,'register')){
+    setOtpStatus('authOtpStatus','Verify your phone number before registration.','error');
+    return;
+  }
+  const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{phone,phone_verified:true}}});
+  if(error){msg(error.message);return;}
+  currentUser=data.user;
+  try{
+    await supabaseClient.from('profiles').upsert({id:currentUser.id,email,phone,phone_verified:true,updated_at:new Date().toISOString()});
+  }catch(e){}
+  msg('Registered. Admin approval may be required.');
+  showPost();
+}
+async function logoutUser(){ await supabaseClient.auth.signOut(); location.reload(); }
+function selectedCategory(){ return CATEGORIES.find(c=>String(c.id)===String(el('category')?.value)) || {}; }
+function isVehicleCategory(){
+  const c=selectedCategory();
+  const keys=[c.id,c.slug,c.name,c.parent_id,c.parent_slug,el('category')?.value].map(slug);
+  const vehicleKeys=['vehicles','vehicle','cars','car','motorbikes','motorbike','bikes','vans','trucks','buses','three-wheelers','three-wheeler'];
+  return keys.some(k=>vehicleKeys.includes(k));
+}
+function calcFinance(price){
+  const amount=Number(String(price??'').replace(/[^\d.]/g,''));
+  if(!Number.isFinite(amount)||amount<=0) return null;
+  const downPayment=Math.round(amount*FINANCE_SETTINGS.downPaymentPercent/100);
+  const principal=Math.max(0,amount-downPayment);
+  const r=FINANCE_SETTINGS.annualRatePercent/100/12;
+  const months=FINANCE_SETTINGS.months;
+  const monthly=r<=0?principal/months:(principal*r*Math.pow(1+r,months))/(Math.pow(1+r,months)-1);
+  return {downPayment, financeAmount:Math.round(principal), monthlyPayment:Math.round(monthly), ...FINANCE_SETTINGS};
+}
+function updateFinanceBox(){ try{renderSimpleDynamicFields();}catch(e){}
+  const box=el('vehicleFinanceBox'); if(!box) return;
+  if(!isVehicleCategory()){ box.classList.add('hidden'); box.innerHTML=''; return; }
+  const f=calcFinance(el('price').value);
+  box.classList.remove('hidden');
+  box.innerHTML = f ? `<h3>Vehicle Finance Estimate</h3><div class="finance-grid"><div class="finance-item"><span>Down Payment</span><strong>${money(f.downPayment)}</strong></div><div class="finance-item"><span>Monthly Payment</span><strong>${money(f.monthlyPayment)}</strong></div><div class="finance-item"><span>Finance Contact</span><strong>${FINANCE_SETTINGS.companyPhone}</strong></div></div><div class="finance-note">Finance is calculated automatically from admin settings. Final approval depends on the finance company.</div>` : `<h3>Vehicle Finance Estimate</h3><div class="finance-note">Enter the vehicle price to calculate down payment and monthly payment. Finance contact: ${FINANCE_SETTINGS.companyPhone}</div>`;
+}
+async function submitAd(){
+  if(!currentUser){msg('Please login');return;}
+  const verifiedPhone=EHM_OTP.normalizePhone(el('phone').value);
+  if(!EHM_OTP.isVerified(verifiedPhone,'post_ad')){
+    setOtpStatus('adPhoneOtpStatus','Verify this phone number before submitting the ad.','error');
+    return;
+  }
+  const finance=isVehicleCategory()?calcFinance(el('price').value):null;
+  const baseDescription=el('description').value.trim();
+  const financeText=finance?`\n\nFinance Estimate:\nDown Payment: ${money(finance.downPayment)}\nMonthly Payment: ${money(finance.monthlyPayment)}\nFinance Company: ${FINANCE_SETTINGS.companyPhone}`:'';
+  const payload={user_id:currentUser.id,title:el('title').value.trim(),price:el('price').value||null,category_id:el('category').value||null,city_id:el('city').value||null,phone:verifiedPhone,phone_verified:true,phone_verified_at:new Date().toISOString(),image_url:SIMPLE_IMAGES[0]||'',images:SIMPLE_IMAGES,custom_fields:collectSimpleFields(),description:(baseDescription+financeText).trim(),status:'pending'};
+  if(finance){ Object.assign(payload,{finance_enabled:true,finance_downpayment:finance.downPayment,finance_monthly_payment:finance.monthlyPayment,finance_downpayment_percent:finance.downPaymentPercent,finance_annual_rate_percent:finance.annualRatePercent,finance_months:finance.months,finance_company_phone:FINANCE_SETTINGS.companyPhone}); }
+  if(!payload.title){msg('Title required');return;}
+  let {error}=await supabaseClient.from('ads').insert(payload);
+  if(error && String(error.message||'').includes('finance_')){
+    const fallback={...payload};
+    ['finance_enabled','finance_downpayment','finance_monthly_payment','finance_downpayment_percent','finance_annual_rate_percent','finance_months','finance_company_phone','phone_verified','phone_verified_at','images','custom_fields'].forEach(k=>delete fallback[k]);
+    const retry=await supabaseClient.from('ads').insert(fallback); error=retry.error;
+  }
+  if(error){msg(error.message);return;}
+  msg('Ad submitted for admin approval'); ['title','price','phone','description'].forEach(id=>el(id).value=''); SIMPLE_IMAGES=[]; if(el('simpleImagePreview'))el('simpleImagePreview').innerHTML=''; updateFinanceBox();
+}
+init();

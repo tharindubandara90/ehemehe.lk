@@ -1,0 +1,53 @@
+{
+  "feature": "Text.lk SMS OTP Gateway",
+  "token_exposed_in_frontend": false,
+  "textlk_endpoint": "https://app.text.lk/api/v3/sms/send",
+  "server_api_routes": [
+    "/api/request-otp",
+    "/api/verify-otp"
+  ],
+  "register_phone_otp_required": true,
+  "post_ad_phone_otp_required": true,
+  "admin_sms_gateway_settings": true,
+  "local_server_handles_api": true,
+  "sql_file": "supabase_sms_otp_schema.sql",
+  "syntax": {
+    "public/post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/otp-client.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "api/request-otp.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "api/verify-otp.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "api/_otp-utils.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "server.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  },
+  "docs_source": "Text.lk OAuth POST endpoint /api/v3/sms/send with Bearer token"
+}

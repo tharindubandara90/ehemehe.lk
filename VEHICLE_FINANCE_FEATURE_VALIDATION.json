@@ -1,0 +1,37 @@
+{
+  "base_zip": "ehemehe_admin_filters_fixed_final.zip",
+  "features": [
+    "admin_vehicle_finance_settings",
+    "post_ad_vehicle_finance_auto_calculation",
+    "ad_management_vehicle_finance_preview",
+    "public_vehicle_ad_card_finance_line",
+    "localStorage_and_site_settings_sync",
+    "supabase_optional_finance_columns_sql"
+  ],
+  "syntax": {
+    "admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "marketplace.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  },
+  "admin_has_finance_settings": true,
+  "post_has_finance_box": true,
+  "public_has_finance_line": true,
+  "sql_file": "supabase_vehicle_finance_settings.sql"
+}

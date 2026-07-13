@@ -1,0 +1,31 @@
+{
+  "static_site_ads_detected": 16,
+  "admin_loads_site_static_ads": true,
+  "admin_static_edit_localstorage": true,
+  "public_site_reads_admin_static_overrides": true,
+  "ad_management_default_status": "All statuses",
+  "syntax": {
+    "admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "marketplace.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  },
+  "expected_dashboard_live_ads_if_supabase_empty": 16,
+  "logic_note": "Dashboard merges Supabase ads first, then site static ads. Duplicates are removed by title/location/price."
+}

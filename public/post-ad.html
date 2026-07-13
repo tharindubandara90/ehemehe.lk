@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Post Ad - ehemehe.lk</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase.js"></script>
+  <style>
+    :root{--brand:#06b6d4;--blue:#2563eb;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--soft:#f6f9fc}
+    body{margin:0;font-family:Inter,system-ui,Arial;background:#f6f8fb;color:var(--ink)}
+    .top{background:#0f172a;color:white;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:900;font-size:22px}
+    .wrap{max-width:920px;margin:auto;padding:24px}.panel{background:white;border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 10px 30px rgba(15,23,42,.06);margin-bottom:18px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{margin-bottom:12px}.field label{display:block;font-weight:800;font-size:13px;margin-bottom:6px}.input,select,textarea{width:100%;padding:12px;border:1px solid #dbe3ee;border-radius:14px;box-sizing:border-box}textarea{min-height:120px}.btn{border:0;background:linear-gradient(135deg,var(--brand),var(--blue));color:white;padding:12px 18px;border-radius:14px;font-weight:900;cursor:pointer;text-decoration:none}.btn.dark{background:#0f172a}.notice{padding:12px;border-radius:14px;background:#ecfeff;color:#155e75;border:1px solid #a5f3fc}.hidden{display:none!important}
+    .finance-box{border:1px solid #bae6fd;background:#f0fbff;border-radius:18px;padding:16px;margin:14px 0}.finance-box h3{margin:0 0 10px;font-size:18px}.finance-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.finance-item{background:white;border:1px solid #dbeafe;border-radius:14px;padding:12px}.finance-item span{display:block;color:var(--muted);font-size:12px;font-weight:800}.finance-item strong{display:block;color:#0891b2;font-size:18px;margin-top:4px}.finance-note{color:#475569;font-size:12px;margin-top:10px;line-height:1.45}
+    @media(max-width:750px){.grid,.finance-grid{grid-template-columns:1fr}.top{display:block}.top a{display:inline-block;margin-top:10px}}
+  
+    .otp-box{border:1px solid #bae6fd;background:#f0f9ff;border-radius:16px;padding:12px;margin-top:8px}
+    .otp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .otp-row input{max-width:180px}
+    .otp-status{font-size:12px;color:#0f766e;font-weight:800;margin-top:8px}
+    .otp-status.error{color:#b91c1c}
+    .otp-status.pending{color:#075985}
+
+  
+    .dynamic-fields{border:1px solid #bae6fd;background:#f0f9ff;border-radius:16px;padding:14px;margin:10px 0}.dynamic-fields h3{margin:0 0 10px}.image-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:10px}.image-preview-grid img{width:100%;height:120px;object-fit:cover;border-radius:12px}
+
+  </style>
+  <style id="mobile-footer-hide">@media (max-width:767px){footer{display:none!important}body{padding-bottom:76px!important}}
+    .otp-box{border:1px solid #bae6fd;background:#f0f9ff;border-radius:16px;padding:12px;margin-top:8px}
+    .otp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .otp-row input{max-width:180px}
+    .otp-status{font-size:12px;color:#0f766e;font-weight:800;margin-top:8px}
+    .otp-status.error{color:#b91c1c}
+    .otp-status.pending{color:#075985}
+
+  
+    .dynamic-fields{border:1px solid #bae6fd;background:#f0f9ff;border-radius:16px;padding:14px;margin:10px 0}.dynamic-fields h3{margin:0 0 10px}.image-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:10px}.image-preview-grid img{width:100%;height:120px;object-fit:cover;border-radius:12px}
+
+  </style>
+</head>
+<body>
+  <div class="top"><div class="brand">ehemehe.lk</div><div><a class="btn dark" href="./">Home</a> <a class="btn dark" href="./browse.html">Browse Ads</a></div></div>
+  <main class="wrap">
+    <div class="panel" id="authPanel"><h2>User Login / Register</h2><p class="notice">Please login or register to post an ad.</p><div class="grid"><div class="field"><label>Email</label><input id="authEmail" class="input" type="email"></div><div class="field"><label>Password</label><input id="authPassword" class="input" type="password"></div><div class="field"><label>Phone for registration OTP</label><input id="authPhone" class="input" placeholder="0771234567" oninput="resetRegisterOtp()"></div></div><div class="otp-box"><div class="otp-row"><button class="btn dark" type="button" onclick="sendRegisterOtp()">Send Registration OTP</button><input id="authOtp" class="input" placeholder="6-digit OTP" inputmode="numeric" maxlength="6"><button class="btn" type="button" onclick="verifyRegisterOtp()">Verify OTP</button></div><div id="authOtpStatus" class="otp-status pending">Phone verification is required before registration.</div></div><div class="grid"><button class="btn" onclick="loginUser()">Login</button><button class="btn dark" onclick="registerUser()">Register</button></div></div>
+    <div class="panel hidden" id="postPanel"><h2>Post New Ad</h2><p class="notice">Submitted ads will be sent for admin approval before appearing on the public site.</p><div class="grid"><div class="field"><label>Title</label><input id="title" class="input"></div><div class="field"><label>Price</label><input id="price" class="input" type="number" oninput="updateFinanceBox()"></div><div class="field"><label>Category</label><select id="category" onchange="updateFinanceBox()"></select></div><div class="field"><label>City</label><select id="city"></select></div><div class="field"><label>Phone</label><input id="phone" class="input" placeholder="0771234567" oninput="resetAdPhoneOtp()"><div class="otp-box"><div class="otp-row"><button class="btn dark" type="button" onclick="sendAdPhoneOtp()">Send OTP</button><input id="adPhoneOtp" class="input" placeholder="6-digit OTP" inputmode="numeric" maxlength="6"><button class="btn" type="button" onclick="verifyAdPhoneOtp()">Verify Phone</button></div><div id="adPhoneOtpStatus" class="otp-status pending">Verify this phone number before submitting the ad.</div></div></div><div class="field"><label>Photos</label><input id="image_files" class="input" type="file" accept="image/*" multiple onchange="handleSimpleImages(event)"><div id="simpleImagePreview" class="image-preview-grid"></div></div></div><div id="vehicleFinanceBox" class="finance-box hidden"></div><div id="simpleDynamicFields" class="dynamic-fields hidden"></div><div class="field"><label>Description</label><textarea id="description"></textarea></div><button class="btn" onclick="submitAd()">Submit for Approval</button> <button class="btn dark" onclick="logoutUser()">Logout</button></div>
+  </main>
+  <script src="./otp-client.js"></script>
+  <script src="./post-ad.js?v=20260713-category-fields-image-upload"></script>
+</body>
+</html>

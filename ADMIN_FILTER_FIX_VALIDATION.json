@@ -1,0 +1,31 @@
+{
+  "base_zip": "ehemehe_admin_site_data_sync_fixed_final.zip",
+  "fix": "ad_management_filter_matching",
+  "data_logic_note": "Data sources unchanged. Filter matching now checks category id, slug, name, subcategory, parent category, city, district, and location names.",
+  "syntax": {
+    "admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "marketplace.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  },
+  "has_robust_category_matching": true,
+  "has_robust_location_matching": true,
+  "preserves_filter_select_values": true,
+  "script_cache_bust": true
+}

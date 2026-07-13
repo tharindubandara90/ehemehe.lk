@@ -1,0 +1,55 @@
+{
+  "feature": "Category-specific post ad fields + real image browser upload + client compression",
+  "react_post_ad_category_fields_script": true,
+  "photo_button_uses_file_browser": true,
+  "fallback_post_ad_dynamic_fields": true,
+  "fallback_post_ad_file_input": true,
+  "sql_file": "supabase_category_fields_images_schema.sql",
+  "syntax": {
+    "public/post-ad-category-fields.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/otp-client.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/js/index-BsKly-Vj.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "server.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  },
+  "field_groups": [
+    "vehicles",
+    "property/home/land",
+    "mobile phones",
+    "electronics",
+    "jobs",
+    "services",
+    "animals & pets",
+    "home & garden",
+    "business & industry",
+    "education",
+    "fashion"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "ehemehe-lk-marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "serve public -l 3000",
+    "serve": "npx serve public",
+    "deploy": "vercel --prod",
+    "local": "npx serve public",
+    "dev": "serve public -l 3000",
+    "preview": "serve public"
+  },
+  "devDependencies": {
+    "vercel": "latest",
+    "serve": "^14.2.4"
+  },
+  "dev": "node server.js",
+  "start": "node server.js",
+  "serve": "node server.js"
+}

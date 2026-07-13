@@ -1,0 +1,36 @@
+{
+  "base_zip": "ehemehe_enterprise_admin_dashboard_final_tested.zip",
+  "update_type": "visual_only_css_polish",
+  "data_logic_changed": false,
+  "syntax_checks": {
+    "admin.js": true,
+    "supabase.js": true,
+    "index-filters.js": true,
+    "post-ad.js": true,
+    "marketplace.js": true
+  },
+  "section_checks": {
+    "section-overview": true,
+    "section-ads": true,
+    "section-categories": true,
+    "section-promotions": true,
+    "section-reports": true,
+    "section-users": true,
+    "section-shops": true,
+    "section-verification": true,
+    "section-finance": true,
+    "section-pricing": true,
+    "section-invoices": true,
+    "section-locations": true,
+    "section-fields": true,
+    "section-roles": true,
+    "section-seo": true,
+    "section-api": true,
+    "section-banners": true
+  },
+  "route_checks": {
+    "public/admin.html": true,
+    "public/admin/index.html": true,
+    "public/admin.js": true
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "base_zip": "ehemehe_vehicle_finance_admin_only_final.zip",
+  "fix": "admin_login_failed_fetch_local_dev_fallback",
+  "syntax": {
+    "admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "marketplace.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  },
+  "checks": {
+    "login_has_try_catch": true,
+    "fetch_failure_detected": true,
+    "local_superadmin_fallback": true,
+    "localhost_only_guard": true,
+    "script_cache_bust": true
+  },
+  "note": "If Supabase Auth fetch fails on localhost for the main admin email, dashboard opens in localhost-only Super Admin mode. Production still requires Supabase Auth."
+}

@@ -1,0 +1,17 @@
+{
+  "base_zip": "ehemehe_admin_dashboard_visual_polish_final.zip",
+  "update_type": "visual_only_sidebar_font_alignment",
+  "data_logic_changed": false,
+  "syntax_checks": {
+    "admin.js": true,
+    "supabase.js": true,
+    "index-filters.js": true,
+    "post-ad.js": true,
+    "marketplace.js": true
+  },
+  "checks": {
+    "sidebar_nav_icons_wrapped": true,
+    "font_alignment_css_added": true,
+    "admin_route_exists": true
+  }
+}
