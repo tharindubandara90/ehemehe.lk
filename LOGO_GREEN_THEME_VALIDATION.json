@@ -1,0 +1,40 @@
+{
+  "logo_added": "public/assets/ehemehe_logo.png",
+  "favicon_added": "public/assets/ehemehe_favicon.png",
+  "theme_primary": "#3DC697",
+  "theme_dark": "#22A879",
+  "brand_css": "public/brand-theme.css",
+  "brand_js": "public/brand-theme.js",
+  "pages_injected": [
+    "public/index.html",
+    "public/post-ad.html",
+    "public/browse.html",
+    "public/admin.html"
+  ],
+  "syntax": {
+    "public/brand-theme.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/post-ad.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/index-filters.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/admin.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/supabase.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/post-ad-category-fields.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  }
+}
