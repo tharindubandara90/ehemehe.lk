@@ -1,0 +1,14 @@
+{
+  "source_project": "ehemehe_ad_pages_true_mobile_final_fix.zip",
+  "admin_image_upload": true,
+  "image_compression": "WebP, max width 1600px, quality 0.84",
+  "placements": [
+    "home_mobile_between_filters_ads",
+    "ad_detail_mobile_before_image"
+  ],
+  "admin_edit_delete": true,
+  "home_latest_ads_heading_removed": true,
+  "recently_added_text_kept": true,
+  "ad_route_shells_synced": 100,
+  "javascript_syntax": "passed"
+}

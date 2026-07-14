@@ -1057,15 +1057,28 @@
         </section>
 
         <section id="section-banners" class="section hidden panel">
-          <div class="panel-head"><div><h2>Banner Ads</h2><p>Manage homepage banners, private ads, and promotional placements.</p></div><button class="btn" onclick="loadBanners(true)">Refresh</button></div>
+          <div class="panel-head"><div><h2>Banner Ads</h2><p>Add, replace, or remove image banners shown on mobile pages.</p></div><button class="btn" onclick="loadBanners(true)">Refresh</button></div>
           <div class="grid two">
             <div class="setting-card">
               <h3>Add Banner</h3>
               <input type="hidden" id="bannerId">
-              <div class="field"><label>Title</label><input class="input" id="bannerTitle"></div>
-              <div class="field"><label>Image URL</label><input class="input" id="bannerImage"></div>
-              <div class="field"><label>Target URL</label><input class="input" id="bannerUrl"></div>
-              <div class="field"><label>Placement</label><select id="bannerPlacement"><option value="home_top">Home top</option><option value="home_middle">Home middle</option><option value="category_top">Category top</option></select></div>
+              <div class="field"><label>Banner Name</label><input class="input" id="bannerTitle" placeholder="Optional internal name"></div>
+              <div class="field">
+                <label>Banner Image</label>
+                <input class="input" id="bannerFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="handleBannerFile(event)">
+                <input id="bannerImage" type="hidden">
+                <div id="bannerPreviewWrap" style="display:none;margin-top:10px">
+                  <img id="bannerPreview" alt="Banner preview" style="display:block;width:100%;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid #e2e8f0">
+                  <button type="button" class="btn ghost small" style="margin-top:8px" onclick="clearBannerImage()">Remove selected image</button>
+                </div>
+              </div>
+              <div class="field"><label>Click URL</label><input class="input" id="bannerUrl" placeholder="https://... (optional)"></div>
+              <div class="field"><label>Display Position</label>
+                <select id="bannerPlacement">
+                  <option value="home_mobile_between_filters_ads">Home mobile — below filters</option>
+                  <option value="ad_detail_mobile_before_image">Ad detail mobile — above product image</option>
+                </select>
+              </div>
               <button class="btn primary" onclick="saveBanner()">Save Banner</button>
             </div>
             <div id="bannersList"></div>
@@ -1082,7 +1095,7 @@
     </div>
   </div>
 
-  <script src="/admin.js?v=20260713-sms-otp"></script>
+  <script src="/admin.js?v=20260714-two-banner-admin"></script>
   <script src="/brand-theme.js?v=20260714-true-mobile-readable"></script>
 </body>
 </html>

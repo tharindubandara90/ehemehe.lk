@@ -844,16 +844,27 @@
     }
   }
 
+  function bannerForPlacement(placement) {
+    return bannerAds.find((banner) =>
+      isActivePromo(banner) &&
+      String(banner.placement || '') === placement &&
+      !!banner.image_url
+    ) || null;
+  }
+
+  function bannerHtmlForPlacement(placement, className = '') {
+    const banner = bannerForPlacement(placement);
+    if (!banner) return '';
+    const href = banner.target_url || banner.url || '';
+    const image = `<img src="${esc(banner.image_url)}" alt="${esc(banner.title || 'Banner Ad')}">`;
+    if (!href || href === '#') {
+      return `<div class="ehm-promo-banner ${esc(className)}">${image}</div>`;
+    }
+    return `<a class="ehm-promo-banner ${esc(className)}" href="${esc(href)}" target="_blank" rel="noopener sponsored">${image}</a>`;
+  }
+
   function activeBannerHtml() {
-    const banner = bannerAds.find(isActivePromo);
-    if (!banner || !banner.image_url) return '';
-    const href = banner.target_url || banner.url || '#';
-    return `
-      <a class="ehm-promo-banner" href="${esc(href)}">
-        <img src="${esc(banner.image_url)}" alt="${esc(banner.title || 'Banner Ad')}">
-        ${banner.title ? `<span>${esc(banner.title)}</span>` : ''}
-      </a>
-    `;
+    return bannerHtmlForPlacement('home_mobile_between_filters_ads', 'ehm-home-banner');
   }
 
   function renderResults() {
@@ -864,8 +875,8 @@
     const active = hasActiveFilters();
     host.innerHTML = `
       ${activeBannerHtml()}
-      <div class="ehm-results-head">
-        <h2>${active ? 'Search Results' : 'Latest Ads'}</h2>
+      <div class="ehm-results-head ${active ? '' : 'ehm-results-head-default'}">
+        ${active ? '<h2>Search Results</h2>' : ''}
         <p>${rows.length ? (active ? `${rows.length} matching ads found` : 'Recently added listings') : 'No matching ads found'}</p>
       </div>
       ${rows.length ? `<div class="ehm-results-grid ${state.view}">${rows.map(renderAdCard).join('')}</div>` : '<div class="ehm-empty">No matching ads<br>found.</div>'}
@@ -1499,10 +1510,45 @@
     target.insertAdjacentElement('afterend', box);
   }
 
+  function injectAdDetailBanner() {
+    if (!isMobile() || !isAdRoute()) return;
+    const existing = document.getElementById('ehmAdDetailBanner');
+    const html = bannerHtmlForPlacement('ad_detail_mobile_before_image', 'ehm-detail-banner');
+    if (!html) {
+      if (existing) existing.remove();
+      return;
+    }
+    if (existing) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'ehmAdDetailBanner';
+    wrapper.className = 'ehm-ad-detail-banner-wrap';
+    wrapper.innerHTML = html;
+
+    const breadcrumb = Array.from(document.querySelectorAll('nav, .section-container, div'))
+      .filter((node) => {
+        const text = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+        return /^Home\s*[›>]/i.test(text) && text.length < 260;
+      })
+      .sort((a,b) => (a.getBoundingClientRect().height || 999) - (b.getBoundingClientRect().height || 999))[0];
+
+    const galleryImage = document.querySelector('main img');
+    const galleryContainer = galleryImage?.closest('section, article, div');
+
+    if (breadcrumb?.parentElement) {
+      breadcrumb.insertAdjacentElement('afterend', wrapper);
+    } else if (galleryContainer?.parentElement) {
+      galleryContainer.insertAdjacentElement('beforebegin', wrapper);
+    } else {
+      (document.querySelector('main') || document.body).prepend(wrapper);
+    }
+  }
+
   function hideAdDetailLocation() {
     if (!isMobile() || !isAdRoute()) return;
     document.body.classList.add('ehm-ad-detail-route');
     removeManagedHome();
+    injectAdDetailBanner();
     injectAdDetailFinance();
 
     const norm = (text) => String(text || '').replace(/\s+/g, ' ').trim();

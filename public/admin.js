@@ -1313,9 +1313,96 @@ function renderBanners(){
   if(!BANNERS.length){ el('bannersList').innerHTML=`<div class="empty">No banners found.</div>`; return; }
   el('bannersList').innerHTML = BANNERS.map(b => `<div class="listing-card"><div class="listing-thumb">${b.image_url?`<img src="${html(b.image_url)}">`:'<div class="noimg">AD</div>'}</div><div class="listing-body"><div class="listing-title">${html(b.title||'Untitled banner')}</div><div class="listing-meta"><span>${html(b.placement||'-')}</span><span>${statusBadge(b.status||'active')}</span></div><div class="actions"><button class="btn small" onclick="editBanner('${html(b.id)}')">Edit</button><button class="btn danger small" onclick="deleteBanner('${html(b.id)}')">Delete</button></div></div></div>`).join('');
 }
-function editBanner(id){ const b=BANNERS.find(x=>String(x.id)===String(id)); if(!b) return; el('bannerId').value=b.id; el('bannerTitle').value=b.title||''; el('bannerImage').value=b.image_url||''; el('bannerUrl').value=b.target_url||b.url||''; el('bannerPlacement').value=b.placement||'home_top'; }
-async function saveBanner(){ try{ const id=el('bannerId').value; const payload={title:el('bannerTitle').value,image_url:el('bannerImage').value,target_url:el('bannerUrl').value,placement:el('bannerPlacement').value,status:'active',updated_at:new Date().toISOString()}; if(id) await safeUpdate('banner_ads',id,payload); else await safeInsert('banner_ads',payload); ['bannerId','bannerTitle','bannerImage','bannerUrl'].forEach(id=>el(id).value=''); await loadBanners(true); }catch(e){ toast(e.message); } }
-async function deleteBanner(id){ if(!confirm('Delete this banner?')) return; try{ await safeDelete('banner_ads',id); await loadBanners(true); }catch(e){ toast(e.message); } }
+function showBannerPreview(src){
+  const wrap=el('bannerPreviewWrap'), img=el('bannerPreview');
+  if(!wrap||!img) return;
+  if(src){ img.src=src; wrap.style.display='block'; }
+  else { img.removeAttribute('src'); wrap.style.display='none'; }
+}
+function clearBannerImage(){
+  if(el('bannerImage')) el('bannerImage').value='';
+  if(el('bannerFile')) el('bannerFile').value='';
+  showBannerPreview('');
+}
+async function handleBannerFile(event){
+  const file=event?.target?.files?.[0];
+  if(!file) return;
+  if(!/^image\/(jpeg|png|webp)$/i.test(file.type)){ toast('Please select a JPG, PNG, or WebP image.'); clearBannerImage(); return; }
+  if(file.size>12*1024*1024){ toast('Image must be smaller than 12MB.'); clearBannerImage(); return; }
+  try{
+    const dataUrl=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=reject;
+      reader.readAsDataURL(file);
+    });
+    const image=await new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>resolve(img);
+      img.onerror=reject;
+      img.src=dataUrl;
+    });
+    const maxWidth=1600;
+    const scale=Math.min(1,maxWidth/image.width);
+    const width=Math.max(1,Math.round(image.width*scale));
+    const height=Math.max(1,Math.round(image.height*scale));
+    const canvas=document.createElement('canvas');
+    canvas.width=width; canvas.height=height;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(image,0,0,width,height);
+    const compressed=canvas.toDataURL('image/webp',0.84);
+    el('bannerImage').value=compressed;
+    showBannerPreview(compressed);
+  }catch(e){
+    toast('Could not process this image.');
+    clearBannerImage();
+  }
+}
+function editBanner(id){
+  const b=BANNERS.find(x=>String(x.id)===String(id));
+  if(!b) return;
+  el('bannerId').value=b.id;
+  el('bannerTitle').value=b.title||'';
+  el('bannerImage').value=b.image_url||'';
+  el('bannerUrl').value=b.target_url||b.url||'';
+  el('bannerPlacement').value=b.placement||'home_mobile_between_filters_ads';
+  if(el('bannerFile')) el('bannerFile').value='';
+  showBannerPreview(b.image_url||'');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+async function saveBanner(){
+  try{
+    const id=el('bannerId').value;
+    const image=el('bannerImage').value;
+    if(!image){ toast('Please select a banner image.'); return; }
+    const payload={
+      title:el('bannerTitle').value,
+      image_url:image,
+      target_url:el('bannerUrl').value,
+      placement:el('bannerPlacement').value,
+      status:'active',
+      is_active:true,
+      updated_at:new Date().toISOString()
+    };
+    if(id) await safeUpdate('banner_ads',id,payload);
+    else await safeInsert('banner_ads',payload);
+    ['bannerId','bannerTitle','bannerImage','bannerUrl'].forEach(key=>{ if(el(key)) el(key).value=''; });
+    if(el('bannerFile')) el('bannerFile').value='';
+    el('bannerPlacement').value='home_mobile_between_filters_ads';
+    showBannerPreview('');
+    await loadBanners(true);
+    toast('Banner saved.');
+  }catch(e){ toast(e.message); }
+}
+async function deleteBanner(id){
+  if(!confirm('Delete this banner?')) return;
+  try{
+    await safeDelete('banner_ads',id);
+    BANNERS=BANNERS.filter(b=>String(b.id)!==String(id));
+    renderBanners();
+    toast('Banner deleted.');
+  }catch(e){ toast(e.message); }
+}
 
 
 /* ---------------- Ad Promotions Final Patch ---------------- */

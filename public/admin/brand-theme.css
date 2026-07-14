@@ -649,3 +649,60 @@ html.ehm-physical-mobile svg {
     width: min(166px, calc(100% - 115px)) !important;
   }
 }
+
+/* Mobile banner ad placements */
+.ehm-promo-banner {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #eef2f7;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+}
+
+.ehm-promo-banner img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 210px;
+  aspect-ratio: 16 / 5;
+  object-fit: cover;
+}
+
+.ehm-home-banner {
+  margin: 4px 0 16px;
+}
+
+.ehm-ad-detail-banner-wrap {
+  width: 100%;
+  padding: 0 14px;
+  margin: 10px auto 14px;
+  box-sizing: border-box;
+}
+
+.ehm-detail-banner {
+  margin: 0;
+}
+
+.ehm-results-head-default {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.ehm-results-head-default p {
+  margin-top: 0 !important;
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+  color: #64748b !important;
+}
+
+@media (max-width: 390px) {
+  .ehm-ad-detail-banner-wrap {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .ehm-promo-banner img {
+    max-height: 170px;
+  }
+}
