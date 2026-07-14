@@ -130,7 +130,33 @@
     }
   }
 
+
+  function applyMobileResponsiveMode() {
+    const ua = navigator.userAgent || '';
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    const screenWidth = window.screen && window.screen.width ? window.screen.width : innerWidth;
+    const screenHeight = window.screen && window.screen.height ? window.screen.height : innerHeight;
+    const smallSide = Math.min(screenWidth, screenHeight) <= 900;
+    const mobileUA = /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
+    const isMobileDevice = mobileUA || (coarse && smallSide);
+
+    document.body.classList.toggle('ehm-mobile-device', !!isMobileDevice);
+
+    const path = location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+    document.body.classList.toggle('ehm-route-ad', /^\/ad\/[^/]+/.test(path));
+    document.body.classList.toggle('ehm-route-post', path === '/post' || path === '/post-ad');
+    document.body.classList.toggle('ehm-route-login', path === '/login');
+    document.body.classList.toggle('ehm-route-signup', path === '/signup');
+    document.body.classList.toggle('ehm-route-dashboard', path.startsWith('/dashboard'));
+    document.body.classList.toggle(
+      'ehm-route-listing',
+      path === '/search' || path === '/categories' || path.startsWith('/category/')
+    );
+  }
+
+
   function tick() {
+    applyMobileResponsiveMode();
     ensureFavicon();
     replaceHeaderLogos();
     replaceInlineCyan();
@@ -143,4 +169,8 @@
 
   const observer = new MutationObserver(tick);
   observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  window.addEventListener('resize', tick, { passive: true });
+  window.addEventListener('orientationchange', tick, { passive: true });
+  window.addEventListener('popstate', tick);
 })();

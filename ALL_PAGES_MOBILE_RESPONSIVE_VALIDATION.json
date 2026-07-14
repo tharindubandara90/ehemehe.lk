@@ -1,0 +1,22 @@
+{
+  "source_project": "ehemehe_new_logo_centered_mobile_final.zip",
+  "mobile_detection": "mobile UA or coarse pointer + physical screen size",
+  "desktop_view_on_phone_forced_to_mobile": true,
+  "covered_pages": [
+    "home",
+    "ad detail",
+    "post ad",
+    "login",
+    "signup",
+    "dashboard",
+    "search",
+    "category",
+    "categories"
+  ],
+  "ad_detail_single_column": true,
+  "header_mobile_forced": true,
+  "horizontal_overflow_blocked": true,
+  "large_location_map_hidden_on_mobile_ad_detail": true,
+  "brand_js_syntax_ok": true,
+  "cache_version": "20260714-all-pages-mobile-responsive"
+}
