@@ -8,7 +8,8 @@
     "deploy": "vercel --prod",
     "local": "npx serve public",
     "dev": "serve public -l 3000",
-    "preview": "serve public"
+    "preview": "serve public",
+    "sync-ad-shells": "node scripts/sync-ad-route-shells.js"
   },
   "devDependencies": {
     "vercel": "latest",

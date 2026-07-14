@@ -1,10 +1,57 @@
-<!DOCTYPE html><html lang="en"><head>
-    <base href="/">
+<!DOCTYPE html><html lang="en"><head><base href="/">
     <meta charset="UTF-8">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>>
+    <link rel="icon" type="image/png" href="/assets/ehemehe_favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script id="ehm-mobile-viewport-fix">
+(function () {
+  var nav = navigator || {};
+  var ua = nav.userAgent || '';
+  var touch = ('ontouchstart' in window) || (nav.maxTouchPoints || 0) > 0;
+  var mobileUA = /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
+  var phoneLike = mobileUA || (touch && Math.min(screen.width || 9999, screen.height || 9999) <= 1024);
+
+  if (!phoneLike) return;
+
+  document.documentElement.classList.add('ehm-physical-mobile');
+
+  var viewport = document.querySelector('meta[name="viewport"]');
+  if (!viewport) {
+    viewport = document.createElement('meta');
+    viewport.name = 'viewport';
+    document.head.appendChild(viewport);
+  }
+  viewport.setAttribute(
+    'content',
+    'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover'
+  );
+
+  function correctDesktopViewportScale() {
+    var physicalWidth = Math.min(screen.width || innerWidth, screen.height || innerHeight);
+    var layoutWidth = document.documentElement.clientWidth || innerWidth;
+
+    // Some iPhone browsers may still expose a ~980px desktop layout viewport.
+    // Compensate only in that case.
+    if (touch && physicalWidth > 0 && layoutWidth / physicalWidth > 1.35) {
+      var ratio = layoutWidth / physicalWidth;
+      document.documentElement.style.setProperty('--ehm-mobile-zoom', String(ratio));
+      document.documentElement.classList.add('ehm-desktop-viewport-on-phone');
+    } else {
+      document.documentElement.classList.remove('ehm-desktop-viewport-on-phone');
+      document.documentElement.style.removeProperty('--ehm-mobile-zoom');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', correctDesktopViewportScale, { once: true });
+  window.addEventListener('load', correctDesktopViewportScale, { once: true });
+  window.addEventListener('orientationchange', function () {
+    setTimeout(correctDesktopViewportScale, 150);
+  });
+})();
+</script>
+
     <meta name="description" content="ehemehe.lk - Sri Lanka's #1 Modern Marketplace. Buy, sell, and discover amazing deals.">
-    <meta name="theme-color" content="#06b6d4">
+    <meta name="theme-color" content="#3DC697">
     <title>ehemehe.lk - Sri Lanka's Marketplace</title>
     <script type="module" crossorigin="" src="js/index-BsKly-Vj.js"></script>
     <link rel="stylesheet" crossorigin="" href="css/index-DcB2eYwd.css">
@@ -19,6 +66,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="/brand-theme.css?v=20260714-true-mobile-readable">
 </head>
   <body>
     <div id="root"></div>
@@ -29,5 +77,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./supabase.js"></script>
-  <script src="./index-filters.js?v=202606291440"></script>
+  <script src="./post-ad-category-fields.js?v=20260713-category-fields"></script>
+  <script src="./index-filters.js?v=20260714-latest-ads-first-final"></script>
+  <script src="/brand-theme.js?v=20260714-true-mobile-readable"></script>
 </body></html>

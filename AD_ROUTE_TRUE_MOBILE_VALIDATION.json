@@ -1,0 +1,12 @@
+{
+  "source_zip": "ehemehe_true_mobile_readable_final_fix.zip",
+  "root_shell": "public/index.html",
+  "ad_route_shells_synchronized": 100,
+  "all_ad_shells_match_root": true,
+  "root_shell_contains_mobile_viewport_fix": true,
+  "root_shell_contains_brand_theme": true,
+  "vercel_static_shadow_fallback": "public/ad/** added to .vercelignore",
+  "future_sync_command": "npm run sync-ad-shells",
+  "javascript_syntax_checks": "passed",
+  "root_shell_sha256": "57887ebbfcc0c422b2182935e517cbfa8997d10064b9b6ee85c020b336a74fac"
+}
