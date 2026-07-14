@@ -76,3 +76,67 @@
 .ehm-logo-replaced > span:not(.ehm-logo-keep) {
   display: none !important;
 }
+
+
+/* Mobile browser final layout fix */
+.ehm-site-logo {
+  width: 205px !important;
+  max-width: 240px !important;
+  height: 48px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+}
+
+@media (max-width: 767px) {
+  html, body, #root { width: 100%; max-width: 100%; overflow-x: hidden !important; }
+
+  .ehm-site-logo {
+    width: 162px !important;
+    max-width: 162px !important;
+    height: 44px !important;
+    object-fit: contain !important;
+    object-position: left center !important;
+  }
+
+  .ehm-logo-link {
+    width: 170px !important;
+    max-width: 47vw !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Hero is desktop-only. Mobile should open directly to search filters + ads. */
+  .ehm-mobile-hide-hero {
+    display: none !important;
+  }
+
+  /* Prevent accidental giant spacing from animated hero or hidden sections. */
+  .ehm-mobile-collapse {
+    display: none !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  header .section-container,
+  header > div {
+    max-width: 100% !important;
+  }
+
+  header {
+    position: relative !important;
+    top: auto !important;
+  }
+
+  /* Keep mobile header compact and consistent in Safari/Chrome/Firefox. */
+  header .h-16,
+  header .lg\:h-\[72px\] {
+    min-height: 64px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDE3OjQ"] { display: none !important; }
+}
