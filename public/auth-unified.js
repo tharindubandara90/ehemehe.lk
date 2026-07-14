@@ -257,6 +257,25 @@
     return '';
   }
 
+  async function readApiResponse(response) {
+    const text = await response.text();
+    if (!text) {
+      return {
+        ok: false,
+        message: `Empty response from server (HTTP ${response.status}).`
+      };
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (_) {
+      return {
+        ok: false,
+        message: `Server returned a non-JSON response (HTTP ${response.status}).`
+      };
+    }
+  }
+
   async function sendRegistrationOtp() {
     const data = readRegistration();
     const validationError = validateRegistration(data);
@@ -274,8 +293,8 @@
           email: data.email
         })
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Could not send the OTP.');
+      const result = await readApiResponse(response);
+      if (!response.ok || result.ok === false) throw new Error(result.message || `Could not send the OTP (HTTP ${response.status}).`);
 
       registrationChallenge = result.challenge || '';
       otpSent = true;
@@ -312,8 +331,8 @@
           password: data.password
         })
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'OTP verification failed.');
+      const result = await readApiResponse(response);
+      if (!response.ok || result.ok === false) throw new Error(result.message || `OTP verification failed (HTTP ${response.status}).`);
 
       const loginResult = await window.supabaseClient.auth.signInWithPassword({
         phone: '+' + data.phone,

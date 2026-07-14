@@ -1,0 +1,28 @@
+{
+  "confirmed_from_browser_network": {
+    "request": "POST /api/request-registration-otp",
+    "status_before_fix": 405,
+    "wrong_response_before_fix": "public/index.html",
+    "root_cause": "server.js was the Vercel root entrypoint but did not route the new registration API files"
+  },
+  "fixes": {
+    "request_registration_otp_route_added": true,
+    "verify_registration_otp_route_added": true,
+    "register_verified_user_route_added": true,
+    "api_errors_always_json": true,
+    "static_post_cannot_fall_back_to_index_html": true,
+    "vercel_api_rewrites_precede_spa_fallback": true,
+    "frontend_safe_json_parser": true
+  },
+  "checks": {
+    "server_routes_request_registration_otp": true,
+    "server_routes_verify_registration_otp": true,
+    "unknown_api_returns_json": true,
+    "static_post_no_longer_returns_index_html": true,
+    "frontend_handles_empty_response": true,
+    "api_rewrites_before_spa_fallback": true,
+    "static_ad_shells_synced": true
+  },
+  "cache_version": "20260714-api-route-405-fixed",
+  "static_ad_route_shells_synced": 100
+}

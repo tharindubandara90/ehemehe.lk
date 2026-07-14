@@ -1,6 +1,38 @@
 {
   "rewrites": [
     {
+      "source": "/api/request-otp",
+      "destination": "/api/request-otp"
+    },
+    {
+      "source": "/api/verify-otp",
+      "destination": "/api/verify-otp"
+    },
+    {
+      "source": "/api/auth-settings",
+      "destination": "/api/auth-settings"
+    },
+    {
+      "source": "/api/register-phone-user",
+      "destination": "/api/register-phone-user"
+    },
+    {
+      "source": "/api/reset-phone-password",
+      "destination": "/api/reset-phone-password"
+    },
+    {
+      "source": "/api/register-verified-user",
+      "destination": "/api/register-verified-user"
+    },
+    {
+      "source": "/api/request-registration-otp",
+      "destination": "/api/request-registration-otp"
+    },
+    {
+      "source": "/api/verify-registration-otp",
+      "destination": "/api/verify-registration-otp"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },

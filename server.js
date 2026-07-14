@@ -11,6 +11,9 @@ const verifyOtp = require('./api/verify-otp');
 const authSettings = require('./api/auth-settings');
 const registerPhoneUser = require('./api/register-phone-user');
 const resetPhonePassword = require('./api/reset-phone-password');
+const registerVerifiedUser = require('./api/register-verified-user');
+const requestRegistrationOtp = require('./api/request-registration-otp');
+const verifyRegistrationOtp = require('./api/verify-registration-otp');
 
 function loadEnvFile(file) {
   const p = path.join(__dirname, file);
@@ -47,11 +50,50 @@ function sendFile(res, filePath) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
-  if (url.pathname === '/api/request-otp') return requestOtp(req, res);
-  if (url.pathname === '/api/verify-otp') return verifyOtp(req, res);
-  if (url.pathname === '/api/auth-settings') return authSettings(req, res);
-  if (url.pathname === '/api/register-phone-user') return registerPhoneUser(req, res);
-  if (url.pathname === '/api/reset-phone-password') return resetPhonePassword(req, res);
+  const apiRoutes = {
+    '/api/request-otp': requestOtp,
+    '/api/verify-otp': verifyOtp,
+    '/api/auth-settings': authSettings,
+    '/api/register-phone-user': registerPhoneUser,
+    '/api/reset-phone-password': resetPhonePassword,
+    '/api/register-verified-user': registerVerifiedUser,
+    '/api/request-registration-otp': requestRegistrationOtp,
+    '/api/verify-registration-otp': verifyRegistrationOtp
+  };
+
+  const apiHandler = apiRoutes[url.pathname];
+  if (apiHandler) {
+    res.setHeader('Cache-Control', 'no-store');
+    return Promise.resolve(apiHandler(req, res)).catch((error) => {
+      if (res.writableEnded) return;
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({
+        ok: false,
+        message: error?.message || 'Internal API error'
+      }));
+    });
+  }
+
+  if (url.pathname.startsWith('/api/')) {
+    res.statusCode = 404;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.end(JSON.stringify({
+      ok: false,
+      message: `API route not found: ${url.pathname}`
+    }));
+  }
+
+  if (!['GET', 'HEAD'].includes(req.method || 'GET')) {
+    res.statusCode = 405;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Allow', 'GET, HEAD');
+    return res.end(JSON.stringify({
+      ok: false,
+      message: `Method ${req.method} is not allowed for ${url.pathname}`
+    }));
+  }
 
   let pathname = decodeURIComponent(url.pathname);
   if (pathname === '/') pathname = '/index.html';
