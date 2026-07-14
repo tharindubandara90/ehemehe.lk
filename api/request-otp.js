@@ -1,6 +1,6 @@
 const {
   json, readBody, normalizePhone, isSriLankaMobile, generateOtp, expiryMinutes,
-  makeToken, otpHash, sendTextLkSms, otpMessage, logOtpEvent
+  makeToken, otpHash, sendTextLkSms, otpMessage, logOtpEvent, readSiteSettings
 } = require('./_otp-utils');
 
 module.exports = async function handler(req, res) {
@@ -14,6 +14,15 @@ module.exports = async function handler(req, res) {
     if (!isSriLankaMobile(phone)) {
       return json(res, 400, { ok:false, message:'Enter a valid Sri Lankan mobile number.' });
     }
+
+    const settings = await readSiteSettings();
+    const allowed = settings.smsOtpEnabled && (
+      (['register','register_phone'].includes(purpose) && settings.smsRegisterOtp) ||
+      (['password_change','password_reset_phone'].includes(purpose) && settings.smsPasswordChangeOtp) ||
+      (purpose === 'post_ad' && settings.smsAdPhoneOtp) ||
+      purpose === 'admin_test'
+    );
+    if (!allowed) return json(res, 403, {ok:false,message:'SMS OTP is disabled for this action.'});
 
     const code = generateOtp();
     const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);

@@ -8,6 +8,9 @@ loadEnvFile('.env');
 const publicDir = path.join(__dirname, 'public');
 const requestOtp = require('./api/request-otp');
 const verifyOtp = require('./api/verify-otp');
+const authSettings = require('./api/auth-settings');
+const registerPhoneUser = require('./api/register-phone-user');
+const resetPhonePassword = require('./api/reset-phone-password');
 
 function loadEnvFile(file) {
   const p = path.join(__dirname, file);
@@ -46,6 +49,9 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/api/request-otp') return requestOtp(req, res);
   if (url.pathname === '/api/verify-otp') return verifyOtp(req, res);
+  if (url.pathname === '/api/auth-settings') return authSettings(req, res);
+  if (url.pathname === '/api/register-phone-user') return registerPhoneUser(req, res);
+  if (url.pathname === '/api/reset-phone-password') return resetPhonePassword(req, res);
 
   let pathname = decodeURIComponent(url.pathname);
   if (pathname === '/') pathname = '/index.html';

@@ -1276,6 +1276,9 @@ function fillSettingsForms(){
     otpTemplate:'otp_sms_template', paymentProvider:'payment_provider', merchantId:'merchant_id', paymentSecret:'payment_secret'
   };
   Object.entries(pairs).forEach(([id,key]) => { if(el(id)) el(id).value = settingValue(key); });
+  const checked=(id,key,def=true)=>{ if(el(id)) el(id).checked = settingValue(key)==='' ? def : !['false','0','off','disabled'].includes(String(settingValue(key)).toLowerCase()); };
+  checked('emailOtpEnabled','email_otp_enabled'); checked('emailRegisterOtp','email_otp_register_enabled'); checked('emailResetOtp','email_otp_password_reset_enabled');
+  checked('smsOtpEnabled','sms_otp_enabled'); checked('smsRegisterOtp','sms_otp_register_enabled'); checked('smsPasswordOtp','sms_otp_password_change_enabled'); checked('smsAdPhoneOtp','sms_otp_ad_phone_enabled');
   fillVehicleFinanceSettingsForm();
   bindVehicleFinanceSettingsInputs();
 }
@@ -1291,6 +1294,13 @@ async function saveSetting(key,value){
 }
 async function saveSeo(){ await saveSetting('seo_title',el('seoTitle').value); await saveSetting('seo_description',el('seoDescription').value); await saveSetting('seo_keywords',el('seoKeywords').value); toast('SEO settings saved.'); }
 async function saveOpenGraph(){ await saveSetting('og_title',el('ogTitle').value); await saveSetting('og_image',el('ogImage').value); toast('Open Graph settings saved.'); }
+
+async function saveOtpControls(){
+  const pairs={email_otp_enabled:'emailOtpEnabled',email_otp_register_enabled:'emailRegisterOtp',email_otp_password_reset_enabled:'emailResetOtp',sms_otp_enabled:'smsOtpEnabled',sms_otp_register_enabled:'smsRegisterOtp',sms_otp_password_change_enabled:'smsPasswordOtp',sms_otp_ad_phone_enabled:'smsAdPhoneOtp'};
+  for(const [key,id] of Object.entries(pairs)) await saveSetting(key,el(id)?.checked?'true':'false');
+  toast('OTP controls saved.');
+}
+
 async function saveApiSettings(){
   await saveSetting('sms_provider',el('smsProvider').value || 'Text.lk');
   await saveSetting('sms_sender',el('smsSender').value || 'EHEMEHE');

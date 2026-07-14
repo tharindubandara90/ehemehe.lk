@@ -1,5 +1,6 @@
 let CATEGORIES=[], CITIES=[], currentUser=null;
-let AUTH_MODE='login', PUBLISH_AFTER_AUTH=false, IS_PUBLISHING=false;
+let AUTH_MODE='login', REGISTER_METHOD='email', PUBLISH_AFTER_AUTH=false, IS_PUBLISHING=false;
+let AUTH_SETTINGS={emailOtpEnabled:true,emailRegisterOtp:true,emailPasswordResetOtp:true,smsOtpEnabled:true,smsRegisterOtp:true,smsPasswordChangeOtp:true,smsAdPhoneOtp:true};
 const DRAFT_KEY='ehemehe:postAdDraft:v2';
 // USER_FINANCE_RATE_INPUT_REMOVED: users only enter vehicle price; rate is admin-controlled.
 let FINANCE_SETTINGS = {downPaymentPercent:40, annualRatePercent:15, months:48, companyPhone:'+94 77 000 0000'};
@@ -71,9 +72,10 @@ function bindDraftSaving(){
 function clearDraft(){try{localStorage.removeItem(DRAFT_KEY);}catch(e){}}
 
 function localSetting(key){try{return localStorage.getItem(localKey(key));}catch(e){return null;}}
+async function loadAuthSettings(){try{const r=await fetch('/api/auth-settings');const d=await r.json();AUTH_SETTINGS={...AUTH_SETTINGS,...(d.settings||{})};}catch(e){} const otpBox=el('adPhoneOtpStatus')?.closest('.otp-box');if(otpBox)otpBox.classList.toggle('hidden',!(AUTH_SETTINGS.smsOtpEnabled&&AUTH_SETTINGS.smsAdPhoneOtp));}
 async function init(){
   const {data}=await supabaseClient.auth.getSession();
-  await Promise.all([loadLookups(), loadFinanceSettings()]);
+  await Promise.all([loadLookups(), loadFinanceSettings(), loadAuthSettings()]);
   currentUser=data.session?.user||null;
   showPost();
   restoreDraft();
@@ -101,6 +103,8 @@ async function loadLookups(){ const [cats,cities]=await Promise.all([supabaseCli
 function showPost(){ el('postPanel')?.classList.remove('hidden'); updateFinanceBox(); }
 function openAuthModal(){ saveDraft(); setAuthMode('login'); el('authPanel')?.classList.remove('hidden'); document.body.style.overflow='hidden'; setAuthMessage(''); }
 function closeAuthModal(){ el('authPanel')?.classList.add('hidden'); document.body.style.overflow=''; PUBLISH_AFTER_AUTH=false; }
+function setRegisterMethod(method){REGISTER_METHOD=method==='phone'?'phone':'email';el('registerEmailMethod')?.classList.toggle('active',REGISTER_METHOD==='email');el('registerPhoneMethod')?.classList.toggle('active',REGISTER_METHOD==='phone');el('registerEmailOtp')?.classList.toggle('hidden',REGISTER_METHOD!=='email');el('registerPhoneOtp')?.classList.toggle('hidden',REGISTER_METHOD!=='phone');const label=el('authIdentifierLabel');if(label)label.textContent=REGISTER_METHOD==='email'?'Email':'Phone number';}
+async function sendRegisterEmailOtp(){const email=el('authEmail').value.trim(),password=el('authPassword').value;if(!email||password.length<6){setOtpStatus('authEmailOtpStatus','Enter email and a password of at least 6 characters.','error');return;}const {error}=await supabaseClient.auth.signUp({email,password,options:{data:{registration_method:'email'}}});if(error){setOtpStatus('authEmailOtpStatus',error.message,'error');return;}setOtpStatus('authEmailOtpStatus','Email OTP sent. Enter it before creating the account.','pending');}
 function setAuthMode(mode){
   AUTH_MODE=mode==='register'?'register':'login';
   el('loginTab')?.classList.toggle('active',AUTH_MODE==='login');
@@ -108,7 +112,7 @@ function setAuthMode(mode){
   el('registerOnly')?.classList.toggle('hidden',AUTH_MODE!=='register');
   const pass=el('authPassword'); if(pass) pass.autocomplete=AUTH_MODE==='register'?'new-password':'current-password';
   const btn=el('authContinueButton'); if(btn) btn.textContent=AUTH_MODE==='register'?'Create Account & Publish':'Log in & Publish';
-  setAuthMessage('');
+  if(AUTH_MODE==='register')setRegisterMethod(REGISTER_METHOD);else{const label=el('authIdentifierLabel');if(label)label.textContent='Email or phone';}setAuthMessage('');
 }
 function setAuthMessage(text,type='error'){ const node=el('authMessage'); if(!node)return; node.textContent=text||''; node.className='auth-message'+(type==='success'?' success':''); }
 function updateSignedInState(){
@@ -168,35 +172,23 @@ async function verifyAdPhoneOtp(){
 }
 
 async function loginUser(){
-  saveDraft();
-  const email=el('authEmail').value.trim(), password=el('authPassword').value;
-  if(!email||!password){setAuthMessage('Enter your email and password.');return;}
-  setAuthMessage('Logging in...','success');
-  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
-  if(error){setAuthMessage(error.message);return;}
-  currentUser=data.user;
-  const shouldPublish=PUBLISH_AFTER_AUTH; closeAuthModal(); restoreDraft(); updateSignedInState();
-  if(shouldPublish){await submitAd();}
+  saveDraft(); const identifier=el('authEmail').value.trim(),password=el('authPassword').value;
+  if(!identifier||!password){setAuthMessage('Enter your email/phone and password.');return;}
+  const isEmail=identifier.includes('@'); const credentials=isEmail?{email:identifier,password}:{phone:'+'+EHM_OTP.normalizePhone(identifier),password};
+  setAuthMessage('Logging in...','success'); const {data,error}=await supabaseClient.auth.signInWithPassword(credentials);
+  if(error){setAuthMessage(error.message);return;} currentUser=data.user; const shouldPublish=PUBLISH_AFTER_AUTH;closeAuthModal();restoreDraft();updateSignedInState();if(shouldPublish)await submitAd();
 }
 async function registerUser(){
-  saveDraft();
-  const email=el('authEmail').value.trim(), password=el('authPassword').value;
-  const phone=EHM_OTP.normalizePhone(el('authPhone').value);
-  if(!email||!password){setAuthMessage('Enter an email and password.');return;}
-  if(password.length<6){setAuthMessage('Password must contain at least 6 characters.');return;}
-  if(!EHM_OTP.isVerified(phone,'register')){setOtpStatus('authOtpStatus','Verify your phone number before registration.','error');return;}
-  setAuthMessage('Creating your account...','success');
-  const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{phone,phone_verified:true}}});
-  if(error){setAuthMessage(error.message);return;}
-  currentUser=data.session?.user||data.user||null;
-  if(!data.session){
-    setAuthMessage('Account created. Email confirmation is enabled; confirm your email, then use Log in. Your ad details remain saved.','success');
-    setAuthMode('login');
-    return;
+  saveDraft(); const identifier=el('authEmail').value.trim(),password=el('authPassword').value;
+  if(!identifier||!password){setAuthMessage('Enter your email/phone and password.');return;} if(password.length<6){setAuthMessage('Password must contain at least 6 characters.');return;}
+  if(REGISTER_METHOD==='email'){
+    if(AUTH_SETTINGS.emailOtpEnabled&&AUTH_SETTINGS.emailRegisterOtp){const token=el('authEmailOtp').value.trim();if(!/^\d{6}$/.test(token)){setOtpStatus('authEmailOtpStatus','Send and enter the email OTP.','error');return;}let result=await supabaseClient.auth.verifyOtp({email:identifier,token,type:'signup'});if(result.error)result=await supabaseClient.auth.verifyOtp({email:identifier,token,type:'email'});if(result.error){setOtpStatus('authEmailOtpStatus',result.error.message,'error');return;}currentUser=result.data.user;}
+    else {const result=await supabaseClient.auth.signUp({email:identifier,password,options:{data:{registration_method:'email'}}});if(result.error){setAuthMessage(result.error.message);return;}currentUser=result.data.session?.user||result.data.user;}
+  } else {
+    const phone=EHM_OTP.normalizePhone(identifier);let verifiedToken='';if(AUTH_SETTINGS.smsOtpEnabled&&AUTH_SETTINGS.smsRegisterOtp){if(!EHM_OTP.isVerified(phone,'register')){setOtpStatus('authOtpStatus','Verify your phone number before registration.','error');return;}verifiedToken=EHM_OTP.getVerifiedToken?EHM_OTP.getVerifiedToken('register'):'';}
+    const response=await fetch('/api/register-phone-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,password,verifiedToken})});const body=await response.json();if(!response.ok){setAuthMessage(body.message);return;}const signed=await supabaseClient.auth.signInWithPassword({phone:'+'+phone,password});if(signed.error){setAuthMessage('Account created. Please use Log in.','success');setAuthMode('login');return;}currentUser=signed.data.user;
   }
-  try{await supabaseClient.from('profiles').upsert({id:currentUser.id,email,phone,phone_verified:true,updated_at:new Date().toISOString()});}catch(e){}
-  const shouldPublish=PUBLISH_AFTER_AUTH; closeAuthModal(); restoreDraft(); updateSignedInState();
-  if(shouldPublish){await submitAd();}
+  const shouldPublish=PUBLISH_AFTER_AUTH;closeAuthModal();restoreDraft();updateSignedInState();if(shouldPublish)await submitAd();
 }
 async function logoutUser(){ saveDraft(); await supabaseClient.auth.signOut(); currentUser=null; updateSignedInState(); }
 
@@ -234,7 +226,7 @@ async function submitAd(){
 
 
   const verifiedPhone=EHM_OTP.normalizePhone(el('phone').value);
-  if(!EHM_OTP.isVerified(verifiedPhone,'post_ad')){
+  if(AUTH_SETTINGS.smsOtpEnabled&&AUTH_SETTINGS.smsAdPhoneOtp&&!EHM_OTP.isVerified(verifiedPhone,'post_ad')){
     setOtpStatus('adPhoneOtpStatus','Verify this phone number before submitting the ad.','error');
     IS_PUBLISHING=false;if(publishButton){publishButton.disabled=false;publishButton.textContent='Publish Ad';}
     return;
@@ -242,7 +234,7 @@ async function submitAd(){
   const finance=isVehicleCategory()?calcFinance(el('price').value):null;
   const baseDescription=el('description').value.trim();
   const financeText=finance?`\n\nFinance Estimate:\nDown Payment: ${money(finance.downPayment)}\nMonthly Payment: ${money(finance.monthlyPayment)}\nFinance Company: ${FINANCE_SETTINGS.companyPhone}`:'';
-  const payload={user_id:currentUser.id,title:el('title').value.trim(),price:el('price').value||null,category_id:el('category').value||null,city_id:el('city').value||null,phone:verifiedPhone,phone_verified:true,phone_verified_at:new Date().toISOString(),image_url:SIMPLE_IMAGES[0]||'',images:SIMPLE_IMAGES,custom_fields:collectSimpleFields(),description:(baseDescription+financeText).trim(),status:'pending'};
+  const payload={user_id:currentUser.id,title:el('title').value.trim(),price:el('price').value||null,category_id:el('category').value||null,city_id:el('city').value||null,phone:verifiedPhone,phone_verified:!(AUTH_SETTINGS.smsOtpEnabled&&AUTH_SETTINGS.smsAdPhoneOtp)||EHM_OTP.isVerified(verifiedPhone,'post_ad'),phone_verified_at:new Date().toISOString(),image_url:SIMPLE_IMAGES[0]||'',images:SIMPLE_IMAGES,custom_fields:collectSimpleFields(),description:(baseDescription+financeText).trim(),status:'pending'};
   if(finance){ Object.assign(payload,{finance_enabled:true,finance_downpayment:finance.downPayment,finance_monthly_payment:finance.monthlyPayment,finance_downpayment_percent:finance.downPaymentPercent,finance_annual_rate_percent:finance.annualRatePercent,finance_months:finance.months,finance_company_phone:FINANCE_SETTINGS.companyPhone}); }
   if(!payload.title){msg('Title required');return;}
   let {error}=await supabaseClient.from('ads').insert(payload);

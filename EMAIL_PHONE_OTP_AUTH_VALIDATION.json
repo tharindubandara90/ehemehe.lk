@@ -1,0 +1,24 @@
+{
+  "source": "ehemehe_dynamic_vehicle_body_types_final.zip",
+  "email_phone_registration": true,
+  "email_registration_otp": true,
+  "email_password_reset_otp": true,
+  "sms_registration_otp": true,
+  "sms_password_change_otp": true,
+  "ad_phone_otp": true,
+  "admin_enable_disable": true,
+  "draft_preserved": true,
+  "syntax": {
+    "api/_otp-utils.js": true,
+    "api/request-otp.js": true,
+    "api/auth-settings.js": true,
+    "api/register-phone-user.js": true,
+    "api/reset-phone-password.js": true,
+    "public/auth-unified.js": true,
+    "public/post-ad.js": true,
+    "public/otp-client.js": true,
+    "public/admin.js": true,
+    "server.js": true
+  },
+  "sql": "supabase_auth_otp_controls.sql"
+}

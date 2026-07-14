@@ -55,9 +55,11 @@ const EHM_OTP = (() => {
     return !!(item && item.phone === normalized && item.verifiedToken);
   }
 
+  function getVerifiedToken(purpose){ return state[purpose]?.verifiedToken || ''; }
+
   function reset(purpose) {
     delete state[purpose];
   }
 
-  return { normalizePhone, validPhone, request, verify, isVerified, reset };
+  return { normalizePhone, validPhone, request, verify, isVerified, getVerifiedToken, reset };
 })();
