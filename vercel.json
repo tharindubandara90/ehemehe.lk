@@ -1,92 +1,15 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/request-otp",
-      "destination": "/api/request-otp"
-    },
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
     {
-      "source": "/api/verify-otp",
-      "destination": "/api/verify-otp"
-    },
-    {
-      "source": "/api/auth-settings",
-      "destination": "/api/auth-settings"
-    },
-    {
-      "source": "/api/register-phone-user",
-      "destination": "/api/register-phone-user"
-    },
-    {
-      "source": "/api/reset-phone-password",
-      "destination": "/api/reset-phone-password"
-    },
-    {
-      "source": "/api/register-verified-user",
-      "destination": "/api/register-verified-user"
-    },
-    {
-      "source": "/api/request-registration-otp",
-      "destination": "/api/request-registration-otp"
-    },
-    {
-      "source": "/api/verify-registration-otp",
-      "destination": "/api/verify-registration-otp"
-    },
-    {
-      "source": "/admin",
-      "destination": "/admin.html"
-    },
-    {
-      "source": "/admin/",
-      "destination": "/admin.html"
-    },
-    {
-      "source": "/browse",
-      "destination": "/browse.html"
-    },
-    {
-      "source": "/browse/",
-      "destination": "/browse.html"
-    },
-    {
-      "source": "/post-ad",
-      "destination": "/post-ad.html"
-    },
-    {
-      "source": "/ad/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/category/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/categories",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/search",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/dashboard/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/about",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/contact",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/help",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/server.js"
     }
   ]
 }

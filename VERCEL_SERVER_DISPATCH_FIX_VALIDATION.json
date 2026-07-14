@@ -1,0 +1,31 @@
+{
+  "confirmed_previous_failure": {
+    "status": 405,
+    "response": "index.html",
+    "reason": "Vercel SPA rewrite handled POST /api/request-registration-otp before server.js"
+  },
+  "final_fix": {
+    "server_js_exported_as_vercel_node_handler": true,
+    "all_requests_dispatched_to_server_js": true,
+    "server_js_dispatches_api_before_static_files": true,
+    "local_node_start_preserved": true
+  },
+  "local_integration_test": {
+    "request": "POST /api/request-registration-otp",
+    "status": 400,
+    "content_type": "application/json",
+    "json_message": "fetch failed",
+    "expected": "JSON error from API with test credentials; never 405/index.html"
+  },
+  "checks": {
+    "server_exports_vercel_handler": true,
+    "local_dev_still_supported": true,
+    "all_vercel_requests_go_to_server": true,
+    "post_api_not_405_locally": true,
+    "post_api_returns_json_locally": true,
+    "post_api_did_not_return_index_html": true,
+    "static_ad_shells_synced": true
+  },
+  "cache_version": "20260715-vercel-server-dispatch",
+  "static_ad_route_shells_synced": 100
+}

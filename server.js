@@ -48,7 +48,7 @@ function sendFile(res, filePath) {
   });
 }
 
-const server = http.createServer((req, res) => {
+async function handler(req, res) {
   const url = new URL(req.url, 'http://localhost');
   const apiRoutes = {
     '/api/request-otp': requestOtp,
@@ -108,11 +108,27 @@ const server = http.createServer((req, res) => {
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     if (!path.extname(pathname)) filePath = path.join(publicDir, 'index.html');
   }
-  sendFile(res, filePath);
-});
+  return sendFile(res, filePath);
+}
 
-const port = Number(process.env.PORT || 3000);
-server.listen(port, () => {
-  console.log(`ehemehe.lk local server running at http://localhost:${port}`);
-  console.log(`Admin: http://localhost:${port}/admin`);
-});
+module.exports = handler;
+
+if (require.main === module) {
+  const port = Number(process.env.PORT || 3000);
+  const server = http.createServer((req, res) => {
+    Promise.resolve(handler(req, res)).catch((error) => {
+      if (res.writableEnded) return;
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({
+        ok: false,
+        message: error?.message || 'Internal server error'
+      }));
+    });
+  });
+
+  server.listen(port, () => {
+    console.log(`ehemehe.lk local server running at http://localhost:${port}`);
+    console.log(`Admin: http://localhost:${port}/admin`);
+  });
+}
