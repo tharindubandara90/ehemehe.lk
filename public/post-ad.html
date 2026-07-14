@@ -73,16 +73,26 @@
         <button class="auth-close" type="button" aria-label="Close" onclick="closeAuthModal()">×</button>
         <h2 id="authTitle">Continue to publish</h2>
         <p class="notice">Your entered ad details are saved. Log in to your account or create a new account to publish—nothing will be reset.</p>
-        <div class="auth-tabs"><button id="loginTab" class="auth-tab active" type="button" onclick="setAuthMode('login')">Log in</button><button id="registerTab" class="auth-tab" type="button" onclick="setAuthMode('register')">Create account</button></div>
-        <div class="auth-tabs" id="registerMethodTabs"><button id="registerEmailMethod" class="auth-tab active" type="button" onclick="setRegisterMethod('email')">Email</button><button id="registerPhoneMethod" class="auth-tab" type="button" onclick="setRegisterMethod('phone')">Phone</button></div><div class="field"><label id="authIdentifierLabel">Email or phone</label><input id="authEmail" class="input" type="text" autocomplete="username"></div>
-        <div class="field"><label>Password</label><input id="authPassword" class="input" type="password" autocomplete="current-password"></div>
-        <div id="registerOnly" class="hidden"><div id="registerEmailOtp"><div class="otp-box"><div class="otp-row"><button class="btn dark" type="button" onclick="sendRegisterEmailOtp()">Send Email OTP</button><input id="authEmailOtp" class="input" placeholder="6-digit OTP" inputmode="numeric" maxlength="6"></div><div id="authEmailOtpStatus" class="otp-status pending">Email verification may be required.</div></div></div><div id="registerPhoneOtp" class="hidden"><div class="otp-box"><div class="otp-row"><button class="btn dark" type="button" onclick="sendRegisterOtp()">Send SMS OTP</button><input id="authOtp" class="input" placeholder="6-digit OTP" inputmode="numeric" maxlength="6"><button class="btn" type="button" onclick="verifyRegisterOtp()">Verify OTP</button></div><div id="authOtpStatus" class="otp-status pending">Phone verification may be required.</div></div></div></div><button id="authContinueButton" class="btn auth-continue" type="button" onclick="continueAuthentication()">Log in & Publish</button>
+        <div class="auth-tabs">
+          <button id="loginTab" class="auth-tab active" type="button" onclick="setAuthMode('login')">Log in</button>
+          <button id="registerTab" class="auth-tab" type="button" onclick="goToVerifiedSignup()">Create verified account</button>
+        </div>
+        <div class="field">
+          <label id="authIdentifierLabel">Email or phone</label>
+          <input id="authEmail" class="input" type="text" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="authPassword" class="input" type="password" autocomplete="current-password">
+        </div>
+        <button id="authContinueButton" class="btn auth-continue" type="button" onclick="continueAuthentication()">Log in & Publish</button>
+        <p class="notice" style="margin-top:12px">New accounts are created on the secure signup page only after SMS OTP verification. Your ad draft is saved.</p>
         <div id="authMessage" class="auth-message"></div>
       </div>
     </div>
   </main>
-  <script src="/otp-client.js?v=20260714-supabase-project-match-final"></script>
-  <script src="/post-ad.js?v=20260714-supabase-project-match-final"></script>
+  <script src="/otp-client.js?v=20260714-otp-gate-root-cause"></script>
+  <script src="/post-ad.js?v=20260714-otp-gate-root-cause"></script>
   <script src="/brand-theme.js?v=20260714-true-mobile-readable"></script>
 </body>
 </html>

@@ -32,11 +32,7 @@ module.exports = async function handler(req, res) {
     if (password.length < 6) {
       return json(res, 400, { ok: false, message: 'Password must contain at least 6 characters.' });
     }
-
-    const settings = await readSiteSettings();
-    if (settings.smsOtpEnabled && settings.smsRegisterOtp) {
-      assertVerifiedToken(body.verifiedToken, phone, ['register_account']);
-    }
+    assertVerifiedToken(body.verifiedToken, phone, ['register_account']);
 
     const user = await createAuthUser({
       email,

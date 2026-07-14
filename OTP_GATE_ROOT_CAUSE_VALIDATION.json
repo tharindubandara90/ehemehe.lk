@@ -1,0 +1,63 @@
+{
+  "root_causes_found": [
+    "Original React signup page created a fake logged-in user after one second without OTP.",
+    "SPA navigation could show the original signup page instead of the secure OTP page.",
+    "Post Ad had a second legacy registration path with an OTP-disabled bypass.",
+    "Text.lk HTTP 200 error responses were incorrectly treated as successful SMS sends."
+  ],
+  "fixed": {
+    "auth_routes_isolated_from_original_bundle": true,
+    "fake_original_login_signup_disabled": true,
+    "post_ad_registration_redirected_to_secure_sms_otp": true,
+    "legacy_server_registration_bypass_closed": true,
+    "textlk_error_response_handling_corrected": true,
+    "account_created_during_otp_request": false,
+    "account_created_for_wrong_otp": false,
+    "account_created_after_correct_otp_only": true,
+    "supabase_session_bridged_to_dashboard": true
+  },
+  "sms_gateway": {
+    "endpoint": "https://app.text.lk/api/v3/sms/send",
+    "required_env": [
+      "TEXTLK_API_TOKEN",
+      "TEXTLK_SENDER_ID",
+      "OTP_SECRET",
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY"
+    ],
+    "sender_id_max_length": 11,
+    "exact_textlk_errors_are_shown_to_user": true
+  },
+  "tests": {
+    "javascript_syntax": {
+      "public/js/index-BsKly-Vj.js": true,
+      "public/auth-unified.js": true,
+      "public/auth-session-bridge.js": true,
+      "public/post-ad.js": true,
+      "api/_otp-utils.js": true,
+      "api/register-phone-user.js": true,
+      "api/register-verified-user.js": true,
+      "api/request-registration-otp.js": true,
+      "api/verify-registration-otp.js": true,
+      "public/admin.js": true
+    },
+    "otp_security_unit_test": "OTP_SECURITY_TEST_PASSED"
+  },
+  "static_ad_route_shells_synced": 100,
+  "cache_version": "20260714-otp-gate-root-cause",
+  "checks": {
+    "react_bundle_not_loaded_on_auth_routes": true,
+    "fake_react_signup_removed": true,
+    "fake_react_login_removed": true,
+    "auth_routes_force_full_navigation": true,
+    "post_ad_direct_signup_removed": true,
+    "post_ad_uses_verified_signup_page": true,
+    "legacy_phone_endpoint_requires_token": true,
+    "textlk_requires_explicit_success": true,
+    "request_does_not_create_account": true,
+    "wrong_otp_does_not_create_account": true,
+    "correct_otp_creates_one_account": true,
+    "security_unit_test": true,
+    "static_ad_shells_synced": true
+  }
+}

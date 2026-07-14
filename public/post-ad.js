@@ -103,16 +103,22 @@ async function loadLookups(){ const [cats,cities]=await Promise.all([supabaseCli
 function showPost(){ el('postPanel')?.classList.remove('hidden'); updateFinanceBox(); }
 function openAuthModal(){ saveDraft(); setAuthMode('login'); el('authPanel')?.classList.remove('hidden'); document.body.style.overflow='hidden'; setAuthMessage(''); }
 function closeAuthModal(){ el('authPanel')?.classList.add('hidden'); document.body.style.overflow=''; PUBLISH_AFTER_AUTH=false; }
-function setRegisterMethod(method){REGISTER_METHOD=method==='phone'?'phone':'email';el('registerEmailMethod')?.classList.toggle('active',REGISTER_METHOD==='email');el('registerPhoneMethod')?.classList.toggle('active',REGISTER_METHOD==='phone');el('registerEmailOtp')?.classList.toggle('hidden',REGISTER_METHOD!=='email');el('registerPhoneOtp')?.classList.toggle('hidden',REGISTER_METHOD!=='phone');const label=el('authIdentifierLabel');if(label)label.textContent=REGISTER_METHOD==='email'?'Email':'Phone number';}
-async function sendRegisterEmailOtp(){const email=el('authEmail').value.trim(),password=el('authPassword').value;if(!email||password.length<6){setOtpStatus('authEmailOtpStatus','Enter email and a password of at least 6 characters.','error');return;}const {error}=await supabaseClient.auth.signUp({email,password,options:{data:{registration_method:'email'}}});if(error){setOtpStatus('authEmailOtpStatus',error.message,'error');return;}setOtpStatus('authEmailOtpStatus','Email OTP sent. Enter it before creating the account.','pending');}
+function goToVerifiedSignup(){
+  saveDraft();
+  location.href='/signup?return=/post-ad';
+}
 function setAuthMode(mode){
-  AUTH_MODE=mode==='register'?'register':'login';
-  el('loginTab')?.classList.toggle('active',AUTH_MODE==='login');
-  el('registerTab')?.classList.toggle('active',AUTH_MODE==='register');
-  el('registerOnly')?.classList.toggle('hidden',AUTH_MODE!=='register');
-  const pass=el('authPassword'); if(pass) pass.autocomplete=AUTH_MODE==='register'?'new-password':'current-password';
-  const btn=el('authContinueButton'); if(btn) btn.textContent=AUTH_MODE==='register'?'Create Account & Publish':'Log in & Publish';
-  if(AUTH_MODE==='register')setRegisterMethod(REGISTER_METHOD);else{const label=el('authIdentifierLabel');if(label)label.textContent='Email or phone';}setAuthMessage('');
+  if(mode==='register'){
+    goToVerifiedSignup();
+    return;
+  }
+  AUTH_MODE='login';
+  el('loginTab')?.classList.add('active');
+  el('registerTab')?.classList.remove('active');
+  const pass=el('authPassword'); if(pass) pass.autocomplete='current-password';
+  const btn=el('authContinueButton'); if(btn) btn.textContent='Log in & Publish';
+  const label=el('authIdentifierLabel');if(label)label.textContent='Email or phone';
+  setAuthMessage('');
 }
 function setAuthMessage(text,type='error'){ const node=el('authMessage'); if(!node)return; node.textContent=text||''; node.className='auth-message'+(type==='success'?' success':''); }
 function updateSignedInState(){
@@ -120,7 +126,7 @@ function updateSignedInState(){
   if(currentUser){ node.innerHTML=`Signed in as <strong>${currentUser.email||'user'}</strong> · <button type="button" class="link-button" onclick="logoutUser()">Log out</button>`; }
   else node.textContent='You can fill everything now. Login is required only when publishing.';
 }
-async function continueAuthentication(){ if(AUTH_MODE==='register') await registerUser(); else await loginUser(); }
+async function continueAuthentication(){ await loginUser(); }
 
 
 function setOtpStatus(id, text, type='pending'){
@@ -128,30 +134,9 @@ function setOtpStatus(id, text, type='pending'){
   node.textContent=text;
   node.className='otp-status '+type;
 }
-function resetRegisterOtp(){
-  if(window.EHM_OTP) EHM_OTP.reset('register');
-  setOtpStatus('authOtpStatus','Phone verification is required before registration.','pending');
-}
 function resetAdPhoneOtp(){
   if(window.EHM_OTP) EHM_OTP.reset('post_ad');
   setOtpStatus('adPhoneOtpStatus','Verify this phone number before submitting the ad.','pending');
-}
-async function sendRegisterOtp(){
-  try{
-    const phone=el('authPhone').value;
-    setOtpStatus('authOtpStatus','Sending OTP...','pending');
-    await EHM_OTP.request(phone,'register');
-    setOtpStatus('authOtpStatus','OTP sent. Check your phone.','pending');
-  }catch(e){ setOtpStatus('authOtpStatus', e.message, 'error'); }
-}
-async function verifyRegisterOtp(){
-  try{
-    const phone=el('authPhone').value;
-    const otp=el('authOtp').value;
-    setOtpStatus('authOtpStatus','Verifying OTP...','pending');
-    await EHM_OTP.verify(phone,'register',otp);
-    setOtpStatus('authOtpStatus','Phone verified successfully. You can register now.','');
-  }catch(e){ setOtpStatus('authOtpStatus', e.message, 'error'); }
 }
 async function sendAdPhoneOtp(){
   try{
@@ -178,18 +163,7 @@ async function loginUser(){
   setAuthMessage('Logging in...','success'); const {data,error}=await supabaseClient.auth.signInWithPassword(credentials);
   if(error){setAuthMessage(error.message);return;} currentUser=data.user; const shouldPublish=PUBLISH_AFTER_AUTH;closeAuthModal();restoreDraft();updateSignedInState();if(shouldPublish)await submitAd();
 }
-async function registerUser(){
-  saveDraft(); const identifier=el('authEmail').value.trim(),password=el('authPassword').value;
-  if(!identifier||!password){setAuthMessage('Enter your email/phone and password.');return;} if(password.length<6){setAuthMessage('Password must contain at least 6 characters.');return;}
-  if(REGISTER_METHOD==='email'){
-    if(AUTH_SETTINGS.emailOtpEnabled&&AUTH_SETTINGS.emailRegisterOtp){const token=el('authEmailOtp').value.trim();if(!/^\d{6}$/.test(token)){setOtpStatus('authEmailOtpStatus','Send and enter the email OTP.','error');return;}let result=await supabaseClient.auth.verifyOtp({email:identifier,token,type:'signup'});if(result.error)result=await supabaseClient.auth.verifyOtp({email:identifier,token,type:'email'});if(result.error){setOtpStatus('authEmailOtpStatus',result.error.message,'error');return;}currentUser=result.data.user;}
-    else {const result=await supabaseClient.auth.signUp({email:identifier,password,options:{data:{registration_method:'email'}}});if(result.error){setAuthMessage(result.error.message);return;}currentUser=result.data.session?.user||result.data.user;}
-  } else {
-    const phone=EHM_OTP.normalizePhone(identifier);let verifiedToken='';if(AUTH_SETTINGS.smsOtpEnabled&&AUTH_SETTINGS.smsRegisterOtp){if(!EHM_OTP.isVerified(phone,'register')){setOtpStatus('authOtpStatus','Verify your phone number before registration.','error');return;}verifiedToken=EHM_OTP.getVerifiedToken?EHM_OTP.getVerifiedToken('register'):'';}
-    const response=await fetch('/api/register-phone-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,password,verifiedToken})});const body=await response.json();if(!response.ok){setAuthMessage(body.message);return;}const signed=await supabaseClient.auth.signInWithPassword({phone:'+'+phone,password});if(signed.error){setAuthMessage('Account created. Please use Log in.','success');setAuthMode('login');return;}currentUser=signed.data.user;
-  }
-  const shouldPublish=PUBLISH_AFTER_AUTH;closeAuthModal();restoreDraft();updateSignedInState();if(shouldPublish)await submitAd();
-}
+async function registerUser(){ goToVerifiedSignup(); }
 async function logoutUser(){ saveDraft(); await supabaseClient.auth.signOut(); currentUser=null; updateSignedInState(); }
 
 function selectedCategory(){ return CATEGORIES.find(c=>String(c.id)===String(el('category')?.value)) || {}; }

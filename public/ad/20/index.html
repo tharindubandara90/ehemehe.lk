@@ -53,7 +53,17 @@
     <meta name="description" content="ehemehe.lk - Sri Lanka's #1 Modern Marketplace. Buy, sell, and discover amazing deals.">
     <meta name="theme-color" content="#3DC697">
     <title>ehemehe.lk - Sri Lanka's Marketplace</title>
-    <script type="module" crossorigin="" src="js/index-BsKly-Vj.js"></script>
+    <script id="ehm-auth-route-isolation">
+(function () {
+  var path = location.pathname.replace(/\/+$/, '') || '/';
+  window.__EHM_AUTH_ONLY_ROUTE = path === '/login' || path === '/signup';
+})();
+</script>
+<script type="module">
+if (!window.__EHM_AUTH_ONLY_ROUTE) {
+  import('/js/index-BsKly-Vj.js?v=20260714-otp-gate-root-cause');
+}
+</script>
     <link rel="stylesheet" crossorigin="" href="css/index-DcB2eYwd.css">
   
   <style id="mobile-footer-hide">
@@ -66,8 +76,8 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="/brand-theme.css?v=20260714-phone-otp-only-final">
-<link rel="stylesheet" href="/auth-unified.css?v=20260714-phone-otp-only-final">
+  <link rel="stylesheet" href="/brand-theme.css?v=20260714-otp-gate-root-cause">
+<link rel="stylesheet" href="/auth-unified.css?v=20260714-otp-gate-root-cause">
 </head>
   <body>
     <div id="root"></div>
@@ -79,10 +89,11 @@
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/supabase.js?v=20260714-supabase-project-match-final"></script>
+  <script src="/auth-session-bridge.js?v=20260714-otp-gate-root-cause"></script>
 
   <script src="./post-ad-category-fields.js?v=20260714-dynamic-vehicle-body-types"></script>
-  <script src="./index-filters.js?v=20260714-phone-otp-only-final"></script>
-  <script src="/brand-theme.js?v=20260714-phone-otp-only-final"></script>
-<script src="/otp-client.js?v=20260714-supabase-project-match-final"></script>
-<script src="/auth-unified.js?v=20260714-phone-otp-only-final"></script>
+  <script src="./index-filters.js?v=20260714-otp-gate-root-cause"></script>
+  <script src="/brand-theme.js?v=20260714-otp-gate-root-cause"></script>
+<script src="/otp-client.js?v=20260714-otp-gate-root-cause"></script>
+<script src="/auth-unified.js?v=20260714-otp-gate-root-cause"></script>
 </body></html>

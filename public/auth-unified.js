@@ -1,6 +1,57 @@
 (()=>{
   const $ = (id) => document.getElementById(id);
 
+  function isAuthRoutePath(pathname) {
+    const path = String(pathname || '').replace(/\/+$/, '') || '/';
+    return path === '/login' || path === '/signup';
+  }
+
+  function safeReturnTarget() {
+    try {
+      const requested = new URLSearchParams(location.search).get('return') || '';
+      if (requested.startsWith('/') && !requested.startsWith('//')) return requested;
+    } catch (_) {}
+    return '/dashboard';
+  }
+
+  function installHardAuthNavigation() {
+    if (window.__ehmHardAuthNavigationInstalled) return;
+    window.__ehmHardAuthNavigationInstalled = true;
+
+    document.addEventListener('click', (event) => {
+      const link = event.target?.closest?.('a[href]');
+      if (!link) return;
+
+      let url;
+      try { url = new URL(link.href, location.href); }
+      catch (_) { return; }
+
+      if (url.origin !== location.origin || !isAuthRoutePath(url.pathname)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      location.assign(url.pathname + url.search + url.hash);
+    }, true);
+
+    const originalPushState = history.pushState.bind(history);
+    const originalReplaceState = history.replaceState.bind(history);
+
+    history.pushState = function () {
+      const result = originalPushState(...arguments);
+      if (isAuthRoutePath(location.pathname)) location.reload();
+      return result;
+    };
+
+    history.replaceState = function () {
+      const result = originalReplaceState(...arguments);
+      if (isAuthRoutePath(location.pathname) && !window.__EHM_AUTH_ONLY_ROUTE) location.reload();
+      return result;
+    };
+  }
+
+  installHardAuthNavigation();
+
   let settings = null;
   let mode = 'login';
   let loginMethod = 'email';
@@ -271,7 +322,7 @@
       if (loginResult.error) throw loginResult.error;
 
       message('OTP verified. Your account has been created successfully.', true);
-      setTimeout(() => { location.href = '/dashboard'; }, 600);
+      setTimeout(() => { location.href = safeReturnTarget(); }, 600);
     } catch (error) {
       message(error.message || 'OTP verification failed.');
     } finally {
@@ -296,7 +347,7 @@
 
       const result = await window.supabaseClient.auth.signInWithPassword(credentials);
       if (result.error) throw result.error;
-      location.href = '/dashboard';
+      location.href = safeReturnTarget();
     } catch (error) {
       message(error.message || 'Login failed.');
     } finally {

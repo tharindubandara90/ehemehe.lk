@@ -76,33 +76,52 @@ function expiryMinutes() {
 }
 
 async function sendTextLkSms({ phone, message }) {
-  const token = process.env.TEXTLK_API_TOKEN;
-  const senderId = process.env.TEXTLK_SENDER_ID || 'EHEMEHE';
-  if (!token) throw new Error('TEXTLK_API_TOKEN is not configured.');
+  const token = String(process.env.TEXTLK_API_TOKEN || '').trim();
+  const senderId = String(process.env.TEXTLK_SENDER_ID || '').trim();
 
-  const response = await fetch(TEXTLK_SEND_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify({
-      recipient: phone,
-      sender_id: senderId,
-      type: 'plain',
-      message
-    })
-  });
+  if (!token) throw new Error('TEXTLK_API_TOKEN is not configured in Vercel.');
+  if (!senderId) throw new Error('TEXTLK_SENDER_ID is not configured in Vercel.');
+  if (senderId.length > 11) throw new Error('TEXTLK_SENDER_ID must be 11 characters or fewer.');
 
-  let data = {};
-  try { data = await response.json(); }
-  catch (e) { data = { message: await response.text() }; }
-
-  const ok = response.ok && (data.status === true || data.status === 'success' || data.message);
-  if (!ok) {
-    throw new Error(data.message || `Text.lk SMS failed with HTTP ${response.status}`);
+  let response;
+  try {
+    response = await fetch(TEXTLK_SEND_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        recipient: phone,
+        sender_id: senderId,
+        type: 'plain',
+        message
+      })
+    });
+  } catch (error) {
+    throw new Error(`Could not connect to Text.lk: ${error.message}`);
   }
+
+  const raw = await response.text();
+  let data = {};
+  try { data = raw ? JSON.parse(raw) : {}; }
+  catch (_) { data = { status: 'error', message: raw || 'Invalid response from Text.lk.' }; }
+
+  const status = String(data.status ?? '').toLowerCase();
+  const apiSuccess =
+    data.status === true ||
+    ['success', 'sent', 'queued', 'delivered', 'ok'].includes(status);
+
+  if (!response.ok || !apiSuccess) {
+    const detail =
+      data.message ||
+      data.error ||
+      data.errors?.[0]?.message ||
+      `HTTP ${response.status}`;
+    throw new Error(`Text.lk rejected the SMS: ${detail}`);
+  }
+
   return data;
 }
 
@@ -202,7 +221,7 @@ async function findAuthUserByEmail(email) {
 
 async function readSiteSettings() {
   const defaults = {
-    emailOtpEnabled:true, emailRegisterOtp:true, emailPasswordResetOtp:true,
+    emailOtpEnabled:false, emailRegisterOtp:false, emailPasswordResetOtp:false,
     smsOtpEnabled:true, smsRegisterOtp:true, smsPasswordChangeOtp:true, smsAdPhoneOtp:true
   };
   const url = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
@@ -220,9 +239,9 @@ async function readSiteSettings() {
     const rows = await response.json();
     const map = Object.fromEntries((rows||[]).map(row=>[row.key,row.value]));
     return {
-      emailOtpEnabled:boolValue(map.email_otp_enabled,true),
-      emailRegisterOtp:boolValue(map.email_otp_register_enabled,true),
-      emailPasswordResetOtp:boolValue(map.email_otp_password_reset_enabled,true),
+      emailOtpEnabled:false,
+      emailRegisterOtp:false,
+      emailPasswordResetOtp:false,
       smsOtpEnabled:boolValue(map.sms_otp_enabled,true),
       smsRegisterOtp:boolValue(map.sms_otp_register_enabled,true),
       smsPasswordChangeOtp:boolValue(map.sms_otp_password_change_enabled,true),
