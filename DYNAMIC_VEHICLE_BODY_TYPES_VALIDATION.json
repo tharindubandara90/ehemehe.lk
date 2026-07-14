@@ -1,0 +1,29 @@
+{
+  "source": "ehemehe_two_banner_ads_admin_final.zip",
+  "dynamic_body_type": true,
+  "vehicle_subtypes": [
+    "cars",
+    "suvs",
+    "motorcycles",
+    "three-wheelers",
+    "vans",
+    "pickups",
+    "trucks",
+    "buses",
+    "tractors",
+    "heavy-duty"
+  ],
+  "car_options": [
+    "Sedan / Saloon",
+    "Hatchback",
+    "Station Wagon",
+    "Coupe / Sports",
+    "Convertible",
+    "MPV / Minivan",
+    "Crossover",
+    "Other"
+  ],
+  "changes_immediately_when_vehicle_subcategory_changes": true,
+  "javascript_syntax": "passed",
+  "cache_version": "20260714-dynamic-vehicle-body-types"
+}

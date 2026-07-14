@@ -11,7 +11,7 @@
       { key:'fuel_type', label:'Fuel Type', type:'select', required:true, options:['Petrol','Diesel','Hybrid','Electric','CNG','Other'] },
       { key:'transmission', label:'Gear / Transmission', type:'select', required:true, options:['Automatic','Manual','Tiptronic','CVT','Other'] },
       { key:'engine_capacity', label:'Engine Capacity / CC', type:'number', placeholder:'1500' },
-      { key:'body_type', label:'Body Type', type:'select', options:['Car','SUV / Jeep','Van','Motorbike','Three Wheeler','Lorry / Truck','Bus','Other'] },
+      { key:'body_type', label:'Body Type', type:'select', options:['Sedan / Saloon','Hatchback','Station Wagon','Coupe / Sports','Convertible','MPV / Minivan','Crossover','Other'] },
       { key:'ownership', label:'Ownership', type:'select', options:['1st owner','2nd owner','3rd owner','4th owner or more','Unregistered'] },
       { key:'condition_notes', label:'Vehicle Condition Notes', type:'textarea', placeholder:'Accident-free, original paint, service records, tyre condition...' }
     ],
@@ -101,7 +101,12 @@
   };
 
   const SUBCATEGORY_OVERRIDES = {
-    cars: 'vehicles', motorcycles: 'vehicles', 'three-wheelers': 'vehicles', vans: 'vehicles', trucks: 'vehicles', buses: 'vehicles',
+    cars: 'vehicles', car: 'vehicles', suvs: 'vehicles', suv: 'vehicles', 'suv-jeep': 'vehicles', jeeps: 'vehicles',
+    motorcycles: 'vehicles', motorcycle: 'vehicles', motorbikes: 'vehicles', motorbike: 'vehicles', scooters: 'vehicles',
+    'three-wheelers': 'vehicles', 'three-wheeler': 'vehicles', threewheelers: 'vehicles', 'tuk-tuks': 'vehicles',
+    vans: 'vehicles', van: 'vehicles', trucks: 'vehicles', truck: 'vehicles', lorries: 'vehicles', lorry: 'vehicles',
+    buses: 'vehicles', bus: 'vehicles', pickups: 'vehicles', pickup: 'vehicles', 'double-cabs': 'vehicles', 'crew-cabs': 'vehicles',
+    tractors: 'vehicles', tractor: 'vehicles', 'heavy-duty': 'vehicles', 'heavy-vehicles': 'vehicles',
     land: 'property', lands: 'property', houses: 'property', apartments: 'property', 'apartment-rentals': 'property', 'property-rentals': 'property',
     phones: 'mobile-phones', mobiles: 'mobile-phones', tablets: 'mobile-phones', laptops: 'electronics', tvs: 'electronics',
     dogs: 'animals-pets', cats: 'animals-pets'
@@ -109,8 +114,96 @@
 
   const state = { category:'', subcategory:'', fields:{}, lastInjectedKey:'' };
 
+  const VEHICLE_BODY_TYPE_CONFIG = {
+    cars: {
+      label: 'Car Body Type',
+      aliases: ['car','cars','automobile','saloon-car'],
+      options: ['Sedan / Saloon','Hatchback','Station Wagon','Coupe / Sports','Convertible','MPV / Minivan','Crossover','Other']
+    },
+    suvs: {
+      label: 'SUV / Jeep Type',
+      aliases: ['suv','suvs','suv-jeep','suv-jeeps','jeep','jeeps','4x4'],
+      options: ['Compact SUV','Mid-size SUV','Full-size SUV','Crossover SUV','4x4 / Off-road','Other']
+    },
+    motorcycles: {
+      label: 'Motorcycle Type',
+      aliases: ['motorcycle','motorcycles','motorbike','motorbikes','bike','bikes'],
+      options: ['Scooter','Standard / Commuter','Sports Bike','Naked Bike','Cruiser','Touring','Adventure / Dual Sport','Off-road / Dirt Bike','Moped','Electric Motorcycle','Other']
+    },
+    'three-wheelers': {
+      label: 'Three Wheeler Type',
+      aliases: ['three-wheeler','three-wheelers','threewheeler','threewheelers','tuk-tuk','tuk-tuks'],
+      options: ['Passenger Three Wheeler','Cargo Three Wheeler','Electric Three Wheeler','Other']
+    },
+    vans: {
+      label: 'Van Type',
+      aliases: ['van','vans'],
+      options: ['Mini Van','Passenger Van','Cargo / Panel Van','High-roof Van','Camper Van','Other']
+    },
+    pickups: {
+      label: 'Pickup / Cab Type',
+      aliases: ['pickup','pickups','single-cab','double-cab','double-cabs','crew-cab','crew-cabs'],
+      options: ['Single Cab Pickup','Double Cab / Crew Cab','Extended Cab Pickup','Utility Pickup','Other']
+    },
+    trucks: {
+      label: 'Lorry / Truck Type',
+      aliases: ['truck','trucks','lorry','lorries'],
+      options: ['Light Truck','Medium Truck','Heavy Truck','Tipper / Dump Truck','Box Truck','Flatbed Truck','Refrigerated Truck','Tanker','Tractor Head / Prime Mover','Other']
+    },
+    buses: {
+      label: 'Bus Type',
+      aliases: ['bus','buses'],
+      options: ['Mini Bus','School Bus','Staff / Office Bus','City Bus','Coach / Luxury Bus','Double-decker Bus','Other']
+    },
+    tractors: {
+      label: 'Tractor Type',
+      aliases: ['tractor','tractors'],
+      options: ['Two-wheel Tractor','Four-wheel Tractor','Agricultural Tractor','Orchard Tractor','Other']
+    },
+    'heavy-duty': {
+      label: 'Heavy Vehicle Type',
+      aliases: ['heavy-duty','heavy-vehicle','heavy-vehicles','construction-vehicle','construction-vehicles'],
+      options: ['Excavator','Backhoe Loader','Wheel Loader','Bulldozer','Road Roller','Crane','Forklift','Motor Grader','Other']
+    }
+  };
+
   function slug(v) {
     return String(v || '').toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  }
+
+  function detectVehicleSubtypeFromDom() {
+    const selections = Array.from(document.querySelectorAll('select'))
+      .flatMap((select) => [select.value, select.options[select.selectedIndex]?.textContent || ''])
+      .map(slug)
+      .filter(Boolean);
+
+    // Prefer exact aliases, then safe phrase matches. This prevents Fuel Type,
+    // Condition, or Ownership selections from being mistaken for vehicle type.
+    for (const [type, config] of Object.entries(VEHICLE_BODY_TYPE_CONFIG)) {
+      if (config.aliases.some((alias) => selections.includes(alias))) return type;
+    }
+
+    const joined = selections.join(' ');
+    if (/three-wheel|threewheeler|tuk-tuk/.test(joined)) return 'three-wheelers';
+    if (/double-cab|crew-cab|pickup/.test(joined)) return 'pickups';
+    if (/motorcycle|motorbike|scooter/.test(joined)) return 'motorcycles';
+    if (/suv|jeep|4x4/.test(joined)) return 'suvs';
+    if (/(^|-)van(s)?($|-)/.test(joined)) return 'vans';
+    if (/lorry|truck/.test(joined)) return 'trucks';
+    if (/(^|-)bus(es)?($|-)/.test(joined)) return 'buses';
+    if (/tractor/.test(joined)) return 'tractors';
+    if (/heavy-duty|heavy-vehicle|construction-vehicle/.test(joined)) return 'heavy-duty';
+    if (/(^|-)car(s)?($|-)/.test(joined)) return 'cars';
+    return '';
+  }
+
+  function vehicleFieldsForSubtype() {
+    const subtype = detectVehicleSubtypeFromDom() || state.subcategory || 'cars';
+    const config = VEHICLE_BODY_TYPE_CONFIG[subtype] || VEHICLE_BODY_TYPE_CONFIG.cars;
+    return FIELD_DEFINITIONS.vehicles.map((field) => {
+      if (field.key !== 'body_type') return { ...field };
+      return { ...field, label: config.label, options: [...config.options] };
+    });
   }
 
   function detectCategoryFromDom() {
@@ -145,7 +238,8 @@
     const values = selects.map(s => ({ value: s.value, text: (s.options[s.selectedIndex]?.textContent || '').trim() }));
     const category = detectCategoryFromDom();
     state.category = category;
-    const candidate = values.map(x => slug(x.text || x.value)).find(x => x && x !== category && x !== 'select-a-category' && x !== 'select-a-subcategory');
+    const vehicleSubtype = category === 'vehicles' ? detectVehicleSubtypeFromDom() : '';
+    const candidate = vehicleSubtype || values.map(x => slug(x.text || x.value)).find(x => x && x !== category && x !== 'select-a-category' && x !== 'select-a-subcategory');
     if (candidate) state.subcategory = candidate;
   }
 
@@ -156,6 +250,11 @@
   function getFields() {
     const category = detectCategoryFromDom();
     state.category = category;
+    if (category === 'vehicles') {
+      const subtype = detectVehicleSubtypeFromDom();
+      if (subtype) state.subcategory = subtype;
+      return vehicleFieldsForSubtype();
+    }
     return FIELD_DEFINITIONS[category] || FIELD_DEFINITIONS.general;
   }
 
