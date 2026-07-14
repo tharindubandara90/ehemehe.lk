@@ -1545,7 +1545,7 @@
   }
 
   function hideAdDetailLocation() {
-    if (!isMobile() || !isAdRoute()) return;
+    if (!isAdRoute()) return;
     document.body.classList.add('ehm-ad-detail-route');
     removeManagedHome();
     injectAdDetailBanner();
@@ -1644,27 +1644,58 @@
     });
   }
 
+  function openAdPageAtTop(force = false) {
+    if (!isAdRoute()) return;
+
+    const routeKey = `${location.pathname}${location.search}${location.hash}`;
+    if (!force && window.__ehmAdTopRoute === routeKey) return;
+    window.__ehmAdTopRoute = routeKey;
+
+    try {
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    } catch (_) {}
+
+    const reset = () => {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
+    };
+
+    reset();
+    requestAnimationFrame(reset);
+    setTimeout(reset, 40);
+    setTimeout(reset, 160);
+    setTimeout(reset, 450);
+  }
+
   async function sync() {
     if (syncing) return;
     syncing = true;
     window.__ehmMutating = true;
     try {
       installStyles();
+
+      if (isAdRoute()) {
+        openAdPageAtTop();
+        removeManagedHome();
+        await loadFinanceSettings();
+        await loadAds();
+        await loadPromotions();
+        hideAdDetailLocation();
+        setTimeout(hideAdDetailLocation, 150);
+        setTimeout(hideAdDetailLocation, 500);
+        setTimeout(hideAdDetailLocation, 1200);
+        return;
+      }
+
       if (!isMobile()) {
         removeManagedHome();
         if (isHomeRoute()) await ensureDesktopHome();
         return;
       }
+
       if (isHomeRoute()) {
         await ensureHomeMobile();
-      } else if (isAdRoute()) {
-        await loadFinanceSettings();
-        await loadAds();
-        await loadPromotions();
-        hideAdDetailLocation();
-        setTimeout(hideAdDetailLocation, 250);
-        setTimeout(hideAdDetailLocation, 700);
-        setTimeout(hideAdDetailLocation, 1500);
       } else {
         removeManagedHome();
       }
@@ -1686,17 +1717,42 @@
     const originalPush = history.pushState;
     const originalReplace = history.replaceState;
     history.pushState = function () {
+      const previousPath = location.pathname;
       const result = originalPush.apply(this, arguments);
-      scheduleSync(80); scheduleSync(350);
+      if (location.pathname !== previousPath && isAdRoute()) {
+        window.__ehmAdTopRoute = '';
+        openAdPageAtTop(true);
+      }
+      scheduleSync(30); scheduleSync(250);
       return result;
     };
     history.replaceState = function () {
+      const previousPath = location.pathname;
       const result = originalReplace.apply(this, arguments);
-      scheduleSync(80); scheduleSync(350);
+      if (location.pathname !== previousPath && isAdRoute()) {
+        window.__ehmAdTopRoute = '';
+        openAdPageAtTop(true);
+      }
+      scheduleSync(30); scheduleSync(250);
       return result;
     };
-    window.addEventListener('popstate', () => { scheduleSync(80); setTimeout(sync, 350); setTimeout(sync, 900); });
-    window.addEventListener('pageshow', () => { scheduleSync(80); setTimeout(sync, 350); });
+    window.addEventListener('popstate', () => {
+      if (isAdRoute()) {
+        window.__ehmAdTopRoute = '';
+        openAdPageAtTop(true);
+      }
+      scheduleSync(30);
+      setTimeout(sync, 250);
+      setTimeout(sync, 700);
+    });
+    window.addEventListener('pageshow', () => {
+      if (isAdRoute()) {
+        window.__ehmAdTopRoute = '';
+        openAdPageAtTop(true);
+      }
+      scheduleSync(30);
+      setTimeout(sync, 250);
+    });
     window.addEventListener('resize', () => scheduleSync(120));
 
     const observer = new MutationObserver(() => {
@@ -1704,8 +1760,12 @@
       const path = window.location.pathname;
       if (path !== lastPath) {
         lastPath = path;
-        scheduleSync(80);
-        setTimeout(sync, 350);
+        if (isAdRoute()) {
+          window.__ehmAdTopRoute = '';
+          openAdPageAtTop(true);
+        }
+        scheduleSync(30);
+        setTimeout(sync, 250);
       } else if (isMobile() && isHomeRoute()) {
         // React mounts the native sections in stages. Hide them immediately so
         // the first visible mobile screen remains the two-column Latest Ads layout.
@@ -1726,8 +1786,10 @@
       setTimeout(ensureDesktopHome, 1400);
     }
     if (isAdRoute()) {
+      window.__ehmAdTopRoute = '';
+      openAdPageAtTop(true);
       window.clearInterval(window.__ehmAdLocationLongTimer);
-      window.__ehmAdLocationLongTimer = window.setInterval(hideAdDetailLocation, 250);
+      window.__ehmAdLocationLongTimer = window.setInterval(hideAdDetailLocation, 200);
       setTimeout(() => window.clearInterval(window.__ehmAdLocationLongTimer), 15000);
     }
     await sync();

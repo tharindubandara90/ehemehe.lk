@@ -1,0 +1,12 @@
+{
+  "source_project": "ehemehe_full_project_supabase_fixed.zip",
+  "ad_click_starts_at_page_top": true,
+  "direct_ad_url_starts_at_page_top": true,
+  "browser_back_forward_ad_route_starts_at_top": true,
+  "location_section_removed_on_mobile": true,
+  "location_section_removed_on_desktop": true,
+  "scroll_reset_runs_once_per_ad_route": true,
+  "static_ad_route_shells_synced": 100,
+  "javascript_syntax_check": "passed",
+  "cache_version": "20260714-ad-top-no-location"
+}

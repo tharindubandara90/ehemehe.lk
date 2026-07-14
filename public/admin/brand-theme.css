@@ -706,3 +706,17 @@ html.ehm-physical-mobile svg {
     max-height: 170px;
   }
 }
+
+/* Ad detail: remove location section on desktop and mobile */
+body.ehm-ad-detail-route [data-ehm-hidden-ad-location="1"] {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
