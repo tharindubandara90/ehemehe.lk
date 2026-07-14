@@ -140,3 +140,6 @@
 @media (max-width: 767px) {
   [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDE3OjQ"] { display: none !important; }
 }
+
+.link-button{border:0;background:transparent;color:#22A879;font-weight:800;padding:0;cursor:pointer;text-decoration:underline}
+@media(max-width:767px){a[href="/categories"],a[href="/categories/"]{display:none!important}}

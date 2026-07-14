@@ -92,10 +92,38 @@
     });
   }
 
+
+  function patchMarketplaceRoutes() {
+    const mobile = window.matchMedia('(max-width: 767px)').matches;
+    document.querySelectorAll('a[href="/post"],a[href="/post/"]').forEach(a => a.setAttribute('href','/post-ad'));
+
+    document.querySelectorAll('a[href="/categories"],a[href="/categories/"]').forEach(a => {
+      if (mobile) {
+        a.style.display = 'none';
+        a.setAttribute('aria-hidden','true');
+      }
+    });
+
+    if (mobile) {
+      const path = location.pathname.replace(/\/$/,'');
+      if (path === '/categories') {
+        location.replace('/');
+        return;
+      }
+      Array.from(document.querySelectorAll('h1,h2,h3')).forEach(heading => {
+        if ((heading.textContent || '').trim().toLowerCase() === 'browse categories') {
+          const section = heading.closest('section') || heading.parentElement?.parentElement || heading.parentElement;
+          if (section) section.style.display = 'none';
+        }
+      });
+    }
+  }
+
   function tick() {
     ensureFavicon();
     replaceHeaderLogos();
     replaceInlineCyan();
+    patchMarketplaceRoutes();
     markMobileOnlyLayout();
   }
 

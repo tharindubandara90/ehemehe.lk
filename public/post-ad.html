@@ -37,16 +37,55 @@
 
   </style>
   <link rel="icon" type="image/png" href="/assets/ehemehe_favicon.png">
-  <link rel="stylesheet" href="/brand-theme.css?v=20260714-mobile-final">
+  <link rel="stylesheet" href="/brand-theme.css?v=20260714-auth-publish">
+<style>
+    .publish-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:18px}.publish-btn{min-width:180px;font-size:16px}.signed-in-state{font-size:13px;color:var(--muted);font-weight:700}
+    .auth-modal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}.auth-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}.auth-card{position:relative;z-index:1;width:min(520px,100%);max-height:calc(100dvh - 36px);overflow:auto;background:#fff;border-radius:22px;padding:24px;box-shadow:0 30px 80px rgba(15,23,42,.28)}.auth-close{position:absolute;right:14px;top:10px;border:0;background:transparent;color:#64748b;font-size:30px;line-height:1;cursor:pointer}.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f1f5f9;padding:5px;border-radius:14px;margin:16px 0}.auth-tab{border:0;background:transparent;padding:11px;border-radius:10px;font-weight:850;color:#64748b;cursor:pointer}.auth-tab.active{background:#fff;color:#0f172a;box-shadow:0 2px 9px rgba(15,23,42,.08)}.auth-continue{width:100%;margin-top:14px}.auth-message{margin-top:10px;font-size:13px;font-weight:700;color:#b91c1c}.auth-message.success{color:#047857}
+    @media(max-width:750px){.wrap{padding:14px}.panel{border-radius:18px;padding:16px}.auth-card{padding:20px 16px}.top{display:flex;flex-direction:column;align-items:flex-start;gap:10px}}
+</style>
 </head>
 <body>
   <div class="top"><div class="brand">ehemehe.lk</div><div><a class="btn dark" href="./">Home</a> <a class="btn dark" href="./browse.html">Browse Ads</a></div></div>
   <main class="wrap">
-    <div class="panel" id="authPanel"><h2>User Login / Register</h2><p class="notice">Please login or register to post an ad.</p><div class="grid"><div class="field"><label>Email</label><input id="authEmail" class="input" type="email"></div><div class="field"><label>Password</label><input id="authPassword" class="input" type="password"></div><div class="field"><label>Phone for registration OTP</label><input id="authPhone" class="input" placeholder="0771234567" oninput="resetRegisterOtp()"></div></div><div class="otp-box"><div class="otp-row"><button class="btn dark" type="button" onclick="sendRegisterOtp()">Send Registration OTP</button><input id="authOtp" class="input" placeholder="6-digit OTP" inputmode="numeric" maxlength="6"><button class="btn" type="button" onclick="verifyRegisterOtp()">Verify OTP</button></div><div id="authOtpStatus" class="otp-status pending">Phone verification is required before registration.</div></div><div class="grid"><button class="btn" onclick="loginUser()">Login</button><button class="btn dark" onclick="registerUser()">Register</button></div></div>
-    <div class="panel hidden" id="postPanel"><h2>Post New Ad</h2><p class="notice">Submitted ads will be sent for admin approval before appearing on the public site.</p><div class="grid"><div class="field"><label>Title</label><input id="title" class="input"></div><div class="field"><label>Price</label><input id="price" class="input" type="number" oninput="updateFinanceBox()"></div><div class="field"><label>Category</label><select id="category" onchange="updateFinanceBox()"></select></div><div class="field"><label>City</label><select id="city"></select></div><div class="field"><label>Phone</label><input id="phone" class="input" placeholder="0771234567" oninput="resetAdPhoneOtp()"><div class="otp-box"><div class="otp-row"><button class="btn dark" type="button" onclick="sendAdPhoneOtp()">Send OTP</button><input id="adPhoneOtp" class="input" placeholder="6-digit OTP" inputmode="numeric" maxlength="6"><button class="btn" type="button" onclick="verifyAdPhoneOtp()">Verify Phone</button></div><div id="adPhoneOtpStatus" class="otp-status pending">Verify this phone number before submitting the ad.</div></div></div><div class="field"><label>Photos</label><input id="image_files" class="input" type="file" accept="image/*" multiple onchange="handleSimpleImages(event)"><div id="simpleImagePreview" class="image-preview-grid"></div></div></div><div id="vehicleFinanceBox" class="finance-box hidden"></div><div id="simpleDynamicFields" class="dynamic-fields hidden"></div><div class="field"><label>Description</label><textarea id="description"></textarea></div><button class="btn" onclick="submitAd()">Submit for Approval</button> <button class="btn dark" onclick="logoutUser()">Logout</button></div>
+    <div class="panel" id="postPanel">
+      <h2>Post New Ad</h2>
+      <p class="notice">Enter your ad details first. You will only be asked to log in or create an account when you publish.</p>
+      <div class="grid">
+        <div class="field"><label>Title</label><input id="title" class="input" data-draft-field="title"></div>
+        <div class="field"><label>Price</label><input id="price" class="input" type="number" data-draft-field="price" oninput="updateFinanceBox()"></div>
+        <div class="field"><label>Category</label><select id="category" data-draft-field="category" onchange="updateFinanceBox()"></select></div>
+        <div class="field"><label>City</label><select id="city" data-draft-field="city"></select></div>
+        <div class="field"><label>Phone</label><input id="phone" class="input" placeholder="0771234567" data-draft-field="phone" oninput="resetAdPhoneOtp()">
+          <div class="otp-box"><div class="otp-row"><button class="btn dark" type="button" onclick="sendAdPhoneOtp()">Send OTP</button><input id="adPhoneOtp" class="input" placeholder="6-digit OTP" inputmode="numeric" maxlength="6"><button class="btn" type="button" onclick="verifyAdPhoneOtp()">Verify Phone</button></div><div id="adPhoneOtpStatus" class="otp-status pending">Verify this phone number before publishing the ad.</div></div>
+        </div>
+        <div class="field"><label>Photos</label><input id="image_files" class="input" type="file" accept="image/*" multiple onchange="handleSimpleImages(event)"><div id="simpleImagePreview" class="image-preview-grid"></div></div>
+      </div>
+      <div id="vehicleFinanceBox" class="finance-box hidden"></div>
+      <div id="simpleDynamicFields" class="dynamic-fields hidden"></div>
+      <div class="field"><label>Description</label><textarea id="description" data-draft-field="description"></textarea></div>
+      <div class="publish-actions"><button id="publishAdButton" class="btn publish-btn" type="button" onclick="submitAd()">Publish Ad</button><span id="signedInState" class="signed-in-state"></span></div>
+    </div>
+
+    <div class="auth-modal hidden" id="authPanel" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div class="auth-backdrop" onclick="closeAuthModal()"></div>
+      <div class="auth-card">
+        <button class="auth-close" type="button" aria-label="Close" onclick="closeAuthModal()">×</button>
+        <h2 id="authTitle">Continue to publish</h2>
+        <p class="notice">Your entered ad details are saved. Log in to your account or create a new account to publish—nothing will be reset.</p>
+        <div class="auth-tabs"><button id="loginTab" class="auth-tab active" type="button" onclick="setAuthMode('login')">Log in</button><button id="registerTab" class="auth-tab" type="button" onclick="setAuthMode('register')">Create account</button></div>
+        <div class="field"><label>Email</label><input id="authEmail" class="input" type="email" autocomplete="email"></div>
+        <div class="field"><label>Password</label><input id="authPassword" class="input" type="password" autocomplete="current-password"></div>
+        <div id="registerOnly" class="hidden">
+          <div class="field"><label>Phone for registration OTP</label><input id="authPhone" class="input" placeholder="0771234567" oninput="resetRegisterOtp()"></div>
+          <div class="otp-box"><div class="otp-row"><button class="btn dark" type="button" onclick="sendRegisterOtp()">Send OTP</button><input id="authOtp" class="input" placeholder="6-digit OTP" inputmode="numeric" maxlength="6"><button class="btn" type="button" onclick="verifyRegisterOtp()">Verify OTP</button></div><div id="authOtpStatus" class="otp-status pending">Phone verification is required before registration.</div></div>
+        </div>
+        <button id="authContinueButton" class="btn auth-continue" type="button" onclick="continueAuthentication()">Log in & Publish</button>
+        <div id="authMessage" class="auth-message"></div>
+      </div>
+    </div>
   </main>
   <script src="./otp-client.js"></script>
-  <script src="./post-ad.js?v=20260713-category-fields-image-upload"></script>
-  <script src="/brand-theme.js?v=20260714-mobile-final"></script>
+  <script src="./post-ad.js?v=20260714-auth-at-publish"></script>
+  <script src="/brand-theme.js?v=20260714-auth-publish"></script>
 </body>
 </html>

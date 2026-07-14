@@ -1,0 +1,28 @@
+{
+  "post_form_visible_before_auth": true,
+  "auth_prompt_trigger": "Publish Ad click",
+  "auth_options": [
+    "Log in",
+    "Create account"
+  ],
+  "draft_storage_key": "ehemehe:postAdDraft:v2",
+  "draft_fields": [
+    "title",
+    "price",
+    "category",
+    "city",
+    "phone",
+    "description",
+    "category custom fields"
+  ],
+  "clear_draft_only_after_success": true,
+  "mobile_categories_redirect_to_home": true,
+  "mobile_categories_nav_hidden": true,
+  "post_route_redirected_to": "/post-ad",
+  "files_changed": [
+    "public/post-ad.html",
+    "public/post-ad.js",
+    "public/brand-theme.js",
+    "public/brand-theme.css"
+  ]
+}

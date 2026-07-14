@@ -1,4 +1,6 @@
 let CATEGORIES=[], CITIES=[], currentUser=null;
+let AUTH_MODE='login', PUBLISH_AFTER_AUTH=false, IS_PUBLISHING=false;
+const DRAFT_KEY='ehemehe:postAdDraft:v2';
 // USER_FINANCE_RATE_INPUT_REMOVED: users only enter vehicle price; rate is admin-controlled.
 let FINANCE_SETTINGS = {downPaymentPercent:40, annualRatePercent:15, months:48, companyPhone:'+94 77 000 0000'};
 const el=(id)=>document.getElementById(id); const msg=(m)=>alert(m);
@@ -47,8 +49,39 @@ function collectSimpleFields(){
   const out={}; document.querySelectorAll('[data-simple-field]').forEach(n=>{ if(n.value.trim()) out[n.dataset.simpleField]=n.value.trim(); }); return out;
 }
 
+function draftSnapshot(){
+  const fields={}; document.querySelectorAll('[data-draft-field]').forEach(n=>fields[n.dataset.draftField]=n.value||'');
+  const custom={}; document.querySelectorAll('[data-simple-field]').forEach(n=>custom[n.dataset.simpleField]=n.value||'');
+  return {fields,custom,categoryGroup:simpleFieldGroup(),savedAt:Date.now()};
+}
+function saveDraft(){ try{localStorage.setItem(DRAFT_KEY,JSON.stringify(draftSnapshot()));}catch(e){} }
+function restoreDraft(){
+  let draft=null; try{draft=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');}catch(e){}
+  if(!draft)return;
+  Object.entries(draft.fields||{}).forEach(([k,v])=>{const n=document.querySelector(`[data-draft-field="${k}"]`);if(n&&v!==undefined)n.value=v;});
+  try{renderSimpleDynamicFields();}catch(e){}
+  Object.entries(draft.custom||{}).forEach(([k,v])=>{const n=document.querySelector(`[data-simple-field="${k}"]`);if(n)n.value=v;});
+  updateFinanceBox();
+}
+function bindDraftSaving(){
+  document.addEventListener('input',e=>{if(e.target.matches('[data-draft-field],[data-simple-field]'))saveDraft();});
+  document.addEventListener('change',e=>{if(e.target.matches('[data-draft-field],[data-simple-field]'))setTimeout(saveDraft,0);});
+  window.addEventListener('beforeunload',saveDraft);
+}
+function clearDraft(){try{localStorage.removeItem(DRAFT_KEY);}catch(e){}}
+
 function localSetting(key){try{return localStorage.getItem(localKey(key));}catch(e){return null;}}
-async function init(){ const {data}=await supabaseClient.auth.getSession(); await Promise.all([loadLookups(), loadFinanceSettings()]); if(data.session){currentUser=data.session.user; showPost();} updateFinanceBox(); }
+async function init(){
+  const {data}=await supabaseClient.auth.getSession();
+  await Promise.all([loadLookups(), loadFinanceSettings()]);
+  currentUser=data.session?.user||null;
+  showPost();
+  restoreDraft();
+  bindDraftSaving();
+  updateSignedInState();
+  updateFinanceBox();
+  supabaseClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;updateSignedInState();});
+}
 async function loadFinanceSettings(){
   const defaults={vehicle_downpayment_percent:40,vehicle_annual_rate_percent:15,vehicle_finance_months:48,vehicle_finance_company_phone:'+94 77 000 0000'};
   const values={...defaults};
@@ -65,7 +98,26 @@ async function loadFinanceSettings(){
   };
 }
 async function loadLookups(){ const [cats,cities]=await Promise.all([supabaseClient.from('categories').select('*').eq('is_active',true).order('name'),supabaseClient.from('cities').select('*').eq('is_active',true).order('name')]); CATEGORIES=cats.data||[]; CITIES=cities.data||[]; el('category').innerHTML=CATEGORIES.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); el('city').innerHTML=CITIES.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); }
-function showPost(){ el('authPanel').classList.add('hidden'); el('postPanel').classList.remove('hidden'); updateFinanceBox(); }
+function showPost(){ el('postPanel')?.classList.remove('hidden'); updateFinanceBox(); }
+function openAuthModal(){ saveDraft(); setAuthMode('login'); el('authPanel')?.classList.remove('hidden'); document.body.style.overflow='hidden'; setAuthMessage(''); }
+function closeAuthModal(){ el('authPanel')?.classList.add('hidden'); document.body.style.overflow=''; PUBLISH_AFTER_AUTH=false; }
+function setAuthMode(mode){
+  AUTH_MODE=mode==='register'?'register':'login';
+  el('loginTab')?.classList.toggle('active',AUTH_MODE==='login');
+  el('registerTab')?.classList.toggle('active',AUTH_MODE==='register');
+  el('registerOnly')?.classList.toggle('hidden',AUTH_MODE!=='register');
+  const pass=el('authPassword'); if(pass) pass.autocomplete=AUTH_MODE==='register'?'new-password':'current-password';
+  const btn=el('authContinueButton'); if(btn) btn.textContent=AUTH_MODE==='register'?'Create Account & Publish':'Log in & Publish';
+  setAuthMessage('');
+}
+function setAuthMessage(text,type='error'){ const node=el('authMessage'); if(!node)return; node.textContent=text||''; node.className='auth-message'+(type==='success'?' success':''); }
+function updateSignedInState(){
+  const node=el('signedInState'); if(!node)return;
+  if(currentUser){ node.innerHTML=`Signed in as <strong>${currentUser.email||'user'}</strong> · <button type="button" class="link-button" onclick="logoutUser()">Log out</button>`; }
+  else node.textContent='You can fill everything now. Login is required only when publishing.';
+}
+async function continueAuthentication(){ if(AUTH_MODE==='register') await registerUser(); else await loginUser(); }
+
 
 function setOtpStatus(id, text, type='pending'){
   const node=el(id); if(!node) return;
@@ -115,25 +167,39 @@ async function verifyAdPhoneOtp(){
   }catch(e){ setOtpStatus('adPhoneOtpStatus', e.message, 'error'); }
 }
 
-async function loginUser(){ const email=el('authEmail').value.trim(); const password=el('authPassword').value; const {data,error}=await supabaseClient.auth.signInWithPassword({email,password}); if(error){msg(error.message);return;} currentUser=data.user; showPost(); }
+async function loginUser(){
+  saveDraft();
+  const email=el('authEmail').value.trim(), password=el('authPassword').value;
+  if(!email||!password){setAuthMessage('Enter your email and password.');return;}
+  setAuthMessage('Logging in...','success');
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+  if(error){setAuthMessage(error.message);return;}
+  currentUser=data.user;
+  const shouldPublish=PUBLISH_AFTER_AUTH; closeAuthModal(); restoreDraft(); updateSignedInState();
+  if(shouldPublish){await submitAd();}
+}
 async function registerUser(){
-  const email=el('authEmail').value.trim();
-  const password=el('authPassword').value;
+  saveDraft();
+  const email=el('authEmail').value.trim(), password=el('authPassword').value;
   const phone=EHM_OTP.normalizePhone(el('authPhone').value);
-  if(!EHM_OTP.isVerified(phone,'register')){
-    setOtpStatus('authOtpStatus','Verify your phone number before registration.','error');
+  if(!email||!password){setAuthMessage('Enter an email and password.');return;}
+  if(password.length<6){setAuthMessage('Password must contain at least 6 characters.');return;}
+  if(!EHM_OTP.isVerified(phone,'register')){setOtpStatus('authOtpStatus','Verify your phone number before registration.','error');return;}
+  setAuthMessage('Creating your account...','success');
+  const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{phone,phone_verified:true}}});
+  if(error){setAuthMessage(error.message);return;}
+  currentUser=data.session?.user||data.user||null;
+  if(!data.session){
+    setAuthMessage('Account created. Email confirmation is enabled; confirm your email, then use Log in. Your ad details remain saved.','success');
+    setAuthMode('login');
     return;
   }
-  const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{phone,phone_verified:true}}});
-  if(error){msg(error.message);return;}
-  currentUser=data.user;
-  try{
-    await supabaseClient.from('profiles').upsert({id:currentUser.id,email,phone,phone_verified:true,updated_at:new Date().toISOString()});
-  }catch(e){}
-  msg('Registered. Admin approval may be required.');
-  showPost();
+  try{await supabaseClient.from('profiles').upsert({id:currentUser.id,email,phone,phone_verified:true,updated_at:new Date().toISOString()});}catch(e){}
+  const shouldPublish=PUBLISH_AFTER_AUTH; closeAuthModal(); restoreDraft(); updateSignedInState();
+  if(shouldPublish){await submitAd();}
 }
-async function logoutUser(){ await supabaseClient.auth.signOut(); location.reload(); }
+async function logoutUser(){ saveDraft(); await supabaseClient.auth.signOut(); currentUser=null; updateSignedInState(); }
+
 function selectedCategory(){ return CATEGORIES.find(c=>String(c.id)===String(el('category')?.value)) || {}; }
 function isVehicleCategory(){
   const c=selectedCategory();
@@ -159,10 +225,18 @@ function updateFinanceBox(){ try{renderSimpleDynamicFields();}catch(e){}
   box.innerHTML = f ? `<h3>Vehicle Finance Estimate</h3><div class="finance-grid"><div class="finance-item"><span>Down Payment</span><strong>${money(f.downPayment)}</strong></div><div class="finance-item"><span>Monthly Payment</span><strong>${money(f.monthlyPayment)}</strong></div><div class="finance-item"><span>Finance Contact</span><strong>${FINANCE_SETTINGS.companyPhone}</strong></div></div><div class="finance-note">Finance is calculated automatically from admin settings. Final approval depends on the finance company.</div>` : `<h3>Vehicle Finance Estimate</h3><div class="finance-note">Enter the vehicle price to calculate down payment and monthly payment. Finance contact: ${FINANCE_SETTINGS.companyPhone}</div>`;
 }
 async function submitAd(){
-  if(!currentUser){msg('Please login');return;}
+  if(IS_PUBLISHING)return;
+  saveDraft();
+  if(!el('title').value.trim()){msg('Title required');el('title').focus();return;}
+  if(!el('category').value){msg('Select a category');return;}
+  if(!currentUser){PUBLISH_AFTER_AUTH=true;openAuthModal();return;}
+  IS_PUBLISHING=true; const publishButton=el('publishAdButton'); if(publishButton){publishButton.disabled=true;publishButton.textContent='Publishing...';}
+
+
   const verifiedPhone=EHM_OTP.normalizePhone(el('phone').value);
   if(!EHM_OTP.isVerified(verifiedPhone,'post_ad')){
     setOtpStatus('adPhoneOtpStatus','Verify this phone number before submitting the ad.','error');
+    IS_PUBLISHING=false;if(publishButton){publishButton.disabled=false;publishButton.textContent='Publish Ad';}
     return;
   }
   const finance=isVehicleCategory()?calcFinance(el('price').value):null;
@@ -177,7 +251,13 @@ async function submitAd(){
     ['finance_enabled','finance_downpayment','finance_monthly_payment','finance_downpayment_percent','finance_annual_rate_percent','finance_months','finance_company_phone','phone_verified','phone_verified_at','images','custom_fields'].forEach(k=>delete fallback[k]);
     const retry=await supabaseClient.from('ads').insert(fallback); error=retry.error;
   }
-  if(error){msg(error.message);return;}
-  msg('Ad submitted for admin approval'); ['title','price','phone','description'].forEach(id=>el(id).value=''); SIMPLE_IMAGES=[]; if(el('simpleImagePreview'))el('simpleImagePreview').innerHTML=''; updateFinanceBox();
+  if(error){IS_PUBLISHING=false;if(publishButton){publishButton.disabled=false;publishButton.textContent='Publish Ad';}msg(error.message);return;}
+  clearDraft();
+  msg('Ad submitted for admin approval'); ['title','price','phone','description'].forEach(id=>el(id).value=''); SIMPLE_IMAGES=[]; if(el('simpleImagePreview'))el('simpleImagePreview').innerHTML=''; document.querySelectorAll('[data-simple-field]').forEach(n=>n.value=''); IS_PUBLISHING=false;if(publishButton){publishButton.disabled=false;publishButton.textContent='Publish Ad';} updateFinanceBox();
 }
+function patchSiteNavigation(){
+  document.querySelectorAll('a[href="/post"],a[href="/post/"]').forEach(a=>a.setAttribute('href','/post-ad'));
+  if(innerWidth<=767 && location.pathname.replace(/\/$/,'')==='/categories') location.replace('/');
+}
+patchSiteNavigation();
 init();
