@@ -77,10 +77,40 @@
 
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./supabase.js"></script>
+  <script src="/supabase.js?v=20260714-global-client-fix"></script>
+
+  <script>
+    (function initSupabaseClient() {
+      function connect() {
+        try {
+          if (!window.supabase || typeof window.supabase.createClient !== "function") return false;
+          if (window.supabaseClient && typeof window.supabaseClient.from === "function") return true;
+          if (typeof SUPABASE_URL === "undefined" || typeof SUPABASE_ANON_KEY === "undefined") return false;
+
+          window.supabaseClient = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+          );
+          window.ehemeheSupabase = window.supabaseClient;
+          console.info("Supabase client connected.");
+          return true;
+        } catch (error) {
+          console.error("Supabase client initialization failed:", error);
+          return false;
+        }
+      }
+
+      if (!connect()) {
+        window.addEventListener("load", connect, { once: true });
+        setTimeout(connect, 500);
+        setTimeout(connect, 1500);
+      }
+    })();
+  </script>
+
   <script src="./post-ad-category-fields.js?v=20260714-dynamic-vehicle-body-types"></script>
   <script src="./index-filters.js?v=20260714-two-banner-placements"></script>
   <script src="/brand-theme.js?v=20260714-true-mobile-readable"></script>
-<script src="/otp-client.js"></script>
-<script src="/auth-unified.js?v=20260714-unified-auth"></script>
+<script src="/otp-client.js?v=20260714-global-client-fix"></script>
+<script src="/auth-unified.js?v=20260714-global-client-fix"></script>
 </body></html>

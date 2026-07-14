@@ -1,0 +1,6 @@
+{
+  "index_sdk_before_config": true,
+  "admin_sdk_before_config": true,
+  "index_global_client_fallback": true,
+  "admin_global_client_fallback": true
+}
