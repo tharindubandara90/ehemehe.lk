@@ -1493,21 +1493,92 @@
 
 
   function injectAdDetailFinance() {
-    if (!isMobile() || !isAdRoute()) return;
-    const rawId = decodeURIComponent(window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, ''));
-    const ad = allAds().find((item) => String(item.id) === rawId || String(item.id) === String(rawId).replace(/^static-/, ''));
-    if (!ad || !isVehicleAd(ad)) return;
-    const f = calcVehicleFinance(ad.price);
-    if (!f || document.getElementById('ehmAdDetailFinance')) return;
+    if (!isAdRoute()) return;
+
+    const rawId = decodeURIComponent(
+      window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '')
+    );
+    const ad = allAds().find(
+      (item) =>
+        String(item.id) === rawId ||
+        String(item.id) === String(rawId).replace(/^static-/, '')
+    );
+
+    const existing = document.getElementById('ehmAdDetailFinance');
+
+    if (!ad || !isVehicleAd(ad)) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    const finance = calcVehicleFinance(ad.price);
+    if (!finance) {
+      if (existing) existing.remove();
+      return;
+    }
+
     const priceText = formatPrice(ad.price, ad.currency || 'LKR');
+    const normalizedPrice = priceText.replace(/\s+/g, ' ').trim();
+
+    const priceCandidates = Array.from(
+      document.querySelectorAll('main h1, main h2, main h3, main p, main span, main div')
+    )
+      .filter((node) => {
+        if (node.id === 'ehmAdDetailFinance' || node.closest('#ehmAdDetailFinance')) return false;
+        const text = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+        if (text !== normalizedPrice) return false;
+        const rect = node.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      })
+      .sort((a, b) => {
+        const aRect = a.getBoundingClientRect();
+        const bRect = b.getBoundingClientRect();
+        const aScore = a.children.length * 100000 + aRect.width * aRect.height;
+        const bScore = b.children.length * 100000 + bRect.width * bRect.height;
+        return aScore - bScore;
+      });
+
+    const priceNode = priceCandidates[0];
+
+    if (!priceNode) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    const downPayment = formatPrice(finance.downPayment, ad.currency || 'LKR');
+    const monthlyPayment = formatPrice(finance.monthlyPayment, ad.currency || 'LKR');
+    const phone = String(finance.companyPhone || '').trim();
+    const phoneHref = phone.replace(/[^+\d]/g, '');
+
+    const content = `
+      <div class="ehm-finance-detail-item">
+        <span>Down Payment</span>
+        <strong>${esc(downPayment)}</strong>
+      </div>
+      <div class="ehm-finance-detail-item">
+        <span>Monthly Payment</span>
+        <strong>${esc(monthlyPayment)}</strong>
+      </div>
+      <div class="ehm-finance-detail-item ehm-finance-detail-phone">
+        <span>Finance Company</span>
+        ${phoneHref
+          ? `<a href="tel:${esc(phoneHref)}">${esc(phone)}</a>`
+          : `<strong>${esc(phone)}</strong>`}
+      </div>
+    `;
+
+    if (existing) {
+      existing.innerHTML = content;
+      if (existing.previousElementSibling === priceNode) return;
+      existing.remove();
+    }
+
     const box = document.createElement('div');
     box.id = 'ehmAdDetailFinance';
-    box.className = 'ehm-finance-line';
-    box.style.margin = '12px 16px';
-    box.innerHTML = `<b>Vehicle Finance Estimate</b><br>Price ${esc(priceText)}<br>Down Payment ${esc(formatPrice(f.downPayment, ad.currency || 'LKR'))}<br>Monthly Payment ${esc(formatPrice(f.monthlyPayment, ad.currency || 'LKR'))}<br><span>Finance Company: ${esc(f.companyPhone)}</span>`;
-    const candidates = Array.from(document.querySelectorAll('h1,h2,h3,div,p,span')).filter((node) => (node.textContent || '').includes(priceText));
-    const target = candidates[0]?.closest('section,article,div') || document.querySelector('main') || document.body;
-    target.insertAdjacentElement('afterend', box);
+    box.className = 'ehm-finance-detail';
+    box.innerHTML = content;
+
+    priceNode.insertAdjacentElement('afterend', box);
   }
 
   function injectAdDetailBanner() {

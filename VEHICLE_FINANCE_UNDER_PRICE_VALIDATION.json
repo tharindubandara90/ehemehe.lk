@@ -1,0 +1,16 @@
+{
+  "feature": "vehicle finance details directly below main price",
+  "status": "implemented",
+  "scope": "mobile vehicle ad detail routes",
+  "visible_fields": [
+    "Down Payment",
+    "Monthly Payment",
+    "Finance Company"
+  ],
+  "removed_fields": [
+    "Vehicle Finance Estimate heading",
+    "duplicate Price line"
+  ],
+  "placement": "inside main ad information card, immediately after displayed vehicle price and before metadata badges",
+  "cache_bust": "20260714-finance-under-price-v2"
+}

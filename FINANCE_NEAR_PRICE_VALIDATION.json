@@ -1,0 +1,28 @@
+{
+  "source_project": "ehemehe_ad_open_top_location_removed_final.zip",
+  "finance_position": "directly below vehicle price",
+  "shown_fields": [
+    "Down Payment",
+    "Monthly Payment",
+    "Finance Company"
+  ],
+  "removed_fields": [
+    "Vehicle Finance Estimate heading",
+    "Repeated vehicle price"
+  ],
+  "mobile_layout": "single-column compact rows",
+  "desktop_layout": "three-column compact panel",
+  "finance_phone_clickable": true,
+  "static_ad_route_shells_synced": 100,
+  "javascript_syntax_check": "passed",
+  "cache_version": "20260714-finance-near-price",
+  "checks": {
+    "finance_inserted_after_price_node": true,
+    "heading_removed_from_detail_box": true,
+    "duplicate_price_removed_from_detail_box": true,
+    "down_payment_kept": true,
+    "monthly_payment_kept": true,
+    "finance_company_kept": true,
+    "clickable_finance_phone": true
+  }
+}
