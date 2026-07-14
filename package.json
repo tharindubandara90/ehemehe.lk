@@ -3,19 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "serve public -l 3000",
-    "serve": "npx serve public",
+    "dev": "node server.js",
+    "start": "node server.js",
+    "serve": "node server.js",
     "deploy": "vercel --prod",
-    "local": "npx serve public",
-    "dev": "serve public -l 3000",
-    "preview": "serve public",
-    "sync-ad-shells": "node scripts/sync-ad-route-shells.js"
+    "sync-ad-shells": "node scripts/sync-ad-route-shells.js",
+    "validate-supabase": "node scripts/validate-supabase-config.js"
   },
   "devDependencies": {
     "vercel": "latest",
     "serve": "^14.2.4"
-  },
-  "dev": "node server.js",
-  "start": "node server.js",
-  "serve": "node server.js"
+  }
 }

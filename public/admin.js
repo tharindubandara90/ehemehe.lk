@@ -366,6 +366,15 @@ function bindEditFinancePreview(){
 
 /* ---------------- Auth + Permissions ---------------- */
 async function login(){
+  try {
+    if ((!window.supabaseClient || typeof window.supabaseClient.auth === 'undefined') && window.waitForSupabaseClient) {
+      await window.waitForSupabaseClient(10000);
+    }
+    supabaseClient = window.supabaseClient || supabaseClient;
+  } catch (error) {
+    toast('Could not initialize the database connection. Please refresh and try again.');
+    return;
+  }
   if(typeof supabaseClient === 'undefined' || !supabaseClient){
     toast('Supabase client is not configured.');
     return;
@@ -406,6 +415,15 @@ async function logout(){
   location.reload();
 }
 async function checkSession(){
+  try {
+    if ((!window.supabaseClient || typeof window.supabaseClient.auth === 'undefined') && window.waitForSupabaseClient) {
+      await window.waitForSupabaseClient(10000);
+    }
+    supabaseClient = window.supabaseClient || supabaseClient;
+  } catch (error) {
+    console.warn('Supabase session initialization skipped:', error?.message || error);
+    return;
+  }
   if(typeof supabaseClient === 'undefined' || !supabaseClient) return;
   try{
     const { data } = await supabaseClient.auth.getSession();

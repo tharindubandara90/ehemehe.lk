@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 
 const TEXTLK_SEND_ENDPOINT = 'https://app.text.lk/api/v3/sms/send';
+const DEFAULT_SUPABASE_URL = 'https://ieymsjeywkapqeniirlm.supabase.co';
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -111,7 +112,7 @@ function otpMessage(code, purpose) {
 }
 
 async function logOtpEvent(row) {
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) return;
   try {
@@ -140,7 +141,7 @@ async function readSiteSettings() {
     emailOtpEnabled:true, emailRegisterOtp:true, emailPasswordResetOtp:true,
     smsOtpEnabled:true, smsRegisterOtp:true, smsPasswordChangeOtp:true, smsAdPhoneOtp:true
   };
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return defaults;
   const names = [
@@ -176,7 +177,7 @@ function assertVerifiedToken(token, phone, allowedPurposes) {
 }
 
 function supabaseAdminConfig() {
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Supabase service role is not configured.');
   return { url:url.replace(/\/$/,''), key };

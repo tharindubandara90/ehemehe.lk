@@ -1,0 +1,43 @@
+{
+  "supabase_project_ref": "ieymsjeywkapqeniirlm",
+  "url_key_match": true,
+  "configured_url": "https://ieymsjeywkapqeniirlm.supabase.co",
+  "global_client_created": true,
+  "admin_waits_for_client": true,
+  "html_script_paths_normalized": true,
+  "admin_copies_synchronized": true,
+  "ad_route_shells_synchronized": 100,
+  "server_supabase_url_fallback_added": true,
+  "javascript_syntax": {
+    "public/supabase.js": true,
+    "public/admin.js": true,
+    "public/auth-unified.js": true,
+    "public/otp-client.js": true,
+    "public/post-ad.js": true,
+    "public/index-filters.js": true,
+    "api/_otp-utils.js": true,
+    "scripts/validate-supabase-config.js": true
+  },
+  "local_route_smoke_test": {
+    "/": {
+      "status": 200,
+      "bytes": 3526
+    },
+    "/admin": {
+      "status": 200,
+      "bytes": 57446
+    },
+    "/post-ad": {
+      "status": 200,
+      "bytes": 10438
+    },
+    "/ad/1": {
+      "status": 200,
+      "bytes": 3526
+    },
+    "/supabase.js": {
+      "status": 200,
+      "bytes": 3146
+    }
+  }
+}

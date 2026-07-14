@@ -1,0 +1,10 @@
+const fs = require('fs');
+const path = require('path');
+const text = fs.readFileSync(path.join(__dirname, '..', 'public', 'supabase.js'), 'utf8');
+const url = text.match(/CONFIGURED_SUPABASE_URL = "([^"]+)"/)?.[1] || '';
+const key = text.match(/SUPABASE_ANON_KEY = "([^"]+)"/)?.[1] || '';
+if (!url || !key) throw new Error('Supabase URL or anon key is missing.');
+const payload = JSON.parse(Buffer.from(key.split('.')[1], 'base64url').toString('utf8'));
+const expected = `https://${payload.ref}.supabase.co`;
+if (url !== expected) throw new Error(`Supabase URL/key mismatch: expected ${expected}`);
+console.log('Supabase configuration is consistent for project:', payload.ref);
