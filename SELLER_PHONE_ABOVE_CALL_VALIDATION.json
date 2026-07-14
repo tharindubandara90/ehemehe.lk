@@ -1,0 +1,12 @@
+{
+  "seller_phone_above_call_now": true,
+  "phone_clickable": true,
+  "phone_sources": [
+    "contactPhone",
+    "contact_phone",
+    "phone",
+    "seller.phone"
+  ],
+  "static_ad_routes_synced": 100,
+  "js_syntax": "passed"
+}

@@ -1615,6 +1615,51 @@
     }
   }
 
+  function injectSellerPhoneAboveCall() {
+    if (!isAdRoute()) return;
+
+    const rawId = decodeURIComponent(
+      window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '')
+    );
+    const ad = allAds().find(
+      (item) =>
+        String(item.id) === rawId ||
+        String(item.id) === String(rawId).replace(/^static-/, '')
+    );
+
+    const existing = document.getElementById('ehmSellerPhoneDisplay');
+    const phone = String(
+      ad?.contactPhone ||
+      ad?.contact_phone ||
+      ad?.phone ||
+      ad?.seller?.phone ||
+      ''
+    ).trim();
+
+    if (!phone) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    const callControl = Array.from(document.querySelectorAll('a,button')).find((node) =>
+      /call\s*now/i.test(String(node.textContent || '').trim())
+    );
+
+    if (!callControl) return;
+
+    const hrefPhone = phone.replace(/[^+\d]/g, '');
+    const row = existing || document.createElement('a');
+    row.id = 'ehmSellerPhoneDisplay';
+    row.className = 'ehm-seller-phone-display';
+    row.href = hrefPhone ? `tel:${hrefPhone}` : '#';
+    row.textContent = phone;
+    row.setAttribute('aria-label', `Call seller ${phone}`);
+
+    if (row.previousElementSibling !== callControl.previousElementSibling || row.nextElementSibling !== callControl) {
+      callControl.insertAdjacentElement('beforebegin', row);
+    }
+  }
+
   function hideAdDetailLocation() {
     if (!isAdRoute()) return;
     document.body.classList.add('ehm-ad-detail-route');
@@ -1752,10 +1797,11 @@
         await loadFinanceSettings();
         await loadAds();
         await loadPromotions();
+        injectSellerPhoneAboveCall();
         hideAdDetailLocation();
-        setTimeout(hideAdDetailLocation, 150);
-        setTimeout(hideAdDetailLocation, 500);
-        setTimeout(hideAdDetailLocation, 1200);
+        setTimeout(() => { injectSellerPhoneAboveCall(); hideAdDetailLocation(); }, 150);
+        setTimeout(() => { injectSellerPhoneAboveCall(); hideAdDetailLocation(); }, 500);
+        setTimeout(() => { injectSellerPhoneAboveCall(); hideAdDetailLocation(); }, 1200);
         return;
       }
 

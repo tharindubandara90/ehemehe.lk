@@ -807,3 +807,31 @@ body.ehm-ad-detail-route [data-ehm-hidden-ad-location="1"] {
     font-size: 13px !important;
   }
 }
+
+/* Seller phone above Call Now */
+.ehm-seller-phone-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 10px 0 10px;
+  padding: 10px 14px;
+  border: 1px solid #b9eadb;
+  border-radius: 12px;
+  background: #effcf7;
+  color: #16845f;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-decoration: none;
+  letter-spacing: .2px;
+}
+.ehm-seller-phone-display:hover { background: #e4f9f1; }
+@media (max-width: 767px) {
+  .ehm-seller-phone-display {
+    font-size: 17px !important;
+    padding: 10px 12px !important;
+    margin: 8px 0 9px !important;
+  }
+}
