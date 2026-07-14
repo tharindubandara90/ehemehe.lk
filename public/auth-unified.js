@@ -4,7 +4,7 @@
   let settings = null;
   let mode = 'login';
   let loginMethod = 'email';
-  let verifyMethod = 'email';
+  const verifyMethod = 'sms';
   let registrationChallenge = '';
   let smsVerificationId = '';
   let smsVerifiedToken = '';
@@ -85,7 +85,7 @@
           <div class="ehm-auth-heading">
             <span class="ehm-auth-eyebrow">EheMehe.lk Account</span>
             <h1>${location.pathname.startsWith('/signup') ? 'Create your account' : 'Welcome back'}</h1>
-            <p class="ehm-auth-muted">Secure access using your email address or mobile number.</p>
+            <p class="ehm-auth-muted">Create and secure your account using SMS verification.</p>
           </div>
 
           <div class="ehm-auth-tabs">
@@ -118,13 +118,13 @@
               </div>
 
               <div class="ehm-auth-field">
-                <label>Email address</label>
-                <input id="ehmRegisterEmail" type="email" autocomplete="email" placeholder="name@example.com">
+                <label>Mobile number <span class="ehm-required">*</span></label>
+                <input id="ehmRegisterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="0771234567">
               </div>
 
               <div class="ehm-auth-field">
-                <label>Mobile number</label>
-                <input id="ehmRegisterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="0771234567">
+                <label>Email address <span class="ehm-optional">(optional)</span></label>
+                <input id="ehmRegisterEmail" type="email" autocomplete="email" placeholder="name@example.com">
               </div>
 
               <div class="ehm-auth-field ehm-auth-full">
@@ -135,13 +135,8 @@
 
             <div class="ehm-verification-box">
               <div class="ehm-verification-title">
-                <strong>Choose verification method</strong>
-                <span>Your account becomes active only after the OTP is verified.</span>
-              </div>
-
-              <div class="ehm-method-tabs ehm-verification-tabs">
-                <button type="button" data-verify-method="email">Email OTP</button>
-                <button type="button" data-verify-method="sms">SMS OTP</button>
+                <strong>SMS phone verification</strong>
+                <span>A 6-digit OTP will be sent to the mobile number above. The account is created only after the correct OTP is entered.</span>
               </div>
 
               <div id="ehmOtpWrap" class="ehm-auth-field ehm-hidden">
@@ -168,9 +163,6 @@
     });
     document.querySelectorAll('[data-login-method]').forEach((button) => {
       button.classList.toggle('active', button.dataset.loginMethod === loginMethod);
-    });
-    document.querySelectorAll('[data-verify-method]').forEach((button) => {
-      button.classList.toggle('active', button.dataset.verifyMethod === verifyMethod);
     });
 
     $('ehmLoginFields')?.classList.toggle('ehm-hidden', mode !== 'login');
@@ -208,7 +200,7 @@
 
   function validateRegistration(data) {
     if (data.name.length < 2) return 'Enter your full name.';
-    if (!validEmail(data.email)) return 'Enter a valid email address.';
+    if (data.email && !validEmail(data.email)) return 'Enter a valid email address or leave it blank.';
     if (!validPhone(data.phone)) return 'Enter a valid Sri Lankan mobile number.';
     if (data.password.length < 6) return 'Password must contain at least 6 characters.';
     return '';
@@ -227,9 +219,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          method: verifyMethod,
-          email: data.email,
-          phone: data.phone
+          phone: data.phone,
+          email: data.email
         })
       });
       const result = await response.json();
@@ -274,7 +265,7 @@
       if (!response.ok) throw new Error(result.message || 'OTP verification failed.');
 
       const loginResult = await window.supabaseClient.auth.signInWithPassword({
-        email: data.email,
+        phone: '+' + data.phone,
         password: data.password
       });
       if (loginResult.error) throw loginResult.error;
@@ -315,63 +306,51 @@
 
   async function forgotPassword() {
     const s = await getSettings();
-    const identifier = String($('ehmLoginIdentifier')?.value || '').trim();
+    const entered = String($('ehmLoginIdentifier')?.value || '').trim();
 
-    if (!identifier) return message('Enter your email or phone number first.');
+    if (loginMethod !== 'phone') {
+      loginMethod = 'phone';
+      render();
+      return message('Password reset uses SMS OTP. Enter your mobile number.');
+    }
+
+    if (!validPhone(entered)) {
+      return message('Enter a valid Sri Lankan mobile number.');
+    }
+    if (!(s.smsOtpEnabled && s.smsPasswordChangeOtp)) {
+      return message('SMS password reset is currently disabled.');
+    }
 
     const newPassword = prompt('Enter your new password (minimum 6 characters):');
-    if (!newPassword || newPassword.length < 6) return message('Password change cancelled or password is too short.');
+    if (!newPassword || newPassword.length < 6) {
+      return message('Password change cancelled or password is too short.');
+    }
 
     try {
-      if (loginMethod === 'email') {
-        if (!(s.emailOtpEnabled && s.emailPasswordResetOtp)) {
-          throw new Error('Email password reset OTP is disabled.');
-        }
+      const sent = await window.EHM_OTP.request(entered, 'password_reset_phone');
+      const otp = prompt('Enter the SMS OTP sent to your phone:');
+      if (!otp) return message('Password reset cancelled.');
 
-        const sent = await window.supabaseClient.auth.signInWithOtp({
-          email: identifier,
-          options: { shouldCreateUser: false }
-        });
-        if (sent.error) throw sent.error;
+      const verified = await window.EHM_OTP.verify(
+        entered,
+        'password_reset_phone',
+        otp,
+        sent.verificationId
+      );
 
-        const otp = prompt('Enter the OTP sent to your email:');
-        const verified = await window.supabaseClient.auth.verifyOtp({
-          email: identifier,
-          token: otp,
-          type: 'email'
-        });
-        if (verified.error) throw verified.error;
+      const response = await fetch('/api/reset-phone-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: normalizePhone(entered),
+          password: newPassword,
+          verifiedToken: verified.verifiedToken
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Could not change the password.');
 
-        const changed = await window.supabaseClient.auth.updateUser({ password: newPassword });
-        if (changed.error) throw changed.error;
-      } else {
-        if (!(s.smsOtpEnabled && s.smsPasswordChangeOtp)) {
-          throw new Error('SMS password change OTP is disabled.');
-        }
-
-        const sent = await window.EHM_OTP.request(identifier, 'password_reset_phone');
-        const otp = prompt('Enter the SMS OTP:');
-        const verified = await window.EHM_OTP.verify(
-          identifier,
-          'password_reset_phone',
-          otp,
-          sent.verificationId
-        );
-
-        const response = await fetch('/api/reset-phone-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: normalizePhone(identifier),
-            password: newPassword,
-            verifiedToken: verified.verifiedToken
-          })
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'Could not change the password.');
-      }
-
-      message('Password changed successfully.', true);
+      message('Password changed successfully. You can now log in with your phone number.', true);
     } catch (error) {
       message(error.message || 'Password reset failed.');
     }
@@ -404,13 +383,6 @@
       };
     });
 
-    document.querySelectorAll('[data-verify-method]').forEach((button) => {
-      button.onclick = () => {
-        verifyMethod = button.dataset.verifyMethod;
-        resetOtpState();
-        render();
-      };
-    });
 
     $('ehmSendOtp').onclick = sendRegistrationOtp;
     $('ehmMainButton').onclick = () => {

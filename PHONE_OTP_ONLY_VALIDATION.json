@@ -1,0 +1,47 @@
+{
+  "source_project": "ehemehe_corrected_full_project_final.zip",
+  "preserved_previous_changes": true,
+  "registration_required_fields": [
+    "full name",
+    "mobile number",
+    "password"
+  ],
+  "registration_optional_fields": [
+    "email address"
+  ],
+  "registration_verification": "SMS OTP only",
+  "email_otp": "removed",
+  "account_created_before_otp": false,
+  "account_created_after_correct_phone_otp": true,
+  "login_after_creation": "phone + password",
+  "password_reset": "SMS OTP only",
+  "required_environment_variables": [
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "OTP_SECRET",
+    "TEXTLK_API_TOKEN",
+    "TEXTLK_SENDER_ID"
+  ],
+  "resend_environment_variables_required": false,
+  "static_ad_route_shells_synced": 100,
+  "javascript_syntax": {
+    "auth-unified.js": true,
+    "request-registration-otp.js": true,
+    "verify-registration-otp.js": true,
+    "index-filters.js": true,
+    "brand-theme.js": true
+  },
+  "checks": {
+    "registration_email_optional": true,
+    "registration_email_otp_removed": true,
+    "registration_method_choice_removed": true,
+    "registration_sms_only": true,
+    "account_not_created_on_otp_request": true,
+    "account_created_after_sms_verify": true,
+    "phone_login_after_creation": true,
+    "optional_email_backend": true,
+    "password_reset_sms_only": true,
+    "static_ad_routes_synced": true
+  },
+  "cache_version": "20260714-phone-otp-only-final"
+}
