@@ -1,0 +1,31 @@
+{
+  "source_project": "ehemehe_finance_near_price_full_project.zip",
+  "mobile_dashboard": "compact profile + 5 balanced navigation buttons + balanced cards/actions",
+  "signup_fields": [
+    "name",
+    "email",
+    "phone",
+    "password"
+  ],
+  "verification_methods": [
+    "Email OTP",
+    "SMS OTP"
+  ],
+  "sms_account_creation": "server-side only after verified OTP token",
+  "email_account_activation": "only after email OTP verification",
+  "automatic_session_before_otp": "signed out if Supabase returns a session",
+  "seller_phone_above_call_now": true,
+  "static_ad_route_shells_synced": 100,
+  "javascript_syntax_checks": "passed",
+  "cache_version": "20260714-dashboard-signup-otp",
+  "checks": {
+    "signup_collects_email_and_phone": true,
+    "signup_verification_method_choice": true,
+    "signup_does_not_redirect_before_otp": true,
+    "sms_account_created_server_side_after_verified_token": true,
+    "email_otp_is_verified_before_activation": true,
+    "dashboard_mobile_css_added": true,
+    "seller_phone_above_call_added": true,
+    "register_account_sms_purpose_allowed": true
+  }
+}

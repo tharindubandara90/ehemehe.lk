@@ -245,20 +245,6 @@
       postedAt: raw.created_at || raw.postedAt || raw.updated_at || '',
       isFeatured: !!raw.isFeatured || !!raw.featured,
       isPromoted: !!raw.isPromoted || !!raw.promoted,
-      contactPhone:
-        raw.contactPhone ||
-        raw.contact_phone ||
-        raw.phone ||
-        raw.seller_phone ||
-        raw.seller?.phone ||
-        '',
-      contactEmail:
-        raw.contactEmail ||
-        raw.contact_email ||
-        raw.email ||
-        raw.seller?.email ||
-        '',
-      seller: raw.seller || null,
       source
     };
   }
@@ -1629,65 +1615,6 @@
     }
   }
 
-  function injectSellerPhoneAboveCall() {
-    if (!isAdRoute()) return;
-
-    const existing = document.getElementById('ehmSellerPhoneDisplay');
-    const nativePhone = document.getElementById('ehmNativeSellerPhone');
-
-    // The compiled React card now renders the number itself.
-    if (nativePhone) {
-      if (existing) existing.remove();
-      return;
-    }
-
-    const callControl = Array.from(document.querySelectorAll('a,button')).find((node) =>
-      /call\s*now/i.test(String(node.textContent || '').trim())
-    );
-
-    if (!callControl) return;
-
-    const href = String(callControl.getAttribute('href') || '');
-    const telPhone = /^tel:/i.test(href)
-      ? decodeURIComponent(href.replace(/^tel:/i, '')).trim()
-      : '';
-
-    const rawId = decodeURIComponent(
-      window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '')
-    );
-    const ad = allAds().find(
-      (item) =>
-        String(item.id) === rawId ||
-        String(item.id) === String(rawId).replace(/^static-/, '')
-    );
-
-    const phone = String(
-      telPhone ||
-      ad?.contactPhone ||
-      ad?.contact_phone ||
-      ad?.phone ||
-      ad?.seller?.phone ||
-      ''
-    ).trim();
-
-    if (!phone) {
-      if (existing) existing.remove();
-      return;
-    }
-
-    const hrefPhone = phone.replace(/[^+\d]/g, '');
-    const row = existing || document.createElement('a');
-    row.id = 'ehmSellerPhoneDisplay';
-    row.className = 'ehm-seller-phone-display';
-    row.href = hrefPhone ? `tel:${hrefPhone}` : '#';
-    row.textContent = phone;
-    row.setAttribute('aria-label', `Call seller ${phone}`);
-
-    if (callControl.previousElementSibling !== row) {
-      callControl.insertAdjacentElement('beforebegin', row);
-    }
-  }
-
   function hideAdDetailLocation() {
     if (!isAdRoute()) return;
     document.body.classList.add('ehm-ad-detail-route');
@@ -1812,6 +1739,52 @@
     setTimeout(reset, 450);
   }
 
+
+  function injectSellerPhoneAboveCall() {
+    if (!isAdRoute()) return;
+
+    const rawId = decodeURIComponent(
+      window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '')
+    );
+    const ad = allAds().find(
+      (item) =>
+        String(item.id) === rawId ||
+        String(item.id) === String(rawId).replace(/^static-/, '')
+    );
+
+    const phone = String(ad?.contactPhone || ad?.seller?.phone || '').trim();
+    const existing = document.getElementById('ehmSellerPhone');
+
+    if (!phone) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    const callButton = Array.from(document.querySelectorAll('a,button')).find(
+      (node) => String(node.textContent || '').trim() === 'Call Now'
+    );
+
+    if (!callButton || !callButton.parentElement) return;
+
+    const hrefPhone = phone.replace(/[^\d+]/g, '');
+    const html = `
+      <span>Contact number</span>
+      <a href="tel:${esc(hrefPhone)}">${esc(phone)}</a>
+    `;
+
+    if (existing) {
+      existing.innerHTML = html;
+      if (existing.nextElementSibling === callButton) return;
+      existing.remove();
+    }
+
+    const row = document.createElement('div');
+    row.id = 'ehmSellerPhone';
+    row.className = 'ehm-seller-phone';
+    row.innerHTML = html;
+    callButton.insertAdjacentElement('beforebegin', row);
+  }
+
   async function sync() {
     if (syncing) return;
     syncing = true;
@@ -1825,11 +1798,10 @@
         await loadFinanceSettings();
         await loadAds();
         await loadPromotions();
-        injectSellerPhoneAboveCall();
         hideAdDetailLocation();
-        setTimeout(() => { injectSellerPhoneAboveCall(); hideAdDetailLocation(); }, 150);
-        setTimeout(() => { injectSellerPhoneAboveCall(); hideAdDetailLocation(); }, 500);
-        setTimeout(() => { injectSellerPhoneAboveCall(); hideAdDetailLocation(); }, 1200);
+        setTimeout(hideAdDetailLocation, 150);
+        setTimeout(hideAdDetailLocation, 500);
+        setTimeout(hideAdDetailLocation, 1200);
         return;
       }
 

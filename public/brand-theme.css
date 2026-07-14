@@ -808,64 +808,159 @@ body.ehm-ad-detail-route [data-ehm-hidden-ad-location="1"] {
   }
 }
 
-/* Seller phone above Call Now */
-.ehm-seller-phone-display {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  box-sizing: border-box;
-  margin: 10px 0 10px;
-  padding: 10px 14px;
-  border: 1px solid #b9eadb;
-  border-radius: 12px;
-  background: #effcf7;
-  color: #16845f;
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.25;
-  text-decoration: none;
-  letter-spacing: .2px;
-}
-.ehm-seller-phone-display:hover { background: #e4f9f1; }
+/* Logged-in dashboard: balanced mobile layout */
 @media (max-width: 767px) {
-  .ehm-seller-phone-display {
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDM3OjY"] {
+    padding-top: 16px !important;
+    padding-bottom: 105px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDM4Ojg"] {
+    gap: 14px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDQwOjEw"] {
+    width: 100% !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDQxOjEy"] {
+    position: static !important;
+    padding: 14px !important;
+    border-radius: 18px !important;
+    box-shadow: 0 10px 30px rgba(15,23,42,.06) !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDQzOjE0"] {
+    margin-bottom: 12px !important;
+    padding-bottom: 12px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDQ0OjE2"] {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 14px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDU0OjE0"] {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    overflow: visible !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDU2OjE4"] {
+    min-width: 0 !important;
+    min-height: 65px !important;
+    padding: 8px 4px !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    border-radius: 12px !important;
+    font-size: 10px !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDU2OjE4"] svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDY3OjE2"],
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDY4OjE2"] {
+    display: none !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDgwOjEw"] {
+    width: 100% !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDg0OjE2"] {
+    font-size: 25px !important;
+    margin-bottom: 14px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDg2OjE2"] {
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDkzOjIw"] {
+    padding: 14px !important;
+    min-height: 112px !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDk0OjIy"] {
+    width: 42px !important;
+    height: 42px !important;
+    margin-bottom: 9px !important;
     font-size: 17px !important;
-    padding: 10px 12px !important;
-    margin: 8px 0 9px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDk3OjIy"] {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEwMzoxNg"],
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDExNjoxNg"] {
+    padding: 16px !important;
+    border-radius: 17px !important;
+    margin-bottom: 14px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEwNToxOA"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 9px !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEwNToxOA"] > * {
+    width: 100% !important;
+    min-height: 48px !important;
+    justify-content: center !important;
+    margin: 0 !important;
+  }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEzOToyMA"],
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDE2ODoyNA"] {
+    gap: 10px !important;
   }
 }
 
-/* Native seller phone directly above Call Now */
-.ehm-native-seller-phone {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 100% !important;
-  min-height: 44px !important;
-  box-sizing: border-box !important;
-  padding: 10px 14px !important;
-  border: 1px solid #b9eadb !important;
-  border-radius: 12px !important;
-  background: #effcf7 !important;
-  color: #16845f !important;
-  font-size: 18px !important;
-  font-weight: 800 !important;
-  line-height: 1.25 !important;
-  letter-spacing: .2px !important;
-  text-decoration: underline !important;
-  text-underline-offset: 3px !important;
-  overflow-wrap: anywhere !important;
-}
-
-.ehm-native-seller-phone:hover {
-  background: #e4f9f1 !important;
-}
-
-@media (max-width: 767px) {
-  .ehm-native-seller-phone {
-    min-height: 46px !important;
-    padding: 10px 12px !important;
-    font-size: 17px !important;
+@media (max-width: 380px) {
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDU0OjE0"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
+
+  body.ehm-route-dashboard [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDU2OjE4"] {
+    min-height: 57px !important;
+  }
+}
+
+/* Seller phone displayed above Call Now */
+.ehm-seller-phone{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+  margin:0 0 9px;
+  padding:11px 13px;
+  border:1px solid #cdeee2;
+  border-radius:12px;
+  background:#f3fcf8;
+  box-sizing:border-box
+}
+.ehm-seller-phone span{font-size:12px;font-weight:750;color:#64748b}
+.ehm-seller-phone a{
+  color:#178a63;
+  font-size:16px;
+  font-weight:850;
+  text-decoration:underline;
+  text-underline-offset:3px
 }

@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
 
     const settings = await readSiteSettings();
     const allowed = settings.smsOtpEnabled && (
-      (['register','register_phone'].includes(purpose) && settings.smsRegisterOtp) ||
+      (['register','register_phone','register_account'].includes(purpose) && settings.smsRegisterOtp) ||
       (['password_change','password_reset_phone'].includes(purpose) && settings.smsPasswordChangeOtp) ||
       (purpose === 'post_ad' && settings.smsAdPhoneOtp) ||
       purpose === 'admin_test'
