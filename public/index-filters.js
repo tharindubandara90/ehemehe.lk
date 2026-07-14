@@ -711,9 +711,19 @@
         .ehm-modal-body{overflow:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:96px!important;}.ehm-row{width:100%!important;min-height:52px!important;border:0!important;border-bottom:1px solid #e6eeee!important;background:transparent!important;color:#475569!important;display:flex!important;align-items:center!important;justify-content:space-between!important;text-align:left!important;font-size:17px!important;font-weight:600!important;padding:0 2px!important;}.ehm-row.theme{color:${THEME_DARK}!important;font-weight:900!important;background:rgba(6,182,212,.04)!important;border-top:1px solid #dff4f8!important;}.ehm-row strong{font-size:22px!important;color:#94a3b8!important;font-weight:500!important;}.ehm-back{justify-content:flex-start!important;gap:12px!important;}.ehm-back .arrow{font-size:28px!important;line-height:1!important;}
         .ehm-modal-actions{position:fixed!important;left:0!important;right:0!important;bottom:0!important;background:rgba(255,255,255,.97)!important;backdrop-filter:blur(10px)!important;border-top:1px solid #ddeef3!important;padding:12px 16px calc(12px + env(safe-area-inset-bottom))!important;display:flex!important;gap:12px!important;box-shadow:0 -6px 20px rgba(15,23,42,.06)!important;}.ehm-action{height:54px!important;border-radius:12px!important;font-size:17px!important;font-weight:900!important;flex:1!important;}.ehm-action.reset{background:#fff!important;color:${THEME_DARK}!important;border:2px solid rgba(6,182,212,.72)!important;}.ehm-action.show{background:linear-gradient(180deg,${THEME} 0%,${THEME_DARK} 100%)!important;color:#fff!important;border:2px solid ${THEME}!important;}
         body.ehm-ad-detail-route .ehm-mobile-filterbar,body.ehm-ad-detail-route .ehm-mobile-results{display:none!important;}
-        body.ehm-home-mobile-ready #ehmMobileResults:empty{display:none!important;}
-        body.ehm-home-mobile-ready #root section[data-ehm-mobile-hidden="1"]{display:none!important;}
-        body.ehm-home-mobile-ready #root section:not([data-ehm-mobile-hidden="1"]){scroll-margin-top:150px;}
+        body.ehm-home-mobile-ready #root section[data-ehm-mobile-hidden="1"],
+        body.ehm-home-mobile-ready #root footer[data-ehm-mobile-hidden="1"]{
+          display:none!important;
+          visibility:hidden!important;
+          height:0!important;
+          min-height:0!important;
+          margin:0!important;
+          padding:0!important;
+          overflow:hidden!important;
+        }
+        body.ehm-home-mobile-ready #ehmMobileResults{
+          display:block!important;
+        }
 
       }
     `;
@@ -734,7 +744,7 @@
       if (managed.has(node) || Array.from(managed).some((m) => m && (m.contains(node) || node.contains(m)))) return;
       const txt = (node.textContent || '').replace(/\s+/g, ' ').trim();
       if (!txt) return;
-      if (/Latest Ads|Browse Categories|Got something to sell|Trusted by thousands|What are you looking for|Sri Lanka's #1 Modern Marketplace/i.test(txt) || node.tagName.toLowerCase() === 'footer') {
+      if (/Latest Ads|Featured Ads|Browse Categories|Got something to sell|Trusted by thousands|What are you looking for|Sri Lanka's #1 Modern Marketplace/i.test(txt) || node.tagName.toLowerCase() === 'footer') {
         node.setAttribute('data-ehm-mobile-hidden', '1');
         node.style.setProperty('display', 'none', 'important');
         node.style.setProperty('visibility', 'hidden', 'important');
@@ -850,25 +860,13 @@
     if (!isMobile() || !isHomeRoute()) return;
     const host = createResultsHost();
     if (!host) return;
-
-    const active = hasActiveFilters();
-
-    // Default mobile home must show the original Featured Ads section immediately.
-    // The custom results grid is used only after search/location/category filters become active.
-    if (!active) {
-      host.innerHTML = '';
-      host.style.setProperty('display', 'none', 'important');
-      hideOriginalHomeContent();
-      return;
-    }
-
     const rows = filteredAds();
-    host.style.setProperty('display', 'block', 'important');
+    const active = hasActiveFilters();
     host.innerHTML = `
       ${activeBannerHtml()}
       <div class="ehm-results-head">
-        <h2>Search Results</h2>
-        <p>${rows.length ? `${rows.length} matching ads found` : 'No matching ads found'}</p>
+        <h2>${active ? 'Search Results' : 'Latest Ads'}</h2>
+        <p>${rows.length ? (active ? `${rows.length} matching ads found` : 'Recently added listings') : 'No matching ads found'}</p>
       </div>
       ${rows.length ? `<div class="ehm-results-grid ${state.view}">${rows.map(renderAdCard).join('')}</div>` : '<div class="ehm-empty">No matching ads<br>found.</div>'}
     `;
@@ -1450,28 +1448,26 @@
     document.body.classList.remove('ehm-ad-detail-route');
     installStyles();
 
-    // Do the visual switch immediately, before waiting for Supabase/network calls.
-    // This prevents the temporary Latest Ads grid from flashing on first load.
+    // Build the exact mobile layout immediately using the bundled/static ads.
+    // This avoids showing the original Featured Ads carousel while waiting for Supabase.
     const bar = createFilterBar();
-    hideOriginalHomeContent();
     if (!bar) return false;
 
     const earlyHost = createResultsHost();
-    if (earlyHost) {
-      earlyHost.innerHTML = '';
-      earlyHost.style.setProperty('display', 'none', 'important');
-    }
+    if (!earlyHost) return false;
 
     attachSearchHandlers();
     updatePills();
+    renderResults();
+    hideOriginalHomeContent();
 
-    await loadLookups();
-    await loadFinanceSettings();
-    await loadAds();
-    await loadPromotions();
-
-    const host = createResultsHost();
-    if (!host) return false;
+    // Load live data in the background and refresh the same Latest Ads grid.
+    await Promise.all([
+      loadLookups(),
+      loadFinanceSettings(),
+      loadAds(),
+      loadPromotions()
+    ]);
 
     attachSearchHandlers();
     updatePills();
@@ -1665,8 +1661,8 @@
         scheduleSync(80);
         setTimeout(sync, 350);
       } else if (isMobile() && isHomeRoute()) {
-        // React may mount sections in stages. Hide non-featured home sections synchronously
-        // so the first painted mobile layout is already the Featured Ads layout.
+        // React mounts the native sections in stages. Hide them immediately so
+        // the first visible mobile screen remains the two-column Latest Ads layout.
         hideOriginalHomeContent();
         scheduleSync(80);
       } else if (isMobile() && isAdRoute()) {
