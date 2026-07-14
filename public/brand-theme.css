@@ -448,3 +448,204 @@ body.ehm-mobile-device svg {
     gap: 8px !important;
   }
 }
+
+/* EheMehe physical-mobile readable layout fix */
+html.ehm-physical-mobile,
+html.ehm-physical-mobile body {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+html.ehm-physical-mobile body {
+  font-size: 16px !important;
+}
+
+/* Fallback for iPhone browsers that insist on a desktop (~980px) viewport. */
+html.ehm-desktop-viewport-on-phone body {
+  width: calc(100% / var(--ehm-mobile-zoom)) !important;
+  min-width: calc(100% / var(--ehm-mobile-zoom)) !important;
+  max-width: calc(100% / var(--ehm-mobile-zoom)) !important;
+  zoom: var(--ehm-mobile-zoom);
+}
+
+html.ehm-physical-mobile #root,
+html.ehm-physical-mobile main,
+html.ehm-physical-mobile .section-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+html.ehm-physical-mobile .section-container {
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+
+/* Always use the mobile header on a physical mobile device. */
+html.ehm-physical-mobile header > div:first-child {
+  display: none !important;
+}
+
+html.ehm-physical-mobile header .section-container > div {
+  display: flex !important;
+  width: 100% !important;
+  min-height: 68px !important;
+  height: auto !important;
+  position: relative !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+html.ehm-physical-mobile header form.hidden.lg\:flex,
+html.ehm-physical-mobile header a.hidden.sm\:inline-flex,
+html.ehm-physical-mobile header a[href="/login"],
+html.ehm-physical-mobile header a[href="/signup"] {
+  display: none !important;
+}
+
+html.ehm-physical-mobile header .lg\:hidden {
+  display: flex !important;
+}
+
+html.ehm-physical-mobile header .ehm-logo-link {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: min(190px, calc(100% - 125px)) !important;
+  max-width: calc(100% - 125px) !important;
+  justify-content: center !important;
+  z-index: 4 !important;
+}
+
+html.ehm-physical-mobile header .ehm-site-logo {
+  width: 100% !important;
+  max-width: 190px !important;
+  height: 48px !important;
+  object-fit: contain !important;
+}
+
+html.ehm-physical-mobile header .lg\:hidden.px-4.pb-3 {
+  display: block !important;
+  width: 100% !important;
+  padding: 0 14px 12px !important;
+}
+
+html.ehm-physical-mobile header .lg\:hidden.px-4.pb-3 form {
+  width: 100% !important;
+}
+
+/* Ad detail: readable single-column phone layout */
+html.ehm-physical-mobile body.ehm-route-ad .section-container.py-3,
+html.ehm-physical-mobile body.ehm-route-ad .section-container.py-8 {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad .section-container.py-8 {
+  padding-top: 14px !important;
+  padding-bottom: 95px !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad .flex.flex-col.lg\:flex-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad .flex-1.min-w-0,
+html.ehm-physical-mobile body.ehm-route-ad .w-full.lg\:w-80 {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad [data-yw^="c3JjL2NvbXBvbmVudHMvQWRHYWxsZXJ5"] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad [data-yw^="c3JjL2NvbXBvbmVudHMvQWRHYWxsZXJ5"] img {
+  width: 100% !important;
+  height: min(76vw, 430px) !important;
+  object-fit: cover !important;
+  border-radius: 14px !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad .mt-6.bg-white.rounded-2xl {
+  width: 100% !important;
+  margin-top: 12px !important;
+  padding: 18px !important;
+  border-radius: 16px !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad h1 {
+  font-size: 21px !important;
+  line-height: 1.3 !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad .text-2xl.font-bold.text-primary-600 {
+  font-size: 23px !important;
+  line-height: 1.25 !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad p,
+html.ehm-physical-mobile body.ehm-route-ad .text-sm,
+html.ehm-physical-mobile body.ehm-route-ad .text-xs {
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad .flex.flex-wrap.gap-3 {
+  gap: 7px !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad .flex.flex-wrap.gap-3 > span {
+  font-size: 12px !important;
+  padding: 5px 9px !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad .sticky.top-24 {
+  position: static !important;
+  width: 100% !important;
+  padding: 18px !important;
+}
+
+html.ehm-physical-mobile body.ehm-route-ad [data-yw="c3JjL3BhZ2VzL0FkRGV0YWlsUGFnZS50c3hAOTc6MTI"],
+html.ehm-physical-mobile body.ehm-route-ad [data-yw="c3JjL3BhZ2VzL0FkRGV0YWlsUGFnZS50c3hAMTExOjEy"] {
+  display: none !important;
+}
+
+/* Forms and remaining pages */
+html.ehm-physical-mobile body.ehm-route-post .grid.grid-cols-2,
+html.ehm-physical-mobile body.ehm-route-post .sm\:grid-cols-2 {
+  grid-template-columns: 1fr !important;
+}
+
+html.ehm-physical-mobile input,
+html.ehm-physical-mobile select,
+html.ehm-physical-mobile textarea,
+html.ehm-physical-mobile button {
+  font-size: 16px;
+}
+
+html.ehm-physical-mobile img,
+html.ehm-physical-mobile video,
+html.ehm-physical-mobile svg {
+  max-width: 100%;
+}
+
+@media (max-width: 390px) {
+  html.ehm-physical-mobile .section-container {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  html.ehm-physical-mobile header .ehm-logo-link {
+    width: min(166px, calc(100% - 115px)) !important;
+  }
+}

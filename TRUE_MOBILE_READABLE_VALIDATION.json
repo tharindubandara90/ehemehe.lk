@@ -1,0 +1,12 @@
+{
+  "source": "ehemehe_all_pages_mobile_friendly_final.zip",
+  "early_mobile_detector_in_head": true,
+  "viewport_forced_before_app_render": true,
+  "touch_detection": true,
+  "desktop_viewport_on_phone_compensation": true,
+  "ad_detail_readable_font_sizes": true,
+  "ad_detail_single_column": true,
+  "mobile_header_forced": true,
+  "syntax_ok": true,
+  "cache_version": "20260714-true-mobile-readable"
+}

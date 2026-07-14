@@ -133,13 +133,15 @@
 
   function applyMobileResponsiveMode() {
     const ua = navigator.userAgent || '';
-    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-    const screenWidth = window.screen && window.screen.width ? window.screen.width : innerWidth;
-    const screenHeight = window.screen && window.screen.height ? window.screen.height : innerHeight;
-    const smallSide = Math.min(screenWidth, screenHeight) <= 900;
+    const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
     const mobileUA = /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
-    const isMobileDevice = mobileUA || (coarse && smallSide);
+    const physicalShortSide = Math.min(
+      (window.screen && window.screen.width) || innerWidth,
+      (window.screen && window.screen.height) || innerHeight
+    );
+    const isMobileDevice = mobileUA || (touch && physicalShortSide <= 1024);
 
+    document.documentElement.classList.toggle('ehm-physical-mobile', !!isMobileDevice);
     document.body.classList.toggle('ehm-mobile-device', !!isMobileDevice);
 
     const path = location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
