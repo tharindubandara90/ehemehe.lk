@@ -5,6 +5,7 @@
   let mode = 'login';
   let loginMethod = 'email';
   let verifyMethod = 'email';
+  let registrationChallenge = '';
   let smsVerificationId = '';
   let smsVerifiedToken = '';
   let otpSent = false;
@@ -70,6 +71,7 @@
 
   function resetOtpState() {
     otpSent = false;
+    registrationChallenge = '';
     smsVerificationId = '';
     smsVerifiedToken = '';
     const otp = $('ehmOtp');
@@ -213,7 +215,6 @@
   }
 
   async function sendRegistrationOtp() {
-    const s = await getSettings();
     const data = readRegistration();
     const validationError = validateRegistration(data);
     if (validationError) return message(validationError);
@@ -222,45 +223,22 @@
     setBusy(true);
 
     try {
-      if (verifyMethod === 'email') {
-        if (!(s.emailOtpEnabled && s.emailRegisterOtp)) {
-          throw new Error('Email registration OTP is disabled by the administrator.');
-        }
-
-        const result = await window.supabaseClient.auth.signUp({
+      const response = await fetch('/api/request-registration-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: verifyMethod,
           email: data.email,
-          password: data.password,
-          options: {
-            data: {
-              name: data.name,
-              phone: data.phone,
-              registration_method: 'email',
-              verification_method: 'email'
-            }
-          }
-        });
+          phone: data.phone
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Could not send the OTP.');
 
-        if (result.error) throw result.error;
-
-        // Never keep an automatic session before the OTP step is completed.
-        if (result.data?.session) {
-          await window.supabaseClient.auth.signOut();
-        }
-
-        otpSent = true;
-        render();
-        message(`OTP sent to ${data.email}. Enter it to activate the account.`, true);
-      } else {
-        if (!(s.smsOtpEnabled && s.smsRegisterOtp)) {
-          throw new Error('SMS registration OTP is disabled by the administrator.');
-        }
-
-        const result = await window.EHM_OTP.request(data.phone, 'register_account');
-        smsVerificationId = result.verificationId || '';
-        otpSent = true;
-        render();
-        message(`OTP sent to +${data.phone}. Enter it to create the account.`, true);
-      }
+      registrationChallenge = result.challenge || '';
+      otpSent = true;
+      render();
+      message(`OTP sent to ${result.destination}. Enter it to create the account.`, true);
     } catch (error) {
       message(error.message || 'Could not send the OTP.');
     } finally {
@@ -275,75 +253,34 @@
 
     const otp = String($('ehmOtp')?.value || '').trim();
     if (!/^\d{6}$/.test(otp)) return message('Enter the 6-digit OTP code.');
+    if (!registrationChallenge) return message('Request a new OTP first.');
 
     setBusy(true);
 
     try {
-      if (verifyMethod === 'email') {
-        let verified = await window.supabaseClient.auth.verifyOtp({
+      const response = await fetch('/api/verify-registration-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          challenge: registrationChallenge,
+          code: otp,
+          name: data.name,
           email: data.email,
-          token: otp,
-          type: 'signup'
-        });
-
-        if (verified.error) {
-          verified = await window.supabaseClient.auth.verifyOtp({
-            email: data.email,
-            token: otp,
-            type: 'email'
-          });
-        }
-        if (verified.error) throw verified.error;
-
-        await window.supabaseClient.auth.updateUser({
-          data: {
-            name: data.name,
-            phone: data.phone,
-            phone_verified: false,
-            registration_method: 'email',
-            verification_method: 'email'
-          }
-        });
-
-        message('Email verified. Your account is now active.', true);
-        setTimeout(() => { location.href = '/dashboard'; }, 650);
-      } else {
-        if (!smsVerificationId) {
-          throw new Error('Request a new SMS OTP first.');
-        }
-
-        const verified = await window.EHM_OTP.verify(
-          data.phone,
-          'register_account',
-          otp,
-          smsVerificationId
-        );
-        smsVerifiedToken = verified.verifiedToken || '';
-
-        const response = await fetch('/api/register-verified-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            password: data.password,
-            verifiedToken: smsVerifiedToken
-          })
-        });
-
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'Could not create the account.');
-
-        const login = await window.supabaseClient.auth.signInWithPassword({
-          email: data.email,
+          phone: data.phone,
           password: data.password
-        });
-        if (login.error) throw login.error;
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'OTP verification failed.');
 
-        message('Mobile number verified. Your account is now active.', true);
-        setTimeout(() => { location.href = '/dashboard'; }, 650);
-      }
+      const loginResult = await window.supabaseClient.auth.signInWithPassword({
+        email: data.email,
+        password: data.password
+      });
+      if (loginResult.error) throw loginResult.error;
+
+      message('OTP verified. Your account has been created successfully.', true);
+      setTimeout(() => { location.href = '/dashboard'; }, 600);
     } catch (error) {
       message(error.message || 'OTP verification failed.');
     } finally {

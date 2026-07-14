@@ -1,0 +1,57 @@
+{
+  "source_project": "ehemehe_dashboard_signup_otp_full_project.zip",
+  "preserved_existing_changes": true,
+  "seller_phone_above_call_now": {
+    "normalized_phone_fields_preserved": true,
+    "call_button_href_fallback": true,
+    "react_mount_retries": true
+  },
+  "dashboard_mobile": {
+    "stable_class_marking": true,
+    "profile_card_compact": true,
+    "navigation_balanced": "3-column mobile grid",
+    "statistics": "2-column grid",
+    "quick_actions": "balanced grid"
+  },
+  "registration": {
+    "methods": [
+      "Email OTP",
+      "SMS OTP"
+    ],
+    "account_before_otp": false,
+    "account_created_after_correct_otp_only": true,
+    "login_after_creation": true,
+    "email_provider": "Resend API",
+    "sms_provider": "Text.lk"
+  },
+  "required_environment_variables": [
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "OTP_SECRET",
+    "TEXTLK_API_TOKEN",
+    "TEXTLK_SENDER_ID",
+    "RESEND_API_KEY",
+    "OTP_EMAIL_FROM"
+  ],
+  "javascript_syntax": {
+    "index-filters.js": true,
+    "brand-theme.js": true,
+    "auth-unified.js": true,
+    "_otp-utils.js": true,
+    "request-registration-otp.js": true,
+    "verify-registration-otp.js": true
+  },
+  "static_ad_route_shells_synced": 100,
+  "cache_version": "20260714-corrected-merged-final",
+  "checks": {
+    "normalized_ads_keep_contact_phone": true,
+    "seller_phone_called_after_ad_load": true,
+    "seller_phone_uses_call_href_fallback": true,
+    "dashboard_stable_classes": true,
+    "registration_does_not_call_supabase_signup": true,
+    "account_created_only_in_verify_endpoint": true,
+    "email_and_sms_method_choice_kept": true,
+    "email_otp_uses_resend": true,
+    "static_ad_routes_synced": true
+  }
+}

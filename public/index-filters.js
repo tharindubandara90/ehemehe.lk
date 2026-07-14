@@ -227,6 +227,20 @@
     const categoryName = raw.categoryName || raw.categories?.name || raw.category || '';
     const cityName = raw.cityName || raw.cities?.name || raw.city || raw.location || '';
     const districtId = raw.district_id || raw.districtId || raw.cities?.district_id || raw.district || raw.location || '';
+    const seller = raw.seller && typeof raw.seller === 'object' ? { ...raw.seller } : {};
+    const contactPhone = String(
+      raw.contactPhone ||
+      raw.contact_phone ||
+      raw.phone ||
+      raw.phone_number ||
+      raw.mobile ||
+      seller.phone ||
+      seller.mobile ||
+      ''
+    ).trim();
+
+    if (contactPhone && !seller.phone) seller.phone = contactPhone;
+
     return {
       id: raw.id || raw.ad_id || raw.uuid || slugify(`${raw.title || 'ad'}-${source}`),
       title: raw.title || 'Untitled Ad',
@@ -241,10 +255,14 @@
       cityName,
       districtId,
       image,
+      images: Array.isArray(raw.images) ? raw.images : (image ? [image] : []),
       condition: raw.condition || 'new',
       postedAt: raw.created_at || raw.postedAt || raw.updated_at || '',
       isFeatured: !!raw.isFeatured || !!raw.featured,
       isPromoted: !!raw.isPromoted || !!raw.promoted,
+      viewCount: raw.viewCount ?? raw.view_count ?? 0,
+      seller,
+      contactPhone,
       source
     };
   }
@@ -1621,6 +1639,7 @@
     removeManagedHome();
     injectAdDetailBanner();
     injectAdDetailFinance();
+    injectSellerPhoneAboveCall();
 
     const norm = (text) => String(text || '').replace(/\s+/g, ' ').trim();
 
@@ -1740,49 +1759,80 @@
   }
 
 
-  function injectSellerPhoneAboveCall() {
-    if (!isAdRoute()) return;
-
+  function currentAdForDetail() {
     const rawId = decodeURIComponent(
       window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '')
     );
-    const ad = allAds().find(
-      (item) =>
-        String(item.id) === rawId ||
-        String(item.id) === String(rawId).replace(/^static-/, '')
-    );
+    const cleanId = String(rawId).replace(/^static-/, '');
 
-    const phone = String(ad?.contactPhone || ad?.seller?.phone || '').trim();
+    const normalized = allAds().find(
+      (item) => String(item.id) === rawId || String(item.id) === cleanId
+    );
+    if (normalized) return normalized;
+
+    const staticRaw = STATIC_ADS.find(
+      (item) => String(item.id) === rawId || String(item.id) === cleanId
+    );
+    return staticRaw ? normalizeAd(staticRaw, 'static') : null;
+  }
+
+  function injectSellerPhoneAboveCall() {
+    if (!isAdRoute()) return false;
+
+    const callButton = Array.from(
+      document.querySelectorAll('a[href^="tel:"], a, button')
+    ).find((node) => {
+      const text = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+      return /^call now$/i.test(text) || /^call$/i.test(text) || String(node.getAttribute?.('href') || '').startsWith('tel:');
+    });
+
+    if (!callButton || !callButton.parentElement) return false;
+
+    const ad = currentAdForDetail();
+    const hrefPhone = String(callButton.getAttribute?.('href') || '').replace(/^tel:/i, '').trim();
+    const phone = String(
+      ad?.contactPhone ||
+      ad?.contact_phone ||
+      ad?.phone ||
+      ad?.phone_number ||
+      ad?.seller?.phone ||
+      hrefPhone ||
+      ''
+    ).trim();
+
     const existing = document.getElementById('ehmSellerPhone');
 
     if (!phone) {
       if (existing) existing.remove();
-      return;
+      return false;
     }
 
-    const callButton = Array.from(document.querySelectorAll('a,button')).find(
-      (node) => String(node.textContent || '').trim() === 'Call Now'
-    );
-
-    if (!callButton || !callButton.parentElement) return;
-
-    const hrefPhone = phone.replace(/[^\d+]/g, '');
-    const html = `
-      <span>Contact number</span>
-      <a href="tel:${esc(hrefPhone)}">${esc(phone)}</a>
+    const dialPhone = phone.replace(/[^\d+]/g, '');
+    const content = `
+      <span>Contact Number</span>
+      <a href="tel:${esc(dialPhone)}">${esc(phone)}</a>
     `;
 
     if (existing) {
-      existing.innerHTML = html;
-      if (existing.nextElementSibling === callButton) return;
-      existing.remove();
+      existing.innerHTML = content;
+      if (existing.nextElementSibling !== callButton) {
+        callButton.insertAdjacentElement('beforebegin', existing);
+      }
+      return true;
     }
 
     const row = document.createElement('div');
     row.id = 'ehmSellerPhone';
     row.className = 'ehm-seller-phone';
-    row.innerHTML = html;
+    row.innerHTML = content;
     callButton.insertAdjacentElement('beforebegin', row);
+    return true;
+  }
+
+  function scheduleSellerPhoneInjection() {
+    [0, 80, 220, 500, 1000, 1800].forEach((delay) => {
+      setTimeout(injectSellerPhoneAboveCall, delay);
+    });
   }
 
   async function sync() {
@@ -1798,6 +1848,10 @@
         await loadFinanceSettings();
         await loadAds();
         await loadPromotions();
+        injectAdDetailBanner();
+        injectAdDetailFinance();
+        injectSellerPhoneAboveCall();
+        scheduleSellerPhoneInjection();
         hideAdDetailLocation();
         setTimeout(hideAdDetailLocation, 150);
         setTimeout(hideAdDetailLocation, 500);
@@ -1888,7 +1942,8 @@
         // the first visible mobile screen remains the two-column Latest Ads layout.
         hideOriginalHomeContent();
         scheduleSync(80);
-      } else if (isMobile() && isAdRoute()) {
+      } else if (isAdRoute()) {
+        injectSellerPhoneAboveCall();
         scheduleSync(120);
       }
     });

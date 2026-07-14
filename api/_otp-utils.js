@@ -136,6 +136,70 @@ function boolValue(value, fallback=true) {
   return !['false','0','off','disabled','no'].includes(String(value).toLowerCase());
 }
 
+
+function normalizeEmail(input) {
+  return String(input || '').trim().toLowerCase();
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
+}
+
+async function sendRegistrationEmailOtp({ email, code }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.OTP_EMAIL_FROM || 'EheMehe <no-reply@ehemehe.lk>';
+  const replyTo = process.env.OTP_EMAIL_REPLY_TO || undefined;
+
+  if (!apiKey) {
+    throw new Error('Email OTP service is not configured. Add RESEND_API_KEY in Vercel.');
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from,
+      to: [normalizeEmail(email)],
+      subject: 'Your ehemehe.lk verification code',
+      reply_to: replyTo,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
+          <h2 style="margin:0 0 14px;color:#0f172a">Verify your ehemehe.lk account</h2>
+          <p style="color:#475569">Use this one-time verification code to create your account:</p>
+          <div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#16845f;padding:18px 0">${code}</div>
+          <p style="color:#64748b">This code expires in ${expiryMinutes()} minutes. Do not share it with anyone.</p>
+        </div>
+      `
+    })
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || 'Could not send the email OTP.');
+  }
+  return data;
+}
+
+async function findAuthUserByEmail(email) {
+  const {url,key}=supabaseAdminConfig();
+  const normalized=normalizeEmail(email);
+  for(let page=1;page<=10;page+=1){
+    const response=await fetch(`${url}/auth/v1/admin/users?page=${page}&per_page=100`,{
+      headers:{apikey:key,Authorization:`Bearer ${key}`}
+    });
+    const data=await response.json().catch(()=>({users:[]}));
+    if(!response.ok) throw new Error(data.message || 'Could not read account.');
+    const users=Array.isArray(data.users)?data.users:(Array.isArray(data)?data:[]);
+    const match=users.find(user=>normalizeEmail(user.email)===normalized);
+    if(match) return match;
+    if(users.length<100) break;
+  }
+  return null;
+}
+
 async function readSiteSettings() {
   const defaults = {
     emailOtpEnabled:true, emailRegisterOtp:true, emailPasswordResetOtp:true,
@@ -221,5 +285,6 @@ async function updateAuthUser(userId,payload) {
 module.exports = {
   json, readBody, normalizePhone, isSriLankaMobile, generateOtp, expiryMinutes,
   makeToken, readToken, otpHash, sendTextLkSms, otpMessage, logOtpEvent,
-  readSiteSettings, assertVerifiedToken, createAuthUser, findAuthUserByPhone, updateAuthUser
+  readSiteSettings, assertVerifiedToken, createAuthUser, findAuthUserByPhone, updateAuthUser,
+  normalizeEmail, isValidEmail, sendRegistrationEmailOtp, findAuthUserByEmail
 };

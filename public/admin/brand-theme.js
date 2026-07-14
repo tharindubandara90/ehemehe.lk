@@ -157,8 +157,47 @@
   }
 
 
+  function enhanceDashboardMobile() {
+    const path = location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+    if (!path.startsWith('/dashboard')) return;
+
+    document.body.classList.add('ehm-route-dashboard');
+
+    const byYw = (value) => document.querySelector(`[data-yw="${value}"]`);
+    const layout = byYw('c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDM4Ojg');
+    const sidebar = byYw('c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDQwOjEw');
+    const profileCard = byYw('c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDQxOjEy');
+    const profileHead = byYw('c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDQzOjE0');
+    const nav = byYw('c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDU0OjE0');
+    const main = byYw('c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDgwOjEw');
+    const stats = byYw('c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDg2OjE2');
+    const quickCard = byYw('c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEwMzoxNg');
+    const quickActions = byYw('c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEwNToxOA');
+
+    layout?.classList.add('ehm-dash-layout');
+    sidebar?.classList.add('ehm-dash-sidebar');
+    profileCard?.classList.add('ehm-dash-profile-card');
+    profileHead?.classList.add('ehm-dash-profile-head');
+    nav?.classList.add('ehm-dash-nav');
+    main?.classList.add('ehm-dash-main');
+    stats?.classList.add('ehm-dash-stats');
+    quickCard?.classList.add('ehm-dash-quick-card');
+    quickActions?.classList.add('ehm-dash-quick-actions');
+
+    if (nav) {
+      const buttons = Array.from(nav.querySelectorAll('button'));
+      buttons.slice(0, 5).forEach((button) => button.classList.add('ehm-dash-tab'));
+      const signOut = buttons.find((button) => /sign out/i.test(button.textContent || ''));
+      signOut?.classList.add('ehm-dash-signout');
+      nav.querySelector('hr')?.classList.add('ehm-dash-divider');
+    }
+
+    stats?.querySelectorAll(':scope > div').forEach((card) => card.classList.add('ehm-dash-stat-card'));
+  }
+
   function tick() {
     applyMobileResponsiveMode();
+    enhanceDashboardMobile();
     ensureFavicon();
     replaceHeaderLogos();
     replaceInlineCyan();
