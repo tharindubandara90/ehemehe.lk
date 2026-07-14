@@ -14,6 +14,7 @@ const resetPhonePassword = require('./api/reset-phone-password');
 const registerVerifiedUser = require('./api/register-verified-user');
 const requestRegistrationOtp = require('./api/request-registration-otp');
 const verifyRegistrationOtp = require('./api/verify-registration-otp');
+const loginUser = require('./api/login-user');
 
 function loadEnvFile(file) {
   const p = path.join(__dirname, file);
@@ -58,7 +59,8 @@ async function handler(req, res) {
     '/api/reset-phone-password': resetPhonePassword,
     '/api/register-verified-user': registerVerifiedUser,
     '/api/request-registration-otp': requestRegistrationOtp,
-    '/api/verify-registration-otp': verifyRegistrationOtp
+    '/api/verify-registration-otp': verifyRegistrationOtp,
+    '/api/login-user': loginUser
   };
 
   const apiHandler = apiRoutes[url.pathname];

@@ -276,6 +276,20 @@
     }
   }
 
+  async function installServerSession(session) {
+    if (!session?.access_token || !session?.refresh_token) {
+      throw new Error('The server did not return a valid login session.');
+    }
+    const client = window.supabaseClient || await window.waitForSupabaseClient?.();
+    if (!client?.auth) throw new Error('Supabase client is not ready.');
+    const result = await client.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    });
+    if (result.error) throw result.error;
+    return result.data?.session;
+  }
+
   async function sendRegistrationOtp() {
     const data = readRegistration();
     const validationError = validateRegistration(data);
@@ -334,11 +348,7 @@
       const result = await readApiResponse(response);
       if (!response.ok || result.ok === false) throw new Error(result.message || `OTP verification failed (HTTP ${response.status}).`);
 
-      const loginResult = await window.supabaseClient.auth.signInWithPassword({
-        phone: '+' + data.phone,
-        password: data.password
-      });
-      if (loginResult.error) throw loginResult.error;
+      await installServerSession(result.session);
 
       message('OTP verified. Your account has been created successfully.', true);
       setTimeout(() => { location.href = safeReturnTarget(); }, 600);
@@ -359,13 +369,16 @@
 
     setBusy(true);
     try {
-      const credentials =
-        loginMethod === 'email'
-          ? { email: identifier.toLowerCase(), password }
-          : { phone: '+' + normalizePhone(identifier), password };
-
-      const result = await window.supabaseClient.auth.signInWithPassword(credentials);
-      if (result.error) throw result.error;
+      const response = await fetch('/api/login-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password })
+      });
+      const result = await readApiResponse(response);
+      if (!response.ok || result.ok === false) {
+        throw new Error(result.message || `Login failed (HTTP ${response.status}).`);
+      }
+      await installServerSession(result.session);
       location.href = safeReturnTarget();
     } catch (error) {
       message(error.message || 'Login failed.');

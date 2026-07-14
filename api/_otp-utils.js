@@ -1,4 +1,6 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const TEXTLK_SEND_ENDPOINT = 'https://app.text.lk/api/v3/sms/send';
 const DEFAULT_SUPABASE_URL = 'https://ieymsjeywkapqeniirlm.supabase.co';
@@ -203,20 +205,132 @@ async function sendRegistrationEmailOtp({ email, code }) {
 }
 
 async function findAuthUserByEmail(email) {
-  const {url,key}=supabaseAdminConfig();
   const normalized=normalizeEmail(email);
-  for(let page=1;page<=10;page+=1){
+  if(!normalized) return null;
+  const users=await listAuthUsers();
+  return users.find(user=>{
+    const metadata=user.user_metadata || {};
+    return normalizeEmail(user.email)===normalized ||
+      normalizeEmail(metadata.contact_email)===normalized ||
+      normalizeEmail(metadata.email)===normalized;
+  }) || null;
+}
+
+
+function internalAuthEmail(phone) {
+  const normalized = normalizePhone(phone);
+  if (!isSriLankaMobile(normalized)) throw new Error('A valid phone number is required for the account identity.');
+  return `phone-${normalized}@auth.ehemehe.lk`;
+}
+
+function isInternalAuthEmail(email) {
+  return /^phone-947\d{8}@auth\.ehemehe\.lk$/i.test(normalizeEmail(email));
+}
+
+function userContactEmail(user) {
+  const metadata = user?.user_metadata || {};
+  const metadataEmail = normalizeEmail(metadata.contact_email || metadata.email || '');
+  if (metadataEmail && !isInternalAuthEmail(metadataEmail)) return metadataEmail;
+  const authEmail = normalizeEmail(user?.email || '');
+  return authEmail && !isInternalAuthEmail(authEmail) ? authEmail : '';
+}
+
+function supabasePublicKey() {
+  const configured = String(
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    ''
+  ).trim();
+  if (configured) return configured;
+
+  try {
+    const configPath = path.join(__dirname, '..', 'public', 'supabase.js');
+    const source = fs.readFileSync(configPath, 'utf8');
+    const match = source.match(/const\s+SUPABASE_ANON_KEY\s*=\s*["']([^"']+)["']/);
+    if (match?.[1]) return match[1];
+  } catch (_) {}
+
+  throw new Error('Supabase public key is not configured.');
+}
+
+async function listAuthUsers(maxPages = 20) {
+  const {url,key}=supabaseAdminConfig();
+  const collected=[];
+  for(let page=1;page<=maxPages;page+=1){
     const response=await fetch(`${url}/auth/v1/admin/users?page=${page}&per_page=100`,{
       headers:{apikey:key,Authorization:`Bearer ${key}`}
     });
     const data=await response.json().catch(()=>({users:[]}));
-    if(!response.ok) throw new Error(data.message || 'Could not read account.');
+    if(!response.ok) throw new Error(data.message || data.msg || 'Could not read accounts.');
     const users=Array.isArray(data.users)?data.users:(Array.isArray(data)?data:[]);
-    const match=users.find(user=>normalizeEmail(user.email)===normalized);
-    if(match) return match;
+    collected.push(...users);
     if(users.length<100) break;
   }
-  return null;
+  return collected;
+}
+
+async function findAuthUserByIdentifier(identifier) {
+  const raw=String(identifier||'').trim();
+  const phone=normalizePhone(raw);
+  if(isSriLankaMobile(phone)) return findAuthUserByPhone(phone);
+
+  const email=normalizeEmail(raw);
+  if(!isValidEmail(email)) return null;
+  return findAuthUserByEmail(email);
+}
+
+async function ensureAuthEmail(user) {
+  if(!user) throw new Error('Account was not found.');
+  if(normalizeEmail(user.email)) return user;
+
+  const metadata=user.user_metadata || {};
+  const phone=normalizePhone(user.phone || metadata.phone || '');
+  const authEmail=internalAuthEmail(phone);
+  return updateAuthUser(user.id,{
+    email:authEmail,
+    email_confirm:true,
+    user_metadata:{...metadata,phone,auth_email:authEmail}
+  });
+}
+
+async function signInAuthUserWithPassword(user,password) {
+  const account=await ensureAuthEmail(user);
+  const authEmail=normalizeEmail(account.email);
+  if(!authEmail) throw new Error('This account cannot be signed in.');
+
+  const {url}=supabaseAdminConfig();
+  const publicKey=supabasePublicKey();
+  const response=await fetch(`${url}/auth/v1/token?grant_type=password`,{
+    method:'POST',
+    headers:{
+      apikey:publicKey,
+      Authorization:`Bearer ${publicKey}`,
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({email:authEmail,password:String(password||'')})
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+    const rawMessage=data.msg || data.message || data.error_description || data.error || '';
+    const friendly=/invalid login|invalid credentials/i.test(rawMessage)
+      ? 'Incorrect phone/email or password.'
+      : (rawMessage || 'Could not sign in.');
+    throw new Error(friendly);
+  }
+  if(!data.access_token || !data.refresh_token) throw new Error('Supabase did not return a valid session.');
+  return {account,data};
+}
+
+function publicUserProfile(user) {
+  const metadata=user?.user_metadata || {};
+  const phone=normalizePhone(user?.phone || metadata.phone || '');
+  return {
+    id:user?.id || '',
+    name:metadata.name || metadata.full_name || 'User',
+    phone,
+    contact_email:userContactEmail(user),
+    created_at:user?.created_at || ''
+  };
 }
 
 async function readSiteSettings() {
@@ -277,18 +391,10 @@ async function createAuthUser(payload) {
 }
 
 async function findAuthUserByPhone(phone) {
-  const {url,key}=supabaseAdminConfig();
   const normalized=normalizePhone(phone);
-  for(let page=1;page<=10;page+=1){
-    const response=await fetch(`${url}/auth/v1/admin/users?page=${page}&per_page=100`,{headers:{apikey:key,Authorization:`Bearer ${key}`}});
-    const data=await response.json().catch(()=>({users:[]}));
-    if(!response.ok) throw new Error(data.message || 'Could not read account.');
-    const users=Array.isArray(data.users)?data.users:(Array.isArray(data)?data:[]);
-    const match=users.find(user=>normalizePhone(user.phone||user.user_metadata?.phone)===normalized);
-    if(match) return match;
-    if(users.length<100) break;
-  }
-  return null;
+  if(!normalized) return null;
+  const users=await listAuthUsers();
+  return users.find(user=>normalizePhone(user.phone || user.user_metadata?.phone)===normalized) || null;
 }
 
 async function updateAuthUser(userId,payload) {
@@ -305,5 +411,8 @@ module.exports = {
   json, readBody, normalizePhone, isSriLankaMobile, generateOtp, expiryMinutes,
   makeToken, readToken, otpHash, sendTextLkSms, otpMessage, logOtpEvent,
   readSiteSettings, assertVerifiedToken, createAuthUser, findAuthUserByPhone, updateAuthUser,
-  normalizeEmail, isValidEmail, sendRegistrationEmailOtp, findAuthUserByEmail
+  normalizeEmail, isValidEmail, sendRegistrationEmailOtp, findAuthUserByEmail,
+  internalAuthEmail, isInternalAuthEmail, userContactEmail, supabasePublicKey,
+  listAuthUsers, findAuthUserByIdentifier, ensureAuthEmail,
+  signInAuthUserWithPassword, publicUserProfile
 };

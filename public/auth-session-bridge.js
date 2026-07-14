@@ -9,8 +9,8 @@
     return {
       id: user.id,
       name: metadata.name || metadata.full_name || user.email?.split('@')[0] || user.phone || 'User',
-      email: user.email || metadata.email || '',
-      phone: user.phone || metadata.phone || '',
+      email: metadata.contact_email || metadata.email || (String(user.email || '').endsWith('@auth.ehemehe.lk') ? '' : (user.email || '')) || metadata.phone || '',
+      phone: metadata.phone || user.phone || '',
       memberSince: user.created_at || new Date().toISOString()
     };
   }

@@ -123,7 +123,7 @@ function setAuthMode(mode){
 function setAuthMessage(text,type='error'){ const node=el('authMessage'); if(!node)return; node.textContent=text||''; node.className='auth-message'+(type==='success'?' success':''); }
 function updateSignedInState(){
   const node=el('signedInState'); if(!node)return;
-  if(currentUser){ node.innerHTML=`Signed in as <strong>${currentUser.email||'user'}</strong> · <button type="button" class="link-button" onclick="logoutUser()">Log out</button>`; }
+  if(currentUser){ const meta=currentUser.user_metadata||{}; const identity=meta.contact_email||meta.phone||currentUser.phone||'user'; node.innerHTML=`Signed in as <strong>${identity}</strong> · <button type="button" class="link-button" onclick="logoutUser()">Log out</button>`; }
   else node.textContent='You can fill everything now. Login is required only when publishing.';
 }
 async function continueAuthentication(){ await loginUser(); }
@@ -157,11 +157,22 @@ async function verifyAdPhoneOtp(){
 }
 
 async function loginUser(){
-  saveDraft(); const identifier=el('authEmail').value.trim(),password=el('authPassword').value;
+  saveDraft();
+  const identifier=el('authEmail').value.trim(),password=el('authPassword').value;
   if(!identifier||!password){setAuthMessage('Enter your email/phone and password.');return;}
-  const isEmail=identifier.includes('@'); const credentials=isEmail?{email:identifier,password}:{phone:'+'+EHM_OTP.normalizePhone(identifier),password};
-  setAuthMessage('Logging in...','success'); const {data,error}=await supabaseClient.auth.signInWithPassword(credentials);
-  if(error){setAuthMessage(error.message);return;} currentUser=data.user; const shouldPublish=PUBLISH_AFTER_AUTH;closeAuthModal();restoreDraft();updateSignedInState();if(shouldPublish)await submitAd();
+  try{
+    setAuthMessage('Logging in...','success');
+    const response=await fetch('/api/login-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier,password})});
+    const text=await response.text();
+    let result={}; try{result=text?JSON.parse(text):{};}catch(_){result={ok:false,message:`Server returned an invalid response (HTTP ${response.status}).`};}
+    if(!response.ok||result.ok===false) throw new Error(result.message||'Login failed.');
+    const sessionResult=await supabaseClient.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
+    if(sessionResult.error) throw sessionResult.error;
+    currentUser=sessionResult.data.user;
+    const shouldPublish=PUBLISH_AFTER_AUTH;
+    closeAuthModal();restoreDraft();updateSignedInState();
+    if(shouldPublish)await submitAd();
+  }catch(error){setAuthMessage(error.message||'Login failed.');}
 }
 async function registerUser(){ goToVerifiedSignup(); }
 async function logoutUser(){ saveDraft(); await supabaseClient.auth.signOut(); currentUser=null; updateSignedInState(); }

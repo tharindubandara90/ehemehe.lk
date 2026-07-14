@@ -7,7 +7,7 @@ module.exports = async function handler(req,res){
     return json(res,200,{ok:true,settings});
   }catch(error){
     return json(res,200,{ok:true,settings:{
-      emailOtpEnabled:true,emailRegisterOtp:true,emailPasswordResetOtp:true,
+      emailOtpEnabled:false,emailRegisterOtp:false,emailPasswordResetOtp:false,
       smsOtpEnabled:true,smsRegisterOtp:true,smsPasswordChangeOtp:true,smsAdPhoneOtp:true
     }});
   }

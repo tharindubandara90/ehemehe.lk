@@ -1,0 +1,29 @@
+{
+  "base_file": "youware_to_vercel_helper(9).zip",
+  "api_token_needed_from_user": false,
+  "supabase_phone_provider_required": false,
+  "architecture": {
+    "sms_otp": "Text.lk",
+    "auth_identity": "confirmed internal Supabase email identity",
+    "login_identifiers": [
+      "phone number",
+      "optional contact email"
+    ],
+    "session": "Supabase access + refresh token installed with auth.setSession"
+  },
+  "legacy_accounts": "phone-only accounts are automatically assigned an internal email at next login",
+  "tests": {
+    "syntax": "passed",
+    "phone_auth_flow": "PHONE_AUTH_FLOW_TEST_PASSED"
+  },
+  "checks": {
+    "no_frontend_phone_password_login": true,
+    "login_uses_server_endpoint": true,
+    "post_ad_login_uses_server_endpoint": true,
+    "new_user_has_no_top_level_phone": true,
+    "server_route_added": true,
+    "flow_test_passed": true,
+    "secrets_removed_from_output": true
+  },
+  "cache_version": "20260715-no-supabase-phone-provider"
+}
