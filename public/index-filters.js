@@ -245,6 +245,20 @@
       postedAt: raw.created_at || raw.postedAt || raw.updated_at || '',
       isFeatured: !!raw.isFeatured || !!raw.featured,
       isPromoted: !!raw.isPromoted || !!raw.promoted,
+      contactPhone:
+        raw.contactPhone ||
+        raw.contact_phone ||
+        raw.phone ||
+        raw.seller_phone ||
+        raw.seller?.phone ||
+        '',
+      contactEmail:
+        raw.contactEmail ||
+        raw.contact_email ||
+        raw.email ||
+        raw.seller?.email ||
+        '',
+      seller: raw.seller || null,
       source
     };
   }
@@ -1618,6 +1632,26 @@
   function injectSellerPhoneAboveCall() {
     if (!isAdRoute()) return;
 
+    const existing = document.getElementById('ehmSellerPhoneDisplay');
+    const nativePhone = document.getElementById('ehmNativeSellerPhone');
+
+    // The compiled React card now renders the number itself.
+    if (nativePhone) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    const callControl = Array.from(document.querySelectorAll('a,button')).find((node) =>
+      /call\s*now/i.test(String(node.textContent || '').trim())
+    );
+
+    if (!callControl) return;
+
+    const href = String(callControl.getAttribute('href') || '');
+    const telPhone = /^tel:/i.test(href)
+      ? decodeURIComponent(href.replace(/^tel:/i, '')).trim()
+      : '';
+
     const rawId = decodeURIComponent(
       window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '')
     );
@@ -1627,8 +1661,8 @@
         String(item.id) === String(rawId).replace(/^static-/, '')
     );
 
-    const existing = document.getElementById('ehmSellerPhoneDisplay');
     const phone = String(
+      telPhone ||
       ad?.contactPhone ||
       ad?.contact_phone ||
       ad?.phone ||
@@ -1641,12 +1675,6 @@
       return;
     }
 
-    const callControl = Array.from(document.querySelectorAll('a,button')).find((node) =>
-      /call\s*now/i.test(String(node.textContent || '').trim())
-    );
-
-    if (!callControl) return;
-
     const hrefPhone = phone.replace(/[^+\d]/g, '');
     const row = existing || document.createElement('a');
     row.id = 'ehmSellerPhoneDisplay';
@@ -1655,7 +1683,7 @@
     row.textContent = phone;
     row.setAttribute('aria-label', `Call seller ${phone}`);
 
-    if (row.previousElementSibling !== callControl.previousElementSibling || row.nextElementSibling !== callControl) {
+    if (callControl.previousElementSibling !== row) {
       callControl.insertAdjacentElement('beforebegin', row);
     }
   }

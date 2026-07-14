@@ -835,3 +835,37 @@ body.ehm-ad-detail-route [data-ehm-hidden-ad-location="1"] {
     margin: 8px 0 9px !important;
   }
 }
+
+/* Native seller phone directly above Call Now */
+.ehm-native-seller-phone {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
+  padding: 10px 14px !important;
+  border: 1px solid #b9eadb !important;
+  border-radius: 12px !important;
+  background: #effcf7 !important;
+  color: #16845f !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  letter-spacing: .2px !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  overflow-wrap: anywhere !important;
+}
+
+.ehm-native-seller-phone:hover {
+  background: #e4f9f1 !important;
+}
+
+@media (max-width: 767px) {
+  .ehm-native-seller-phone {
+    min-height: 46px !important;
+    padding: 10px 12px !important;
+    font-size: 17px !important;
+  }
+}

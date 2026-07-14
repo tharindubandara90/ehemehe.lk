@@ -1,0 +1,19 @@
+{
+  "source_project": "ehemehe_seller_phone_above_call_full_project.zip",
+  "seller_phone_render_method": "native React card plus DOM fallback",
+  "position": "immediately above Call Now",
+  "desktop_supported": true,
+  "mobile_supported": true,
+  "phone_clickable": true,
+  "static_ad_route_shells_synced": 100,
+  "javascript_syntax_checks": "passed",
+  "cache_version": "20260714-seller-phone-native-visible",
+  "checks": {
+    "native_phone_render_added": true,
+    "native_phone_before_call_now": true,
+    "contact_phone_preserved_in_normalize": true,
+    "seller_preserved_in_normalize": true,
+    "fallback_reads_tel_href": true,
+    "fallback_avoids_duplicate": true
+  }
+}
