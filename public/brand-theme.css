@@ -143,3 +143,52 @@
 
 .link-button{border:0;background:transparent;color:#22A879;font-weight:800;padding:0;cursor:pointer;text-decoration:underline}
 @media(max-width:767px){a[href="/categories"],a[href="/categories/"]{display:none!important}}
+
+/* New EheMehe logo + centered mobile header */
+.ehm-site-logo {
+  width: 230px !important;
+  max-width: 260px !important;
+  height: 52px !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+@media (max-width: 767px) {
+  .ehm-mobile-header-row {
+    position: relative !important;
+    justify-content: flex-end !important;
+    min-height: 70px !important;
+  }
+
+  .ehm-mobile-header-row .ehm-logo-link {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 196px !important;
+    max-width: calc(100vw - 145px) !important;
+    height: 52px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    justify-content: center !important;
+    z-index: 5 !important;
+  }
+
+  .ehm-mobile-header-row .ehm-site-logo {
+    display: block !important;
+    width: 196px !important;
+    max-width: 100% !important;
+    height: 50px !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    margin: 0 auto !important;
+  }
+
+  /* Keep the menu button on the right while the logo stays truly centered. */
+  .ehm-mobile-header-row > :last-child {
+    position: relative !important;
+    z-index: 6 !important;
+    margin-left: auto !important;
+  }
+}

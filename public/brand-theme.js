@@ -26,6 +26,12 @@
 
   function replaceHeaderLogos() {
     const anchors = Array.from(document.querySelectorAll('a[href="/"], a[href="./"], a[href="index.html"]'));
+
+    anchors.forEach(a => {
+      if (a.classList.contains('ehm-logo-link') && a.closest('header') && a.parentElement) {
+        a.parentElement.classList.add('ehm-mobile-header-row');
+      }
+    });
     anchors.forEach(a => {
       const text = (a.textContent || '').toLowerCase().replace(/\s+/g,'');
       const hasOldIcon = !!a.querySelector('.rounded-xl, .rounded-full');
@@ -34,6 +40,11 @@
         a.classList.add('ehm-logo-link','ehm-logo-replaced');
         a.innerHTML = '';
         a.appendChild(makeLogo('ehm-site-logo ehm-logo-keep'));
+
+        const header = a.closest('header');
+        if (header && a.parentElement) {
+          a.parentElement.classList.add('ehm-mobile-header-row');
+        }
       }
     });
 
