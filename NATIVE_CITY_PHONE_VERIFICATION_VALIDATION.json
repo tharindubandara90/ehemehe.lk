@@ -1,0 +1,38 @@
+{
+  "source_project": "ehemehe_post_ad_end_to_end_fixed_full_project.zip",
+  "confirmed_issue": [
+    "The City field and phone OTP controls were previously injected into the DOM outside React.",
+    "React re-rendered the Contact step and removed those injected controls.",
+    "The old validator could then show 'Select a district' even when a District was visibly selected."
+  ],
+  "final_fix": [
+    "City / Town is rendered directly inside the React Contact & Location component.",
+    "The City options update from the selected District.",
+    "Phone number, Verify, OTP, Confirm OTP and Resend controls are rendered directly by React.",
+    "One to five phone numbers are supported and every number must be verified.",
+    "Continue remains disabled until District, City and all phone OTP verifications are complete.",
+    "The publishing runtime reads the verified phone tokens from the React component."
+  ],
+  "checks": {
+    "city_state_added_to_react_form": true,
+    "city_dropdown_rendered_below_district": true,
+    "district_change_resets_city": true,
+    "continue_requires_district_city_and_verified_phone": true,
+    "sms_verify_button_rendered_in_react": true,
+    "supports_up_to_five_numbers": true,
+    "otp_confirm_and_resend_present": true,
+    "runtime_uses_native_verified_phone_payload": true,
+    "old_dom_phone_injector_disabled_when_native_ui_exists": true,
+    "old_city_injector_disabled_when_native_city_exists": true,
+    "native_district_used_for_validation": true,
+    "react_bundle_cache_busted": true
+  },
+  "syntax": {
+    "public/js/index-BsKly-Vj.js": true,
+    "public/post-ad-runtime.js": true,
+    "public/post-ad-category-fields.js": true,
+    "public/otp-client.js": true,
+    "server.js": true
+  },
+  "cache_version": "20260715-native-city-phone-verification"
+}

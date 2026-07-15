@@ -330,6 +330,7 @@
 
   function renderPhonePanel() {
     if (!isPostRoute()) return;
+    if (document.querySelector('[data-ehm-native-phone-verification]')) return;
     const contactHeading = heading('Contact & Location');
     if (!contactHeading) return;
 
@@ -479,6 +480,19 @@
   }
 
   function verifiedPhonePayload() {
+    if (typeof window.ehmNativeVerifiedPhonePayload === 'function') {
+      const nativeRows = window.ehmNativeVerifiedPhonePayload();
+      if (!Array.isArray(nativeRows) || !nativeRows.length) throw new Error('Add at least one contact phone number.');
+      const seen = new Set();
+      return nativeRows.map((row) => {
+        const phone = normalizePhone(row.phone);
+        if (!/^947\d{8}$/.test(phone)) throw new Error('Enter a valid contact phone number.');
+        if (seen.has(phone)) throw new Error('Duplicate contact phone numbers are not allowed.');
+        if (!row.verifiedToken) throw new Error('Verify every contact phone number before continuing.');
+        seen.add(phone);
+        return { phone, purpose: row.purpose, verifiedToken: row.verifiedToken };
+      });
+    }
     ensureRows();
     const seen = new Set();
     const result = [];
@@ -522,6 +536,7 @@
 
   function ensureCity() {
     if (!isPostRoute()) return;
+    if (document.querySelector('[data-ehm-native-city]')) return;
     const contactHeading = heading('Contact & Location');
     if (!contactHeading) return;
     const container = contactHeading.parentElement;
@@ -578,9 +593,11 @@
   function validateLocation() {
     const container = heading('Contact & Location')?.parentElement ||
       heading('Review Your Ad')?.parentElement;
-    const district = labeledControl(container, 'District', 'select') ||
+    const district = document.querySelector('[data-ehm-native-district]') ||
+      labeledControl(container, 'District', 'select') ||
       document.querySelector('[data-ehm-district-select]');
-    const city = document.getElementById('ehm-city-select');
+    const city = document.querySelector('[data-ehm-native-city] select') ||
+      document.getElementById('ehm-city-select');
 
     if (!district?.value) throw new Error('Select a district.');
     if (!city?.value) throw new Error('Select a city or town.');

@@ -956,6 +956,7 @@
   }
 
   function injectCityField() {
+    if (document.querySelector('[data-ehm-native-city]')) return;
     const contactHeading = heading('Contact & Location');
     if (!contactHeading) return;
 
@@ -1050,8 +1051,10 @@
     const reviewHeading = heading('Review Your Ad');
     if (!contactHeading && !reviewHeading) return true;
 
-    const districtSelect = document.querySelector('[data-ehm-district-select]');
-    const citySelect = document.getElementById('ehm-city-select');
+    const districtSelect = document.querySelector('[data-ehm-native-district]') ||
+      document.querySelector('[data-ehm-district-select]');
+    const citySelect = document.querySelector('[data-ehm-native-city] select') ||
+      document.getElementById('ehm-city-select');
     const district = districtSelect?.value || state.location.district;
     const city = citySelect?.value || state.location.city;
 
