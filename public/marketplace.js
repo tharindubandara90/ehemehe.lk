@@ -192,17 +192,10 @@ async function loadAds(){
 
   let result = await supabaseClient
     .from('ads')
-    .select('*, categories(id,name,slug), cities(id,name,district_id)')
+    .select('id,title,description,price,category_id,city_id,status,condition,image_url,created_at,featured,promoted,phone,custom_fields')
     .eq('status','approved')
-    .order('created_at', { ascending:false });
-
-  if(result.error){
-    result = await supabaseClient
-      .from('ads')
-      .select('*')
-      .eq('status','approved')
-      .order('created_at', { ascending:false });
-  }
+    .order('created_at', { ascending:false })
+    .limit(120);
 
   if(!result.error && result.data?.length){
     ADS = result.data.map(normalizeAd);

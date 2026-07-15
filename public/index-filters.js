@@ -2,6 +2,9 @@
 (function () {
   'use strict';
 
+  const EHM_ROUTE = location.pathname.replace(/\/+$/, '') || '/';
+  const EHM_IS_AD_ROUTE = /^\/ad\/[^/]+$/.test(EHM_ROUTE);
+
   const THEME = '#06b6d4';
   const THEME_DARK = '#0891b2';
   const MOBILE_QUERY = '(max-width: 767px)';
@@ -368,13 +371,28 @@
   async function loadAds() {
     if (adsLoaded) return supabaseAds;
     adsLoaded = true;
+
+    // Ad detail pages already have the selected ad in the React bundle. Do not
+    // download the full ads table or relationship joins on every ad open.
+    if (EHM_IS_AD_ROUTE) {
+      supabaseAds = [];
+      return supabaseAds;
+    }
+
     try {
       if (!window.supabaseClient) throw new Error('No Supabase client');
-      const { data, error } = await window.supabaseClient
+
+      const request = window.supabaseClient
         .from('ads')
-        .select('*, categories(name,slug), cities(id,name,district_id)')
+        .select('id,title,description,price,category_id,city_id,status,condition,image_url,created_at,featured,promoted,phone,custom_fields')
         .eq('status', 'approved')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(120);
+
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Ads request timed out')), 6500)
+      );
+      const { data, error } = await Promise.race([request, timeout]);
       if (error) throw error;
       supabaseAds = (data || []).map((ad) => normalizeAd(ad, 'supabase'));
     } catch (e) {
@@ -1951,14 +1969,15 @@
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
       openAdPageAtTop(true);
-      window.clearInterval(window.__ehmAdLocationLongTimer);
-      window.__ehmAdLocationLongTimer = window.setInterval(hideAdDetailLocation, 200);
-      setTimeout(() => window.clearInterval(window.__ehmAdLocationLongTimer), 15000);
+      // The old 200ms DOM polling loop ran for 15 seconds on every ad page and
+      // made mobile browsers noticeably slow. A few scheduled passes are enough.
+      hideAdDetailLocation();
+      setTimeout(hideAdDetailLocation, 350);
+      setTimeout(hideAdDetailLocation, 1100);
     }
     await sync();
-    setTimeout(sync, 300);
-    setTimeout(sync, 900);
-    setTimeout(sync, 1800);
+    setTimeout(sync, 350);
+    setTimeout(sync, 1100);
   }
 
   if (document.readyState === 'loading') {

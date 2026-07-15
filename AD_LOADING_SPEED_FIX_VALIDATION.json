@@ -1,0 +1,15 @@
+{
+  "root_cause": [
+    "A global helper requested ads with embedded categories/cities relationships on every page. Supabase returned HTTP 404 when those relationships were unavailable.",
+    "The ads query selected every column, including large image/custom data, making the homepage and category pages slow.",
+    "Ad pages ran a DOM polling interval every 200ms for 15 seconds."
+  ],
+  "fixes": [
+    "Ad detail routes no longer download the complete ads table.",
+    "Removed embedded relationship joins from public ad queries.",
+    "Public list queries now select only needed columns and are limited to 120 rows.",
+    "Added a 6.5 second request timeout and safe fallback.",
+    "Replaced the 15-second 200ms polling loop with three lightweight passes."
+  ],
+  "cache_version": "20260715-ad-load-speed-fix"
+}
