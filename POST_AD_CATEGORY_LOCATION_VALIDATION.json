@@ -1,0 +1,54 @@
+{
+  "source_project": "ehemehe_secure_sms_password_reset_full_project.zip",
+  "root_causes_fixed": [
+    "The old category detector scanned every dropdown on the page. Values such as New, Land, Gender and vehicle body type could be mistaken for the selected category or subcategory.",
+    "Vehicle body type was derived from unrelated dropdown selections, causing Property or Animals & Pets fields to appear while posting a vehicle.",
+    "Condition was shown for categories where New/Used has no meaning.",
+    "The Contact & Location step had District only and did not require a City or Town.",
+    "Injected required category fields were not validated before continuing."
+  ],
+  "category_review": {
+    "categories_covered": [
+      "Vehicles",
+      "Property",
+      "Electronics",
+      "Mobile Phones & Tablets",
+      "Home & Garden",
+      "Health & Beauty",
+      "Sports, Hobbies & Kids",
+      "Education",
+      "Animals & Pets",
+      "Jobs",
+      "Business, Industry & Agriculture",
+      "Services",
+      "Fashion"
+    ],
+    "subcategory_specific_vehicle_body_types": true,
+    "subcategory_specific_property_fields": true,
+    "condition_policy_by_category_and_subcategory": true,
+    "business_industry_agriculture_id_corrected": true
+  },
+  "location": {
+    "districts": 25,
+    "city_dropdown_depends_on_district": true,
+    "district_and_city_required": true,
+    "review_shows_city_and_district": true,
+    "other_not_listed_option": true
+  },
+  "tests": {
+    "javascript_syntax": true,
+    "functional": "POST_AD_CATEGORY_LOCATION_TEST_PASSED"
+  },
+  "checks": {
+    "category_detection_uses_only_category_labels": true,
+    "does_not_scan_all_dropdown_values_for_category": true,
+    "condition_hidden_for_inapplicable_categories": true,
+    "district_city_cascade_added": true,
+    "city_required_before_continue": true,
+    "category_required_fields_validated": true,
+    "all_25_districts_present": true,
+    "static_ad_shells_synced": true
+  },
+  "cache_version": "20260715-category-location-full-fix",
+  "static_ad_shells_synced": 100
+}

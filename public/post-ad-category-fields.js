@@ -1,430 +1,1230 @@
 (() => {
   'use strict';
 
-  const FIELD_DEFINITIONS = {
-    vehicles: [
-      { key:'vehicle_brand', label:'Brand / Make', type:'select', required:true, options:['Toyota','Honda','Nissan','Suzuki','Mitsubishi','Mazda','Mercedes-Benz','BMW','Audi','Hyundai','Kia','Bajaj','TVS','Yamaha','Other'] },
-      { key:'vehicle_model', label:'Model', type:'text', required:true, placeholder:'Axio, Premio, Vitz, Alto...' },
-      { key:'year_manufacture', label:'Year of Manufacture', type:'number', placeholder:'2015' },
-      { key:'year_registered', label:'Year of Registration', type:'number', placeholder:'2016' },
-      { key:'mileage_km', label:'Mileage (km)', type:'number', required:true, placeholder:'85000' },
-      { key:'fuel_type', label:'Fuel Type', type:'select', required:true, options:['Petrol','Diesel','Hybrid','Electric','CNG','Other'] },
-      { key:'transmission', label:'Gear / Transmission', type:'select', required:true, options:['Automatic','Manual','Tiptronic','CVT','Other'] },
-      { key:'engine_capacity', label:'Engine Capacity / CC', type:'number', placeholder:'1500' },
-      { key:'body_type', label:'Body Type', type:'select', options:['Sedan / Saloon','Hatchback','Station Wagon','Coupe / Sports','Convertible','MPV / Minivan','Crossover','Other'] },
-      { key:'ownership', label:'Ownership', type:'select', options:['1st owner','2nd owner','3rd owner','4th owner or more','Unregistered'] },
-      { key:'condition_notes', label:'Vehicle Condition Notes', type:'textarea', placeholder:'Accident-free, original paint, service records, tyre condition...' }
+  const STORAGE_KEY = 'ehemehe:postAdForm:v4';
+  const LEGACY_FIELDS_KEY = 'ehemehePostAdExtraFields';
+
+  const DISTRICT_CITIES = {
+    Colombo: [
+      'Colombo', 'Colombo 01', 'Colombo 02', 'Colombo 03', 'Colombo 04',
+      'Colombo 05', 'Colombo 06', 'Colombo 07', 'Colombo 08', 'Colombo 09',
+      'Colombo 10', 'Colombo 11', 'Colombo 12', 'Colombo 13', 'Colombo 14',
+      'Colombo 15', 'Dehiwala', 'Mount Lavinia', 'Moratuwa', 'Sri Jayawardenepura Kotte',
+      'Nugegoda', 'Maharagama', 'Kaduwela', 'Homagama', 'Padukka', 'Avissawella', 'Hanwella'
     ],
-    property: [
-      { key:'property_type', label:'Property Type', type:'select', required:true, options:['House','Apartment','Land','Commercial Property','Room / Annex','Villa','Other'] },
-      { key:'listing_type', label:'Listing Type', type:'select', required:true, options:['For Sale','For Rent','Lease'] },
-      { key:'bedrooms', label:'Bedrooms', type:'number' },
-      { key:'bathrooms', label:'Bathrooms', type:'number' },
-      { key:'floor_area_sqft', label:'Floor Area (sq.ft)', type:'number' },
-      { key:'land_size', label:'Land Size', type:'text', placeholder:'10 perches / 1 acre' },
-      { key:'parking', label:'Parking', type:'select', options:['No parking','1 vehicle','2 vehicles','3+ vehicles'] },
-      { key:'furnished', label:'Furnished', type:'select', options:['Unfurnished','Semi furnished','Fully furnished'] },
-      { key:'deed_type', label:'Deed / Title', type:'select', options:['Clear deed','Permit','Lease agreement','Other'] },
-      { key:'utilities', label:'Utilities', type:'textarea', placeholder:'Water, electricity, road access, boundary wall...' }
+    Gampaha: [
+      'Gampaha', 'Negombo', 'Wattala', 'Ja-Ela', 'Katana', 'Minuwangoda',
+      'Divulapitiya', 'Mirigama', 'Veyangoda', 'Nittambuwa', 'Kiribathgoda',
+      'Kelaniya', 'Kadawatha', 'Ragama', 'Ganemulla'
     ],
-    'mobile-phones': [
-      { key:'phone_brand', label:'Brand', type:'select', required:true, options:['Apple','Samsung','Xiaomi','Huawei','Oppo','Vivo','Nokia','Google','OnePlus','Realme','Other'] },
-      { key:'phone_model', label:'Model', type:'text', required:true, placeholder:'iPhone 15 Pro Max, Galaxy S23...' },
-      { key:'storage', label:'Storage', type:'select', options:['16GB','32GB','64GB','128GB','256GB','512GB','1TB'] },
-      { key:'ram', label:'RAM', type:'select', options:['2GB','3GB','4GB','6GB','8GB','12GB','16GB+'] },
-      { key:'battery_health', label:'Battery Health (%)', type:'number', placeholder:'88' },
-      { key:'warranty', label:'Warranty', type:'select', options:['No warranty','Shop warranty','Company warranty','Apple care / official warranty'] },
-      { key:'box_accessories', label:'Box / Accessories', type:'textarea', placeholder:'Box, charger, cable, bill, cover...' }
+    Kalutara: [
+      'Kalutara', 'Panadura', 'Horana', 'Bandaragama', 'Beruwala', 'Aluthgama',
+      'Matugama', 'Agalawatta', 'Ingiriya', 'Wadduwa', 'Bulathsinhala'
     ],
-    electronics: [
-      { key:'electronics_brand', label:'Brand', type:'text', placeholder:'Samsung, LG, Sony...' },
-      { key:'electronics_model', label:'Model', type:'text' },
-      { key:'warranty', label:'Warranty', type:'select', options:['No warranty','Shop warranty','Company warranty'] },
-      { key:'screen_size', label:'Screen Size', type:'text', placeholder:'65 inch / 15.6 inch' },
-      { key:'specifications', label:'Specifications', type:'textarea', placeholder:'Processor, RAM, storage, resolution, accessories...' }
+    Kandy: [
+      'Kandy', 'Peradeniya', 'Katugastota', 'Gampola', 'Nawalapitiya',
+      'Kundasale', 'Digana', 'Kadugannawa', 'Akurana', 'Pallekele',
+      'Wattegama', 'Galagedara'
     ],
-    jobs: [
-      { key:'job_type', label:'Job Type', type:'select', required:true, options:['Full-time','Part-time','Contract','Internship','Freelance'] },
-      { key:'company_name', label:'Company Name', type:'text' },
-      { key:'salary', label:'Salary / Pay', type:'text', placeholder:'LKR 80,000 / Negotiable' },
-      { key:'work_location', label:'Work Location', type:'select', options:['On-site','Remote','Hybrid'] },
-      { key:'experience', label:'Experience Required', type:'text' },
-      { key:'education', label:'Education / Qualification', type:'text' }
+    Matale: [
+      'Matale', 'Dambulla', 'Galewela', 'Naula', 'Rattota', 'Ukuwela',
+      'Sigiriya', 'Laggala', 'Yatawatta', 'Pallepola'
     ],
-    services: [
-      { key:'service_type', label:'Service Type', type:'text' },
-      { key:'service_area', label:'Service Area', type:'text', placeholder:'Colombo, Kandy, islandwide...' },
-      { key:'experience_years', label:'Experience', type:'text' },
-      { key:'availability', label:'Availability', type:'text', placeholder:'Weekdays / 24 hours / appointment only' }
+    'Nuwara Eliya': [
+      'Nuwara Eliya', 'Hatton', 'Talawakele', 'Nanu Oya', 'Ginigathhena',
+      'Maskeliya', 'Ragala', 'Walapane', 'Hanguranketha', 'Kotagala'
     ],
-    'animals-pets': [
-      { key:'breed', label:'Breed', type:'text' },
-      { key:'age', label:'Age', type:'text' },
-      { key:'gender', label:'Gender', type:'select', options:['Male','Female','Pair','Not sure'] },
-      { key:'vaccinated', label:'Vaccinated', type:'select', options:['Yes','No','Partially'] },
-      { key:'pet_notes', label:'Pet Details', type:'textarea', placeholder:'Health, parents, food, delivery...' }
+    Galle: [
+      'Galle', 'Ambalangoda', 'Hikkaduwa', 'Baddegama', 'Elpitiya', 'Bentota',
+      'Karapitiya', 'Ahangama', 'Balapitiya', 'Koggala', 'Neluwa'
     ],
-    'home-garden': [
-      { key:'item_type', label:'Item Type', type:'text' },
-      { key:'brand', label:'Brand', type:'text' },
-      { key:'material', label:'Material', type:'text' },
-      { key:'dimensions', label:'Dimensions / Size', type:'text' },
-      { key:'warranty', label:'Warranty', type:'text' }
+    Matara: [
+      'Matara', 'Weligama', 'Akuressa', 'Dikwella', 'Hakmana', 'Kamburupitiya',
+      'Deniyaya', 'Devinuwara', 'Mirissa', 'Pitabeddara'
     ],
-    'business-industry': [
-      { key:'equipment_type', label:'Equipment / Business Type', type:'text' },
-      { key:'brand', label:'Brand', type:'text' },
-      { key:'capacity', label:'Capacity / Size', type:'text' },
-      { key:'power_type', label:'Power / Fuel Type', type:'text' },
-      { key:'service_history', label:'Service History', type:'textarea' }
+    Hambantota: [
+      'Hambantota', 'Tangalle', 'Tissamaharama', 'Ambalantota', 'Beliatta',
+      'Weeraketiya', 'Sooriyawewa', 'Lunugamvehera'
     ],
-    education: [
-      { key:'subject', label:'Subject / Course', type:'text' },
-      { key:'grade_level', label:'Grade / Level', type:'text' },
-      { key:'medium', label:'Medium', type:'select', options:['Sinhala','English','Tamil','Other'] },
-      { key:'class_type', label:'Class Type', type:'select', options:['Online','Physical','Home visit','Group class','Individual'] },
-      { key:'fee', label:'Fee', type:'text' }
+    Jaffna: [
+      'Jaffna', 'Nallur', 'Chavakachcheri', 'Point Pedro', 'Karainagar',
+      'Kayts', 'Kopay', 'Tellippalai', 'Chankanai'
     ],
-    fashion: [
-      { key:'brand', label:'Brand', type:'text' },
-      { key:'size', label:'Size', type:'text' },
-      { key:'gender', label:'Gender', type:'select', options:['Men','Women','Kids','Unisex'] },
-      { key:'material', label:'Material', type:'text' },
-      { key:'originality', label:'Originality', type:'select', options:['Original','Replica','Not sure'] }
+    Kilinochchi: ['Kilinochchi', 'Paranthan', 'Poonakary', 'Pallai', 'Kandavalai'],
+    Mullaitivu: ['Mullaitivu', 'Puthukudiyiruppu', 'Oddusuddan', 'Mankulam', 'Maritimepattu'],
+    Vavuniya: ['Vavuniya', 'Cheddikulam', 'Nedunkeni', 'Omanthai', 'Vavuniya South'],
+    Mannar: ['Mannar', 'Madhu', 'Murunkan', 'Pesalai', 'Talaimannar', 'Nanattan'],
+    Trincomalee: [
+      'Trincomalee', 'Kinniya', 'Kantale', 'Muttur', 'Nilaveli',
+      'Seruwila', 'Kuchchaveli', 'Thampalakamam'
     ],
-    general: [
-      { key:'brand', label:'Brand', type:'text' },
-      { key:'model', label:'Model', type:'text' },
-      { key:'warranty', label:'Warranty', type:'text' },
-      { key:'extra_details', label:'Extra Details', type:'textarea' }
+    Batticaloa: [
+      'Batticaloa', 'Kattankudy', 'Eravur', 'Valaichchenai', 'Kaluwanchikudy',
+      'Oddamavadi', 'Vakarai', 'Chenkalady'
+    ],
+    Ampara: [
+      'Ampara', 'Kalmunai', 'Akkaraipattu', 'Sammanthurai', 'Pottuvil',
+      'Sainthamaruthu', 'Dehiattakandiya', 'Maha Oya', 'Uhana', 'Nintavur'
+    ],
+    Kurunegala: [
+      'Kurunegala', 'Kuliyapitiya', 'Narammala', 'Pannala', 'Polgahawela',
+      'Wariyapola', 'Nikaweratiya', 'Maho', 'Bingiriya', 'Ibbagamuwa',
+      'Alawwa', 'Galgamuwa'
+    ],
+    Puttalam: [
+      'Puttalam', 'Chilaw', 'Wennappuwa', 'Marawila', 'Nattandiya',
+      'Dankotuwa', 'Kalpitiya', 'Anamaduwa', 'Madampe', 'Nawagattegama'
+    ],
+    Anuradhapura: [
+      'Anuradhapura', 'Kekirawa', 'Medawachchiya', 'Mihintale', 'Tambuttegama',
+      'Eppawala', 'Galenbindunuwewa', 'Horowpothana', 'Nochchiyagama',
+      'Kebithigollewa'
+    ],
+    Polonnaruwa: [
+      'Polonnaruwa', 'Kaduruwela', 'Hingurakgoda', 'Medirigiriya',
+      'Minneriya', 'Welikanda', 'Aralaganwila', 'Bakamuna'
+    ],
+    Badulla: [
+      'Badulla', 'Bandarawela', 'Haputale', 'Welimada', 'Mahiyanganaya',
+      'Ella', 'Hali-Ela', 'Passara', 'Diyatalawa', 'Lunugala', 'Kandaketiya'
+    ],
+    Monaragala: [
+      'Monaragala', 'Wellawaya', 'Buttala', 'Bibile', 'Kataragama',
+      'Siyambalanduwa', 'Medagama', 'Thanamalwila', 'Badalkumbura'
+    ],
+    Ratnapura: [
+      'Ratnapura', 'Balangoda', 'Embilipitiya', 'Pelmadulla', 'Eheliyagoda',
+      'Kuruwita', 'Kahawatta', 'Kalawana', 'Rakwana', 'Godakawela'
+    ],
+    Kegalle: [
+      'Kegalle', 'Mawanella', 'Warakapola', 'Rambukkana', 'Ruwanwella',
+      'Yatiyantota', 'Deraniyagala', 'Dehiowita', 'Aranayake', 'Hemmathagama'
     ]
   };
 
-  const SUBCATEGORY_OVERRIDES = {
-    cars: 'vehicles', car: 'vehicles', suvs: 'vehicles', suv: 'vehicles', 'suv-jeep': 'vehicles', jeeps: 'vehicles',
-    motorcycles: 'vehicles', motorcycle: 'vehicles', motorbikes: 'vehicles', motorbike: 'vehicles', scooters: 'vehicles',
-    'three-wheelers': 'vehicles', 'three-wheeler': 'vehicles', threewheelers: 'vehicles', 'tuk-tuks': 'vehicles',
-    vans: 'vehicles', van: 'vehicles', trucks: 'vehicles', truck: 'vehicles', lorries: 'vehicles', lorry: 'vehicles',
-    buses: 'vehicles', bus: 'vehicles', pickups: 'vehicles', pickup: 'vehicles', 'double-cabs': 'vehicles', 'crew-cabs': 'vehicles',
-    tractors: 'vehicles', tractor: 'vehicles', 'heavy-duty': 'vehicles', 'heavy-vehicles': 'vehicles',
-    land: 'property', lands: 'property', houses: 'property', apartments: 'property', 'apartment-rentals': 'property', 'property-rentals': 'property',
-    phones: 'mobile-phones', mobiles: 'mobile-phones', tablets: 'mobile-phones', laptops: 'electronics', tvs: 'electronics',
-    dogs: 'animals-pets', cats: 'animals-pets'
-  };
-
-  const state = { category:'', subcategory:'', fields:{}, lastInjectedKey:'' };
-
-  const VEHICLE_BODY_TYPE_CONFIG = {
+  const VEHICLE_BODY_TYPES = {
     cars: {
       label: 'Car Body Type',
-      aliases: ['car','cars','automobile','saloon-car'],
-      options: ['Sedan / Saloon','Hatchback','Station Wagon','Coupe / Sports','Convertible','MPV / Minivan','Crossover','Other']
+      options: ['Sedan / Saloon', 'Hatchback', 'Station Wagon', 'Coupe / Sports', 'Convertible', 'MPV / Minivan', 'Crossover', 'Other']
     },
     suvs: {
       label: 'SUV / Jeep Type',
-      aliases: ['suv','suvs','suv-jeep','suv-jeeps','jeep','jeeps','4x4'],
-      options: ['Compact SUV','Mid-size SUV','Full-size SUV','Crossover SUV','4x4 / Off-road','Other']
+      options: ['Compact SUV', 'Mid-size SUV', 'Full-size SUV', 'Crossover SUV', '4x4 / Off-road', 'Other']
     },
-    motorcycles: {
-      label: 'Motorcycle Type',
-      aliases: ['motorcycle','motorcycles','motorbike','motorbikes','bike','bikes'],
-      options: ['Scooter','Standard / Commuter','Sports Bike','Naked Bike','Cruiser','Touring','Adventure / Dual Sport','Off-road / Dirt Bike','Moped','Electric Motorcycle','Other']
+    motorbikes: {
+      label: 'Motorbike Type',
+      options: ['Scooter', 'Standard / Commuter', 'Sports Bike', 'Naked Bike', 'Cruiser', 'Touring', 'Adventure / Dual Sport', 'Off-road / Dirt Bike', 'Moped', 'Electric Motorbike', 'Other']
     },
     'three-wheelers': {
       label: 'Three Wheeler Type',
-      aliases: ['three-wheeler','three-wheelers','threewheeler','threewheelers','tuk-tuk','tuk-tuks'],
-      options: ['Passenger Three Wheeler','Cargo Three Wheeler','Electric Three Wheeler','Other']
+      options: ['Passenger Three Wheeler', 'Cargo Three Wheeler', 'Electric Three Wheeler', 'Other']
     },
     vans: {
       label: 'Van Type',
-      aliases: ['van','vans'],
-      options: ['Mini Van','Passenger Van','Cargo / Panel Van','High-roof Van','Camper Van','Other']
-    },
-    pickups: {
-      label: 'Pickup / Cab Type',
-      aliases: ['pickup','pickups','single-cab','double-cab','double-cabs','crew-cab','crew-cabs'],
-      options: ['Single Cab Pickup','Double Cab / Crew Cab','Extended Cab Pickup','Utility Pickup','Other']
-    },
-    trucks: {
-      label: 'Lorry / Truck Type',
-      aliases: ['truck','trucks','lorry','lorries'],
-      options: ['Light Truck','Medium Truck','Heavy Truck','Tipper / Dump Truck','Box Truck','Flatbed Truck','Refrigerated Truck','Tanker','Tractor Head / Prime Mover','Other']
+      options: ['Mini Van', 'Passenger Van', 'Cargo / Panel Van', 'High-roof Van', 'Camper Van', 'Other']
     },
     buses: {
       label: 'Bus Type',
-      aliases: ['bus','buses'],
-      options: ['Mini Bus','School Bus','Staff / Office Bus','City Bus','Coach / Luxury Bus','Double-decker Bus','Other']
+      options: ['Mini Bus', 'School Bus', 'Staff / Office Bus', 'City Bus', 'Coach / Luxury Bus', 'Double-decker Bus', 'Other']
     },
-    tractors: {
-      label: 'Tractor Type',
-      aliases: ['tractor','tractors'],
-      options: ['Two-wheel Tractor','Four-wheel Tractor','Agricultural Tractor','Orchard Tractor','Other']
-    },
-    'heavy-duty': {
-      label: 'Heavy Vehicle Type',
-      aliases: ['heavy-duty','heavy-vehicle','heavy-vehicles','construction-vehicle','construction-vehicles'],
-      options: ['Excavator','Backhoe Loader','Wheel Loader','Bulldozer','Road Roller','Crane','Forklift','Motor Grader','Other']
+    lorries: {
+      label: 'Lorry Type',
+      options: ['Light Truck', 'Medium Truck', 'Heavy Truck', 'Tipper / Dump Truck', 'Box Truck', 'Flatbed Truck', 'Refrigerated Truck', 'Tanker', 'Tractor Head / Prime Mover', 'Other']
     }
   };
 
-  function slug(v) {
-    return String(v || '').toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const f = (key, label, type = 'text', options = {}) => ({
+    key, label, type, ...options
+  });
+
+  const COMMON_VEHICLE = [
+    f('vehicle_brand', 'Brand / Make', 'select', {
+      required: true,
+      options: ['Toyota', 'Honda', 'Nissan', 'Suzuki', 'Mitsubishi', 'Mazda', 'Mercedes-Benz', 'BMW', 'Audi', 'Hyundai', 'Kia', 'Bajaj', 'TVS', 'Yamaha', 'Isuzu', 'Tata', 'Mahindra', 'Other']
+    }),
+    f('vehicle_model', 'Model', 'text', {
+      required: true,
+      placeholder: 'Axio, Premio, Vitz, Alto...'
+    }),
+    f('year_manufacture', 'Year of Manufacture', 'number', { placeholder: '2015' }),
+    f('year_registered', 'Year of Registration', 'number', { placeholder: '2016' }),
+    f('mileage_km', 'Mileage (km)', 'number', { required: true, placeholder: '85000' }),
+    f('fuel_type', 'Fuel Type', 'select', {
+      required: true,
+      options: ['Petrol', 'Diesel', 'Hybrid', 'Plug-in Hybrid', 'Electric', 'CNG', 'Other']
+    }),
+    f('transmission', 'Gear / Transmission', 'select', {
+      required: true,
+      options: ['Automatic', 'Manual', 'Tiptronic', 'CVT', 'DCT', 'Other']
+    }),
+    f('engine_capacity', 'Engine Capacity / CC', 'number', { placeholder: '1500' }),
+    f('ownership', 'Ownership', 'select', {
+      options: ['1st owner', '2nd owner', '3rd owner', '4th owner or more', 'Unregistered']
+    }),
+    f('condition_notes', 'Vehicle Condition Notes', 'textarea', {
+      placeholder: 'Accident history, service records, tyre condition, documents...'
+    })
+  ];
+
+  const GENERIC_ITEM = [
+    f('brand', 'Brand', 'text'),
+    f('model', 'Model', 'text'),
+    f('warranty', 'Warranty', 'select', {
+      options: ['No warranty', 'Shop warranty', 'Company warranty', 'International warranty']
+    }),
+    f('extra_details', 'Item Details', 'textarea', {
+      placeholder: 'Specifications, included accessories, defects, purchase details...'
+    })
+  ];
+
+  const SCHEMAS = {
+    property: {
+      land: [
+        f('listing_type', 'Listing Type', 'select', {
+          required: true, options: ['For Sale', 'For Rent', 'Lease']
+        }),
+        f('land_size', 'Land Size', 'number', { required: true, placeholder: '10' }),
+        f('land_unit', 'Land Unit', 'select', {
+          required: true, options: ['Perches', 'Acres', 'Hectares']
+        }),
+        f('deed_type', 'Deed / Title', 'select', {
+          required: true, options: ['Clear deed', 'Permit', 'Grant', 'Lease agreement', 'Other']
+        }),
+        f('road_access', 'Road Access / Road Width', 'text', { placeholder: '20 ft carpet road' }),
+        f('land_shape', 'Land Shape / Terrain', 'select', {
+          options: ['Flat', 'Slight slope', 'Sloping', 'Irregular', 'Other']
+        }),
+        f('utilities', 'Utilities & Nearby Facilities', 'textarea', {
+          placeholder: 'Water, electricity, schools, town distance, boundary wall...'
+        })
+      ],
+      houses: [
+        f('listing_type', 'Listing Type', 'select', {
+          required: true, options: ['For Sale', 'For Rent', 'Lease']
+        }),
+        f('bedrooms', 'Bedrooms', 'number', { required: true }),
+        f('bathrooms', 'Bathrooms', 'number', { required: true }),
+        f('floor_area_sqft', 'Floor Area (sq.ft)', 'number'),
+        f('land_size', 'Land Size', 'text', { placeholder: '10 perches / 1 acre' }),
+        f('floors', 'Number of Floors', 'number'),
+        f('parking', 'Parking', 'select', {
+          options: ['No parking', '1 vehicle', '2 vehicles', '3+ vehicles']
+        }),
+        f('furnished', 'Furnished', 'select', {
+          options: ['Unfurnished', 'Semi furnished', 'Fully furnished']
+        }),
+        f('deed_type', 'Deed / Title', 'select', {
+          options: ['Clear deed', 'Permit', 'Grant', 'Lease agreement', 'Other']
+        }),
+        f('property_features', 'Property Features', 'textarea', {
+          placeholder: 'Garden, boundary wall, water, electricity, road access...'
+        })
+      ],
+      apartments: [
+        f('listing_type', 'Listing Type', 'select', {
+          required: true, options: ['For Sale', 'For Rent', 'Lease']
+        }),
+        f('bedrooms', 'Bedrooms', 'number', { required: true }),
+        f('bathrooms', 'Bathrooms', 'number', { required: true }),
+        f('floor_area_sqft', 'Floor Area (sq.ft)', 'number', { required: true }),
+        f('floor_number', 'Floor Number', 'number'),
+        f('parking', 'Parking', 'select', {
+          options: ['No parking', '1 vehicle', '2 vehicles', '3+ vehicles']
+        }),
+        f('furnished', 'Furnished', 'select', {
+          options: ['Unfurnished', 'Semi furnished', 'Fully furnished']
+        }),
+        f('maintenance_fee', 'Monthly Maintenance Fee', 'text'),
+        f('apartment_features', 'Apartment Features', 'textarea', {
+          placeholder: 'Lift, security, pool, gym, generator, view...'
+        })
+      ],
+      'rooms-rent': [
+        f('rental_type', 'Rental Type', 'select', {
+          required: true, options: ['Room', 'Annex', 'Boarding', 'Shared room', 'Hostel']
+        }),
+        f('occupancy', 'Preferred Occupancy', 'select', {
+          options: ['Single person', 'Couple', 'Family', 'Students', 'Any']
+        }),
+        f('bathroom_type', 'Bathroom', 'select', {
+          options: ['Attached', 'Shared']
+        }),
+        f('furnished', 'Furnished', 'select', {
+          options: ['Unfurnished', 'Semi furnished', 'Fully furnished']
+        }),
+        f('monthly_rent', 'Monthly Rent Details', 'text', {
+          placeholder: 'Advance, key money, utilities included...'
+        }),
+        f('room_features', 'Room / Annex Details', 'textarea', {
+          placeholder: 'Kitchen, parking, meals, transport, rules...'
+        })
+      ],
+      'commercial-property': [
+        f('listing_type', 'Listing Type', 'select', {
+          required: true, options: ['For Sale', 'For Rent', 'Lease']
+        }),
+        f('commercial_use', 'Suitable For', 'select', {
+          required: true,
+          options: ['Shop', 'Office', 'Warehouse', 'Factory', 'Restaurant', 'Hotel', 'Other']
+        }),
+        f('floor_area_sqft', 'Floor Area (sq.ft)', 'number'),
+        f('land_size', 'Land Size', 'text'),
+        f('parking', 'Parking', 'select', {
+          options: ['No parking', '1-5 vehicles', '6-10 vehicles', '10+ vehicles']
+        }),
+        f('commercial_features', 'Commercial Property Details', 'textarea', {
+          placeholder: 'Road frontage, loading access, power supply, approvals...'
+        })
+      ],
+      default: [
+        f('property_type', 'Property Type', 'select', {
+          required: true,
+          options: ['House', 'Apartment', 'Land', 'Commercial Property', 'Room / Annex', 'Villa', 'Other']
+        }),
+        f('listing_type', 'Listing Type', 'select', {
+          required: true, options: ['For Sale', 'For Rent', 'Lease']
+        }),
+        f('bedrooms', 'Bedrooms', 'number'),
+        f('bathrooms', 'Bathrooms', 'number'),
+        f('floor_area_sqft', 'Floor Area (sq.ft)', 'number'),
+        f('land_size', 'Land Size', 'text'),
+        f('deed_type', 'Deed / Title', 'select', {
+          options: ['Clear deed', 'Permit', 'Grant', 'Lease agreement', 'Other']
+        }),
+        f('property_features', 'Property Details', 'textarea')
+      ]
+    },
+    vehicles: {
+      boats: [
+        f('boat_type', 'Boat Type', 'select', {
+          required: true,
+          options: ['Fishing Boat', 'Speed Boat', 'Yacht', 'Sail Boat', 'Passenger Boat', 'Other']
+        }),
+        f('vehicle_brand', 'Brand / Make', 'text', { required: true }),
+        f('vehicle_model', 'Model', 'text'),
+        f('year_manufacture', 'Year of Manufacture', 'number'),
+        f('boat_length', 'Length', 'text', { placeholder: '25 ft' }),
+        f('engine_details', 'Engine Details', 'text'),
+        f('fuel_type', 'Fuel Type', 'select', {
+          options: ['Petrol', 'Diesel', 'Electric', 'Other']
+        }),
+        f('registration_details', 'Registration / Documents', 'textarea'),
+        f('condition_notes', 'Boat Condition Notes', 'textarea')
+      ],
+      'heavy-equipment': [
+        f('equipment_type', 'Equipment Type', 'select', {
+          required: true,
+          options: ['Excavator', 'Backhoe Loader', 'Wheel Loader', 'Bulldozer', 'Road Roller', 'Crane', 'Forklift', 'Motor Grader', 'Other']
+        }),
+        f('vehicle_brand', 'Brand / Make', 'text', { required: true }),
+        f('vehicle_model', 'Model', 'text'),
+        f('year_manufacture', 'Year of Manufacture', 'number'),
+        f('operating_hours', 'Operating Hours', 'number'),
+        f('fuel_type', 'Fuel Type', 'select', {
+          options: ['Diesel', 'Petrol', 'Electric', 'Other']
+        }),
+        f('capacity', 'Capacity / Tonnage', 'text'),
+        f('condition_notes', 'Service & Condition Notes', 'textarea')
+      ],
+      'vehicle-parts': [
+        f('part_category', 'Part Category', 'select', {
+          required: true,
+          options: ['Engine Parts', 'Body Parts', 'Electrical', 'Suspension', 'Tyres & Wheels', 'Interior', 'Accessories', 'Other']
+        }),
+        f('compatible_make', 'Compatible Make', 'text', { required: true }),
+        f('compatible_model', 'Compatible Model / Year', 'text'),
+        f('part_number', 'Part Number', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('condition_notes', 'Part Condition & Details', 'textarea', {
+          placeholder: 'Original/reconditioned, defects, included items...'
+        })
+      ],
+      default: COMMON_VEHICLE
+    },
+    'mobile-phones': {
+      'phone-accessories': [
+        f('accessory_type', 'Accessory Type', 'select', {
+          required: true,
+          options: ['Charger', 'Cable', 'Earphones / Headset', 'Case / Cover', 'Screen Protector', 'Power Bank', 'Smart Watch', 'Spare Part', 'Other']
+        }),
+        f('brand', 'Brand', 'text'),
+        f('compatible_models', 'Compatible Phone Models', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('accessory_details', 'Accessory Details', 'textarea')
+      ],
+      default: [
+        f('phone_brand', 'Brand', 'select', {
+          required: true,
+          options: ['Apple', 'Samsung', 'Xiaomi', 'Huawei', 'Oppo', 'Vivo', 'Nokia', 'Google', 'OnePlus', 'Realme', 'Other']
+        }),
+        f('phone_model', 'Model', 'text', {
+          required: true, placeholder: 'iPhone 15 Pro Max, Galaxy S23...'
+        }),
+        f('storage', 'Storage', 'select', {
+          options: ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB']
+        }),
+        f('ram', 'RAM', 'select', {
+          options: ['2GB', '3GB', '4GB', '6GB', '8GB', '12GB', '16GB+']
+        }),
+        f('battery_health', 'Battery Health (%)', 'number', { placeholder: '88' }),
+        f('network', 'Network / SIM', 'select', {
+          options: ['Single SIM', 'Dual SIM', 'eSIM', 'Wi-Fi only', 'Other']
+        }),
+        f('warranty', 'Warranty', 'select', {
+          options: ['No warranty', 'Shop warranty', 'Company warranty', 'AppleCare / official warranty']
+        }),
+        f('box_accessories', 'Box / Accessories', 'textarea', {
+          placeholder: 'Box, charger, cable, bill, cover, defects...'
+        })
+      ]
+    },
+    electronics: {
+      default: [
+        f('electronics_brand', 'Brand', 'text', { required: true }),
+        f('electronics_model', 'Model', 'text'),
+        f('warranty', 'Warranty', 'select', {
+          options: ['No warranty', 'Shop warranty', 'Company warranty', 'International warranty']
+        }),
+        f('screen_size', 'Screen Size', 'text'),
+        f('power_details', 'Power / Voltage Details', 'text'),
+        f('specifications', 'Specifications & Accessories', 'textarea', {
+          placeholder: 'Processor, RAM, storage, resolution, included items, defects...'
+        })
+      ]
+    },
+    'home-garden': {
+      default: [
+        f('item_type', 'Item Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('material', 'Material', 'text'),
+        f('dimensions', 'Dimensions / Size', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('item_details', 'Item Details', 'textarea')
+      ]
+    },
+    'health-beauty': {
+      'fitness-equipment': [
+        f('equipment_type', 'Equipment Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('model', 'Model', 'text'),
+        f('maximum_capacity', 'Maximum Capacity', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('equipment_details', 'Equipment Details', 'textarea')
+      ],
+      default: [
+        f('product_type', 'Product Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('size_volume', 'Size / Volume', 'text'),
+        f('expiry_date', 'Expiry Date', 'text', { placeholder: 'MM/YYYY' }),
+        f('sealed_status', 'Package Status', 'select', {
+          required: true, options: ['Factory sealed', 'Opened but unused']
+        }),
+        f('product_details', 'Product Details', 'textarea')
+      ]
+    },
+    'sports-hobbies-kids': {
+      default: [
+        f('item_type', 'Item Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('model', 'Model', 'text'),
+        f('age_group', 'Age Group', 'text'),
+        f('size', 'Size', 'text'),
+        f('included_items', 'Included Items / Accessories', 'textarea')
+      ]
+    },
+    education: {
+      'tuition-classes': [
+        f('subject', 'Subject', 'text', { required: true }),
+        f('grade_level', 'Grade / Level', 'text', { required: true }),
+        f('medium', 'Medium', 'select', {
+          options: ['Sinhala', 'English', 'Tamil', 'Other']
+        }),
+        f('class_type', 'Class Type', 'select', {
+          options: ['Online', 'Physical', 'Home visit', 'Group class', 'Individual']
+        }),
+        f('teacher_qualification', 'Teacher / Tutor Qualification', 'text'),
+        f('schedule', 'Schedule', 'text'),
+        f('fee', 'Fee Details', 'text')
+      ],
+      courses: [
+        f('course_name', 'Course Name', 'text', { required: true }),
+        f('institution', 'Institute / Lecturer', 'text'),
+        f('delivery_method', 'Delivery Method', 'select', {
+          options: ['Online', 'Physical', 'Hybrid']
+        }),
+        f('duration', 'Course Duration', 'text'),
+        f('qualification', 'Certificate / Qualification', 'text'),
+        f('entry_requirements', 'Entry Requirements', 'textarea'),
+        f('fee', 'Course Fee', 'text')
+      ],
+      'edu-books': [
+        f('book_title', 'Book Title', 'text', { required: true }),
+        f('author', 'Author', 'text'),
+        f('subject', 'Subject / Grade', 'text'),
+        f('medium', 'Medium', 'select', {
+          options: ['Sinhala', 'English', 'Tamil', 'Other']
+        }),
+        f('edition', 'Edition / Year', 'text'),
+        f('book_details', 'Book Details', 'textarea')
+      ],
+      default: GENERIC_ITEM
+    },
+    'animals-pets': {
+      'pet-accessories': [
+        f('accessory_type', 'Accessory Type', 'text', { required: true }),
+        f('suitable_for', 'Suitable For', 'select', {
+          options: ['Dogs', 'Cats', 'Birds', 'Fish', 'Other']
+        }),
+        f('brand', 'Brand', 'text'),
+        f('size', 'Size', 'text'),
+        f('accessory_details', 'Accessory Details', 'textarea')
+      ],
+      default: [
+        f('breed', 'Breed', 'text', { required: true }),
+        f('age', 'Age', 'text', { required: true }),
+        f('gender', 'Gender', 'select', {
+          required: true, options: ['Male', 'Female', 'Pair', 'Not sure']
+        }),
+        f('vaccinated', 'Vaccinated', 'select', {
+          options: ['Yes', 'No', 'Partially']
+        }),
+        f('health_status', 'Health / Veterinary Status', 'text'),
+        f('parent_details', 'Parent / Pedigree Details', 'text'),
+        f('pet_notes', 'Pet Details', 'textarea', {
+          placeholder: 'Health, food, temperament, documents, delivery...'
+        })
+      ]
+    },
+    jobs: {
+      default: [
+        f('job_type', 'Job Type', 'select', {
+          required: true, options: ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance']
+        }),
+        f('company_name', 'Company Name', 'text'),
+        f('work_location', 'Work Arrangement', 'select', {
+          options: ['On-site', 'Remote', 'Hybrid']
+        }),
+        f('salary', 'Salary / Pay', 'text'),
+        f('experience', 'Experience Required', 'text'),
+        f('education', 'Education / Qualification', 'text'),
+        f('application_details', 'How to Apply', 'textarea')
+      ]
+    },
+    'business-industry-agriculture': {
+      'office-equipment': [
+        f('equipment_type', 'Equipment Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('model', 'Model', 'text'),
+        f('capacity', 'Capacity / Size', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('equipment_details', 'Equipment Details', 'textarea')
+      ],
+      'industrial-machinery': [
+        f('machine_type', 'Machine Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('model', 'Model', 'text'),
+        f('year_manufacture', 'Year of Manufacture', 'number'),
+        f('capacity', 'Capacity / Output', 'text'),
+        f('power_type', 'Power / Fuel Type', 'text'),
+        f('service_history', 'Service & Condition Details', 'textarea')
+      ],
+      agriculture: [
+        f('agriculture_type', 'Agriculture Item Type', 'select', {
+          required: true,
+          options: ['Seeds / Plants', 'Fertilizer / Inputs', 'Harvest / Produce', 'Farm Equipment', 'Irrigation', 'Other']
+        }),
+        f('variety', 'Variety / Model', 'text'),
+        f('quantity', 'Quantity / Capacity', 'text'),
+        f('grade', 'Grade / Quality', 'text'),
+        f('delivery', 'Delivery / Collection', 'text'),
+        f('agriculture_details', 'Agriculture Details', 'textarea')
+      ],
+      default: GENERIC_ITEM
+    },
+    services: {
+      default: [
+        f('service_type', 'Service Type', 'text', { required: true }),
+        f('service_area', 'Service Area', 'text', {
+          required: true, placeholder: 'Colombo, Kandy, islandwide...'
+        }),
+        f('experience_years', 'Experience', 'text'),
+        f('availability', 'Availability', 'text', {
+          placeholder: 'Weekdays / 24 hours / appointment only'
+        }),
+        f('pricing', 'Pricing Details', 'text'),
+        f('service_details', 'Service Details', 'textarea')
+      ]
+    },
+    fashion: {
+      default: [
+        f('brand', 'Brand', 'text'),
+        f('size', 'Size', 'text', { required: true }),
+        f('gender', 'Gender', 'select', {
+          options: ['Men', 'Women', 'Kids', 'Unisex']
+        }),
+        f('material', 'Material', 'text'),
+        f('originality', 'Originality', 'select', {
+          options: ['Original', 'Replica', 'Not sure']
+        }),
+        f('fashion_details', 'Item Details', 'textarea')
+      ]
+    },
+    general: {
+      default: GENERIC_ITEM
+    }
+  };
+
+  function slug(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
   }
 
-  function detectVehicleSubtypeFromDom() {
-    const selections = Array.from(document.querySelectorAll('select'))
-      .flatMap((select) => [select.value, select.options[select.selectedIndex]?.textContent || ''])
-      .map(slug)
-      .filter(Boolean);
+  function cleanLabel(value) {
+    return String(value || '')
+      .replace(/\*/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
 
-    // Prefer exact aliases, then safe phrase matches. This prevents Fuel Type,
-    // Condition, or Ownership selections from being mistaken for vehicle type.
-    for (const [type, config] of Object.entries(VEHICLE_BODY_TYPE_CONFIG)) {
-      if (config.aliases.some((alias) => selections.includes(alias))) return type;
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[character]));
+  }
+
+  function cloneFields(fields) {
+    return (fields || []).map((field) => ({
+      ...field,
+      options: Array.isArray(field.options) ? [...field.options] : field.options
+    }));
+  }
+
+  function vehicleFields(subcategory) {
+    const sub = slug(subcategory);
+
+    if (SCHEMAS.vehicles[sub]) {
+      return cloneFields(SCHEMAS.vehicles[sub]);
     }
 
-    const joined = selections.join(' ');
-    if (/three-wheel|threewheeler|tuk-tuk/.test(joined)) return 'three-wheelers';
-    if (/double-cab|crew-cab|pickup/.test(joined)) return 'pickups';
-    if (/motorcycle|motorbike|scooter/.test(joined)) return 'motorcycles';
-    if (/suv|jeep|4x4/.test(joined)) return 'suvs';
-    if (/(^|-)van(s)?($|-)/.test(joined)) return 'vans';
-    if (/lorry|truck/.test(joined)) return 'trucks';
-    if (/(^|-)bus(es)?($|-)/.test(joined)) return 'buses';
-    if (/tractor/.test(joined)) return 'tractors';
-    if (/heavy-duty|heavy-vehicle|construction-vehicle/.test(joined)) return 'heavy-duty';
-    if (/(^|-)car(s)?($|-)/.test(joined)) return 'cars';
-    return '';
-  }
-
-  function vehicleFieldsForSubtype() {
-    const subtype = detectVehicleSubtypeFromDom() || state.subcategory || 'cars';
-    const config = VEHICLE_BODY_TYPE_CONFIG[subtype] || VEHICLE_BODY_TYPE_CONFIG.cars;
-    return FIELD_DEFINITIONS.vehicles.map((field) => {
-      if (field.key !== 'body_type') return { ...field };
-      return { ...field, label: config.label, options: [...config.options] };
+    const bodyConfig = VEHICLE_BODY_TYPES[sub] || VEHICLE_BODY_TYPES.cars;
+    const common = cloneFields(COMMON_VEHICLE);
+    const bodyField = f('body_type', bodyConfig.label, 'select', {
+      options: [...bodyConfig.options]
     });
+
+    const insertAt = common.findIndex((field) => field.key === 'ownership');
+    common.splice(insertAt < 0 ? common.length : insertAt, 0, bodyField);
+    return common;
   }
 
-  function detectCategoryFromDom() {
-    const selects = Array.from(document.querySelectorAll('select.input-field, select'));
-    const selectedTexts = selects.map(s => (s.options[s.selectedIndex]?.textContent || '').trim()).filter(Boolean);
-    const selectedValues = selects.map(s => s.value).filter(Boolean);
-    const all = [...selectedValues, ...selectedTexts].map(slug);
-    const keys = Object.keys(FIELD_DEFINITIONS);
+  function fieldsFor(category, subcategory) {
+    const categoryId = slug(category);
+    const subcategoryId = slug(subcategory);
 
-    for (const v of all) {
-      if (keys.includes(v)) return v;
-      if (SUBCATEGORY_OVERRIDES[v]) return SUBCATEGORY_OVERRIDES[v];
+    if (categoryId === 'vehicles') return vehicleFields(subcategoryId);
+
+    const categorySchema = SCHEMAS[categoryId] || SCHEMAS.general;
+    const fields = categorySchema[subcategoryId] || categorySchema.default || SCHEMAS.general.default;
+    return cloneFields(fields);
+  }
+
+  function conditionApplies(category, subcategory) {
+    const categoryId = slug(category);
+    const subcategoryId = slug(subcategory);
+
+    if (['property', 'jobs', 'services'].includes(categoryId)) return false;
+    if (categoryId === 'education') return subcategoryId === 'edu-books';
+    if (categoryId === 'animals-pets') return subcategoryId === 'pet-accessories';
+    if (categoryId === 'health-beauty') return subcategoryId === 'fitness-equipment';
+    if (categoryId === 'business-industry-agriculture') {
+      return ['office-equipment', 'industrial-machinery'].includes(subcategoryId);
     }
-
-    const joined = all.join(' ');
-    if (/vehicle|car|motor|bike|three|van|truck|bus|suv|jeep/.test(joined)) return 'vehicles';
-    if (/property|house|apartment|land|room|annex|rent/.test(joined)) return 'property';
-    if (/mobile|phone|tablet/.test(joined)) return 'mobile-phones';
-    if (/electronic|laptop|computer|tv|camera|audio/.test(joined)) return 'electronics';
-    if (/job|career|vacancy/.test(joined)) return 'jobs';
-    if (/service|repair/.test(joined)) return 'services';
-    if (/animal|pet|dog|cat/.test(joined)) return 'animals-pets';
-    if (/home|garden|furniture/.test(joined)) return 'home-garden';
-    if (/business|industry|agriculture|equipment/.test(joined)) return 'business-industry';
-    if (/education|tuition|class/.test(joined)) return 'education';
-    if (/fashion|clothing|shoe|watch/.test(joined)) return 'fashion';
-    return state.category || 'general';
+    return true;
   }
 
-  function rememberSelects() {
-    const selects = Array.from(document.querySelectorAll('select.input-field, select'));
-    const values = selects.map(s => ({ value: s.value, text: (s.options[s.selectedIndex]?.textContent || '').trim() }));
-    const category = detectCategoryFromDom();
-    state.category = category;
-    const vehicleSubtype = category === 'vehicles' ? detectVehicleSubtypeFromDom() : '';
-    const candidate = vehicleSubtype || values.map(x => slug(x.text || x.value)).find(x => x && x !== category && x !== 'select-a-category' && x !== 'select-a-subcategory');
-    if (candidate) state.subcategory = candidate;
-  }
+  function priceLabelFor(category, subcategory) {
+    const categoryId = slug(category);
+    const subcategoryId = slug(subcategory);
 
-  function fieldKeyPrefix() {
-    return `${state.category || 'general'}:${state.subcategory || 'all'}`;
-  }
-
-  function getFields() {
-    const category = detectCategoryFromDom();
-    state.category = category;
-    if (category === 'vehicles') {
-      const subtype = detectVehicleSubtypeFromDom();
-      if (subtype) state.subcategory = subtype;
-      return vehicleFieldsForSubtype();
+    if (categoryId === 'jobs') return 'Salary / Pay (LKR) *';
+    if (categoryId === 'services') return 'Service Price / Starting Price (LKR) *';
+    if (categoryId === 'education') {
+      return subcategoryId === 'edu-books' ? 'Price (LKR) *' : 'Course / Class Fee (LKR) *';
     }
-    return FIELD_DEFINITIONS[category] || FIELD_DEFINITIONS.general;
+    if (categoryId === 'property') {
+      if (['rooms-rent', 'property-rent'].includes(subcategoryId)) return 'Monthly Rent (LKR) *';
+      return 'Price / Rent (LKR) *';
+    }
+    return 'Price (LKR) *';
+  }
+
+  const PUBLIC_API = {
+    DISTRICT_CITIES,
+    fieldsFor,
+    conditionApplies,
+    priceLabelFor,
+    slug
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PUBLIC_API;
+  }
+
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  window.EHM_POST_AD_FORM = PUBLIC_API;
+
+  const normalizedPath = location.pathname.replace(/\/+$/, '') || '/';
+  if (normalizedPath !== '/post-ad') return;
+
+  const state = {
+    category: '',
+    subcategory: '',
+    fieldsByKey: {},
+    location: { district: '', city: '' },
+    ticking: false,
+    restoringDistrict: false
+  };
+
+  function stateKey() {
+    return `${slug(state.category) || 'general'}:${slug(state.subcategory) || 'all'}`;
+  }
+
+  function loadState() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      if (stored && typeof stored === 'object') {
+        state.category = slug(stored.category);
+        state.subcategory = slug(stored.subcategory);
+        state.fieldsByKey = stored.fieldsByKey && typeof stored.fieldsByKey === 'object'
+          ? stored.fieldsByKey
+          : {};
+        state.location = stored.location && typeof stored.location === 'object'
+          ? {
+              district: String(stored.location.district || ''),
+              city: String(stored.location.city || '')
+            }
+          : { district: '', city: '' };
+      }
+
+      if (!Object.keys(state.fieldsByKey).length) {
+        const legacy = JSON.parse(localStorage.getItem(LEGACY_FIELDS_KEY) || 'null');
+        if (legacy?.fields && typeof legacy.fields === 'object') {
+          const legacyKey = `${slug(legacy.category) || 'general'}:${slug(legacy.subcategory) || 'all'}`;
+          state.fieldsByKey[legacyKey] = { ...legacy.fields };
+        }
+      }
+    } catch (_) {}
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        category: state.category,
+        subcategory: state.subcategory,
+        fieldsByKey: state.fieldsByKey,
+        location: state.location,
+        savedAt: Date.now()
+      }));
+    } catch (_) {}
+  }
+
+  function heading(text) {
+    const wanted = cleanLabel(text);
+    return Array.from(document.querySelectorAll('h1,h2,h3'))
+      .find((node) => cleanLabel(node.textContent) === wanted) || null;
+  }
+
+  function labeledControl(container, labelText, selector = 'select,input,textarea') {
+    if (!container) return null;
+    const wanted = cleanLabel(labelText);
+
+    for (const label of container.querySelectorAll('label')) {
+      if (cleanLabel(label.textContent) !== wanted) continue;
+      const direct = label.parentElement?.querySelector(selector);
+      if (direct) return direct;
+      if (label.htmlFor) {
+        const associated = document.getElementById(label.htmlFor);
+        if (associated?.matches(selector)) return associated;
+      }
+    }
+    return null;
+  }
+
+  function labeledField(container, labelText) {
+    const control = labeledControl(container, labelText);
+    return control?.closest('div') || null;
+  }
+
+  function rememberCategorySelection() {
+    const categoryHeading = heading('Select Category');
+    if (!categoryHeading) return false;
+
+    const container = categoryHeading.parentElement;
+    const categorySelect = labeledControl(container, 'Category');
+    const subcategorySelect = labeledControl(container, 'Subcategory');
+
+    if (!categorySelect) return false;
+
+    const category = slug(categorySelect.value);
+    const subcategory = slug(subcategorySelect?.value || '');
+
+    const changed = category !== state.category || subcategory !== state.subcategory;
+    if (changed) {
+      state.category = category;
+      state.subcategory = subcategory;
+      saveState();
+    }
+    return changed;
+  }
+
+  function readCurrentFields() {
+    const key = stateKey();
+    const values = { ...(state.fieldsByKey[key] || {}) };
+
+    document.querySelectorAll('#ehm-category-fields-panel [data-ehm-field]').forEach((control) => {
+      values[control.dataset.ehmField] = control.value;
+    });
+
+    state.fieldsByKey[key] = values;
+    saveState();
+    return values;
   }
 
   function inputHtml(field, value) {
-    const attrs = `data-ehm-field="${field.key}" ${field.required ? 'required' : ''} class="ehm-extra-input input-field"`;
+    const attributes = [
+      `data-ehm-field="${escapeHtml(field.key)}"`,
+      'class="ehm-extra-input input-field"',
+      field.required ? 'required' : '',
+      field.min !== undefined ? `min="${escapeHtml(field.min)}"` : '',
+      field.max !== undefined ? `max="${escapeHtml(field.max)}"` : ''
+    ].filter(Boolean).join(' ');
+
     if (field.type === 'select') {
-      return `<select ${attrs}><option value="">Select ${field.label}</option>${(field.options || []).map(o => `<option value="${escapeHtml(o)}" ${value === o ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('')}</select>`;
+      const options = (field.options || [])
+        .map((option) => `<option value="${escapeHtml(option)}" ${String(value) === String(option) ? 'selected' : ''}>${escapeHtml(option)}</option>`)
+        .join('');
+      return `<select ${attributes}><option value="">Select ${escapeHtml(field.label)}</option>${options}</select>`;
     }
+
     if (field.type === 'textarea') {
-      return `<textarea ${attrs} rows="3" placeholder="${escapeHtml(field.placeholder || '')}">${escapeHtml(value || '')}</textarea>`;
+      return `<textarea ${attributes} rows="3" placeholder="${escapeHtml(field.placeholder || '')}">${escapeHtml(value || '')}</textarea>`;
     }
-    return `<input ${attrs} type="${field.type || 'text'}" value="${escapeHtml(value || '')}" placeholder="${escapeHtml(field.placeholder || '')}">`;
+
+    return `<input ${attributes} type="${escapeHtml(field.type || 'text')}" value="${escapeHtml(value || '')}" placeholder="${escapeHtml(field.placeholder || '')}">`;
   }
 
-  function escapeHtml(v) {
-    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  function updatePriceLabel(container) {
+    if (!container) return;
+
+    let label = container.querySelector('[data-ehm-price-label]');
+    if (!label) {
+      label = Array.from(container.querySelectorAll('label')).find((candidate) => {
+        const text = cleanLabel(candidate.textContent);
+        return text === 'price (lkr)' ||
+          text.startsWith('price / rent (lkr)') ||
+          text.startsWith('monthly rent (lkr)') ||
+          text.startsWith('salary / pay (lkr)') ||
+          text.startsWith('service price / starting price (lkr)') ||
+          text.startsWith('course / class fee (lkr)');
+      });
+      if (label) label.dataset.ehmPriceLabel = '1';
+    }
+
+    if (label) label.textContent = priceLabelFor(state.category, state.subcategory);
   }
 
-  function readCurrentValues() {
-    document.querySelectorAll('[data-ehm-field]').forEach(input => {
-      state.fields[input.dataset.ehmField] = input.value;
-    });
-    try { localStorage.setItem('ehemehePostAdExtraFields', JSON.stringify({category:state.category, subcategory:state.subcategory, fields:state.fields})); } catch(e) {}
+  function applyConditionVisibility(container) {
+    if (!container) return;
+
+    const conditionField = labeledField(container, 'Condition');
+    if (!conditionField) return;
+
+    const showCondition = conditionApplies(state.category, state.subcategory);
+    const baseGrid = conditionField.parentElement;
+    const priceField = labeledField(container, 'Price (LKR)') ||
+      labeledField(container, 'Price / Rent (LKR)') ||
+      labeledField(container, 'Monthly Rent (LKR)') ||
+      labeledField(container, 'Salary / Pay (LKR)') ||
+      labeledField(container, 'Service Price / Starting Price (LKR)') ||
+      labeledField(container, 'Course / Class Fee (LKR)');
+
+    conditionField.hidden = !showCondition;
+    conditionField.setAttribute('aria-hidden', String(!showCondition));
+
+    const conditionSelect = conditionField.querySelector('select');
+    if (conditionSelect) {
+      conditionSelect.required = showCondition;
+      conditionSelect.tabIndex = showCondition ? 0 : -1;
+    }
+
+    baseGrid?.classList.toggle('ehm-condition-not-applicable', !showCondition);
+    priceField?.classList.toggle('ehm-price-full-width', !showCondition);
   }
 
   function injectDetailsFields() {
-    const h2 = Array.from(document.querySelectorAll('h2')).find(n => (n.textContent || '').trim() === 'Ad Details');
-    if (!h2) return;
-    rememberSelects();
-    const container = h2.parentElement;
+    const detailsHeading = heading('Ad Details');
+    if (!detailsHeading || !state.category || !state.subcategory) return;
+
+    const container = detailsHeading.parentElement;
     if (!container) return;
 
-    const key = fieldKeyPrefix();
-    let existing = container.querySelector('#ehm-category-fields-panel');
-    if (existing && existing.dataset.key === key) return;
-    if (existing) existing.remove();
+    updatePriceLabel(container);
+    applyConditionVisibility(container);
 
-    const after = Array.from(container.querySelectorAll('.grid')).pop() || container.lastElementChild;
-    const fields = getFields();
-    const panel = document.createElement('div');
+    const key = stateKey();
+    const fields = fieldsFor(state.category, state.subcategory);
+    const savedValues = state.fieldsByKey[key] || {};
+
+    let panel = container.querySelector('#ehm-category-fields-panel');
+    if (panel?.dataset.key === key) return;
+
+    if (panel) {
+      readCurrentFields();
+      panel.remove();
+    }
+
+    panel = document.createElement('section');
     panel.id = 'ehm-category-fields-panel';
     panel.dataset.key = key;
-    panel.className = 'ehm-extra-fields mt-6 p-5 rounded-2xl border border-surface-200 bg-surface-50';
+    panel.className = 'ehm-extra-fields';
     panel.innerHTML = `
-      <div class="flex items-center justify-between mb-4">
+      <div class="ehm-extra-fields-heading">
         <div>
-          <h3 class="font-bold text-surface-900 text-base">Category Details</h3>
-          <p class="text-xs text-surface-500">Fill the details buyers usually check before contacting you.</p>
+          <h3>Category Details</h3>
+          <p>Fill the details buyers usually check before contacting you.</p>
         </div>
-        <span class="text-xs px-3 py-1 rounded-full bg-primary-100 text-primary-700 font-semibold">${escapeHtml(state.category.replace(/-/g,' '))}</span>
+        <span>${escapeHtml(state.category.replace(/-/g, ' '))}</span>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        ${fields.map(field => `
-          <div class="${field.type === 'textarea' ? 'sm:col-span-2' : ''}">
-            <label class="block text-sm font-medium text-surface-700 mb-2">${escapeHtml(field.label)}${field.required ? ' *' : ''}</label>
-            ${inputHtml(field, state.fields[field.key] || '')}
+      <div class="ehm-extra-fields-grid">
+        ${fields.map((field) => `
+          <div class="ehm-extra-field ${field.type === 'textarea' ? 'ehm-extra-field-wide' : ''}">
+            <label>${escapeHtml(field.label)}${field.required ? ' *' : ''}</label>
+            ${inputHtml(field, savedValues[field.key] || '')}
+          </div>
+        `).join('')}
+      </div>
+      <div id="ehm-category-fields-error" class="ehm-inline-error" aria-live="polite"></div>
+    `;
+
+    const baseFields = detailsHeading.nextElementSibling;
+    if (baseFields?.parentElement === container) {
+      baseFields.insertAdjacentElement('afterend', panel);
+    } else {
+      container.appendChild(panel);
+    }
+
+    panel.addEventListener('input', readCurrentFields);
+    panel.addEventListener('change', readCurrentFields);
+  }
+
+  function cityOptions(district) {
+    const cities = DISTRICT_CITIES[district] || [];
+    return [...cities, 'Other / Not listed'];
+  }
+
+  function populateCitySelect(select, district, preferredCity = '') {
+    if (!select) return;
+
+    const cities = district ? cityOptions(district) : [];
+    select.disabled = !district;
+    select.innerHTML = [
+      `<option value="">${district ? 'Select city / town' : 'Select district first'}</option>`,
+      ...cities.map((city) => `<option value="${escapeHtml(city)}">${escapeHtml(city)}</option>`)
+    ].join('');
+
+    if (preferredCity && cities.includes(preferredCity)) {
+      select.value = preferredCity;
+    }
+  }
+
+  function setReactSelectValue(select, value) {
+    if (!select || select.value === value) return;
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    descriptor?.set?.call(select, value);
+    select.dispatchEvent(new Event('input', { bubbles: true }));
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function injectCityField() {
+    const contactHeading = heading('Contact & Location');
+    if (!contactHeading) return;
+
+    const container = contactHeading.parentElement;
+    const districtSelect = labeledControl(container, 'District');
+    if (!districtSelect) return;
+
+    districtSelect.dataset.ehmDistrictSelect = '1';
+    const districtField = districtSelect.closest('div');
+    if (!districtField) return;
+
+    if (!districtSelect.dataset.ehmLocationBound) {
+      districtSelect.dataset.ehmLocationBound = '1';
+      districtSelect.addEventListener('change', () => {
+        if (state.restoringDistrict) return;
+
+        const district = districtSelect.value;
+        if (district !== state.location.district) {
+          state.location = { district, city: '' };
+        }
+
+        const citySelect = document.getElementById('ehm-city-select');
+        populateCitySelect(citySelect, district, state.location.city);
+        saveState();
+        clearLocationError();
+      });
+    }
+
+    if (!districtSelect.value && state.location.district && !state.restoringDistrict) {
+      const hasOption = Array.from(districtSelect.options).some((option) => option.value === state.location.district);
+      if (hasOption) {
+        state.restoringDistrict = true;
+        setReactSelectValue(districtSelect, state.location.district);
+        setTimeout(() => { state.restoringDistrict = false; }, 0);
+      }
+    }
+
+    const liveDistrict = districtSelect.value || state.location.district;
+    if (liveDistrict && liveDistrict !== state.location.district) {
+      state.location = { district: liveDistrict, city: '' };
+      saveState();
+    }
+
+    let cityField = container.querySelector('#ehm-city-field');
+    if (!cityField) {
+      cityField = document.createElement('div');
+      cityField.id = 'ehm-city-field';
+      cityField.className = 'ehm-location-city-field';
+      cityField.innerHTML = `
+        <label class="block text-sm font-medium text-surface-700 mb-2">City / Town *</label>
+        <select id="ehm-city-select" class="input-field" required></select>
+        <div id="ehm-location-error" class="ehm-inline-error" aria-live="polite"></div>
+      `;
+      districtField.insertAdjacentElement('afterend', cityField);
+
+      const citySelect = cityField.querySelector('select');
+      citySelect.addEventListener('change', () => {
+        state.location.district = districtSelect.value || state.location.district;
+        state.location.city = citySelect.value;
+        saveState();
+        clearLocationError();
+      });
+    }
+
+    const citySelect = cityField.querySelector('select');
+    const currentOptionsDistrict = citySelect.dataset.district || '';
+    if (currentOptionsDistrict !== liveDistrict) {
+      citySelect.dataset.district = liveDistrict;
+      populateCitySelect(
+        citySelect,
+        liveDistrict,
+        liveDistrict === state.location.district ? state.location.city : ''
+      );
+    } else if (state.location.city && citySelect.value !== state.location.city) {
+      const hasCity = Array.from(citySelect.options).some((option) => option.value === state.location.city);
+      if (hasCity) citySelect.value = state.location.city;
+    }
+  }
+
+  function clearLocationError() {
+    const error = document.getElementById('ehm-location-error');
+    if (error) error.textContent = '';
+  }
+
+  function showLocationError(message) {
+    const error = document.getElementById('ehm-location-error');
+    if (error) error.textContent = message;
+  }
+
+  function validateLocation() {
+    const contactHeading = heading('Contact & Location');
+    const reviewHeading = heading('Review Your Ad');
+    if (!contactHeading && !reviewHeading) return true;
+
+    const districtSelect = document.querySelector('[data-ehm-district-select]');
+    const citySelect = document.getElementById('ehm-city-select');
+    const district = districtSelect?.value || state.location.district;
+    const city = citySelect?.value || state.location.city;
+
+    if (!district) {
+      showLocationError('Select a district.');
+      districtSelect?.focus();
+      return false;
+    }
+    if (!city) {
+      showLocationError('Select a city or town.');
+      citySelect?.focus();
+      return false;
+    }
+
+    state.location = { district, city };
+    saveState();
+    clearLocationError();
+    return true;
+  }
+
+  function validateCategoryFields() {
+    const panel = document.getElementById('ehm-category-fields-panel');
+    if (!panel) return true;
+
+    readCurrentFields();
+    const requiredControls = Array.from(panel.querySelectorAll('[required]'));
+    const invalid = requiredControls.find((control) => !String(control.value || '').trim());
+    const error = panel.querySelector('#ehm-category-fields-error');
+
+    panel.querySelectorAll('.ehm-invalid').forEach((control) => control.classList.remove('ehm-invalid'));
+    if (error) error.textContent = '';
+
+    if (!invalid) return true;
+
+    invalid.classList.add('ehm-invalid');
+    if (error) error.textContent = 'Complete all required category details before continuing.';
+    invalid.focus();
+    return false;
+  }
+
+  function reviewCard(container, titleText) {
+    const wanted = cleanLabel(titleText);
+    const title = Array.from(container.querySelectorAll('div'))
+      .find((node) => cleanLabel(node.textContent) === wanted &&
+        /uppercase|tracking-wider|text-surface-400/.test(node.className || ''));
+
+    return title?.parentElement || null;
+  }
+
+  function injectReviewSummary() {
+    const reviewHeading = heading('Review Your Ad');
+    if (!reviewHeading) return;
+
+    const container = reviewHeading.parentElement;
+    if (!container) return;
+
+    readCurrentFields();
+
+    const applies = conditionApplies(state.category, state.subcategory);
+    const conditionCard = reviewCard(container, 'Condition');
+    if (conditionCard) {
+      conditionCard.hidden = !applies;
+      conditionCard.parentElement?.classList.toggle('ehm-review-condition-hidden', !applies);
+    }
+
+    const locationCard = reviewCard(container, 'Location');
+    if (locationCard && state.location.district && state.location.city) {
+      const valueNode = Array.from(locationCard.children)
+        .find((child) => cleanLabel(child.textContent) !== 'location');
+      if (valueNode) valueNode.textContent = `${state.location.city}, ${state.location.district}`;
+    }
+
+    const key = stateKey();
+    const values = state.fieldsByKey[key] || {};
+    const fields = fieldsFor(state.category, state.subcategory);
+    const rows = fields
+      .map((field) => ({ label: field.label, value: values[field.key] }))
+      .filter((row) => String(row.value || '').trim());
+
+    let panel = container.querySelector('#ehm-review-fields-panel');
+    const signature = JSON.stringify(rows);
+    if (panel?.dataset.signature === signature) return;
+    panel?.remove();
+
+    if (!rows.length) return;
+
+    panel = document.createElement('section');
+    panel.id = 'ehm-review-fields-panel';
+    panel.dataset.signature = signature;
+    panel.className = 'ehm-review-fields';
+    panel.innerHTML = `
+      <div class="ehm-review-fields-title">Category Details</div>
+      <div class="ehm-review-fields-grid">
+        ${rows.map((row) => `
+          <div>
+            <span>${escapeHtml(row.label)}</span>
+            <strong>${escapeHtml(row.value)}</strong>
           </div>
         `).join('')}
       </div>
     `;
-    if (after && after.parentElement) after.insertAdjacentElement('afterend', panel);
-    else container.appendChild(panel);
 
-    panel.addEventListener('input', readCurrentValues);
-    panel.addEventListener('change', readCurrentValues);
-  }
-
-  function injectReviewSummary() {
-    const h2 = Array.from(document.querySelectorAll('h2')).find(n => (n.textContent || '').trim() === 'Review Your Ad');
-    if (!h2) return;
-    readCurrentValues();
-    const container = h2.parentElement;
-    if (!container || container.querySelector('#ehm-review-fields-panel')) return;
-    const rows = Object.entries(state.fields).filter(([,v]) => String(v || '').trim());
-    if (!rows.length) return;
-
-    const labels = {};
-    Object.values(FIELD_DEFINITIONS).flat().forEach(f => labels[f.key] = f.label);
-    const panel = document.createElement('div');
-    panel.id = 'ehm-review-fields-panel';
-    panel.className = 'bg-surface-50 rounded-xl p-4';
-    panel.innerHTML = `
-      <div class="text-xs text-surface-400 uppercase tracking-wider mb-2">Category Details</div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        ${rows.map(([k,v]) => `<div><span class="text-surface-500">${escapeHtml(labels[k] || k)}:</span> <span class="font-medium text-surface-900">${escapeHtml(v)}</span></div>`).join('')}
-      </div>
-    `;
     const list = container.querySelector('.space-y-4') || container;
     list.appendChild(panel);
   }
 
-  function hookNavigationButtons() {
-    document.querySelectorAll('button').forEach(btn => {
-      const text = (btn.textContent || '').trim();
-      if ((text === 'Continue' || text === 'Post Ad') && !btn.dataset.ehmFieldsHooked) {
-        btn.dataset.ehmFieldsHooked = '1';
-        btn.addEventListener('click', () => {
-          readCurrentValues();
-          setTimeout(() => {
-            rememberSelects();
-            injectDetailsFields();
-            injectReviewSummary();
-          }, 80);
-        }, true);
-      }
-    });
+  function handleNavigationValidation(event) {
+    const button = event.target?.closest?.('button');
+    if (!button) return;
+
+    const buttonText = cleanLabel(button.textContent);
+    if (!['continue', 'post ad'].includes(buttonText)) return;
+
+    if (heading('Ad Details') && !validateCategoryFields()) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      return;
+    }
+
+    if ((heading('Contact & Location') || heading('Review Your Ad')) && !validateLocation()) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }
   }
 
-  async function compressImage(file, maxSize = 1600, quality = 0.88) {
-    const bitmap = await createImageBitmap(file);
-    let { width, height } = bitmap;
-    const ratio = Math.min(1, maxSize / Math.max(width, height));
-    width = Math.round(width * ratio);
-    height = Math.round(height * ratio);
+  function handleSelectChange(event) {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) return;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d', { alpha: false });
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, width, height);
-    ctx.drawImage(bitmap, 0, 0, width, height);
+    const label = select.closest('div')?.querySelector(':scope > label');
+    const labelName = cleanLabel(label?.textContent);
 
-    return canvas.toDataURL('image/jpeg', quality);
+    if (labelName === 'category' || labelName === 'subcategory') {
+      setTimeout(() => {
+        rememberCategorySelection();
+        scheduleTick();
+      }, 0);
+    }
   }
-
-  window.ehmPostAdImagePicker = async function(existingImages, setImages) {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.multiple = true;
-    input.style.display = 'none';
-    document.body.appendChild(input);
-
-    input.onchange = async () => {
-      try {
-        const current = Array.isArray(existingImages) ? existingImages : [];
-        const files = Array.from(input.files || []).slice(0, Math.max(0, 10 - current.length));
-        const processed = [];
-        for (const file of files) {
-          if (!file.type.startsWith('image/')) continue;
-          processed.push(await compressImage(file));
-        }
-        setImages([...current, ...processed].slice(0, 10));
-      } catch (e) {
-        alert(e.message || 'Image upload failed.');
-      } finally {
-        input.remove();
-      }
-    };
-
-    input.click();
-  };
 
   function tick() {
-    rememberSelects();
-    injectDetailsFields();
-    injectReviewSummary();
-    hookNavigationButtons();
+    state.ticking = false;
+
+    rememberCategorySelection();
+
+    if (heading('Ad Details')) {
+      injectDetailsFields();
+      const container = heading('Ad Details')?.parentElement;
+      updatePriceLabel(container);
+      applyConditionVisibility(container);
+    }
+
+    if (heading('Contact & Location')) injectCityField();
+    if (heading('Review Your Ad')) injectReviewSummary();
   }
 
-  document.addEventListener('change', e => {
-    if (e.target && e.target.matches('select')) {
-      rememberSelects();
-      setTimeout(injectDetailsFields, 50);
-    }
-  }, true);
+  function scheduleTick() {
+    if (state.ticking) return;
+    state.ticking = true;
+    requestAnimationFrame(tick);
+  }
 
-  const observer = new MutationObserver(() => tick());
-  observer.observe(document.documentElement, { childList:true, subtree:true });
-  document.addEventListener('DOMContentLoaded', tick);
-  setInterval(tick, 1000);
+  loadState();
+
+  document.addEventListener('click', handleNavigationValidation, true);
+  document.addEventListener('change', handleSelectChange, true);
+  document.addEventListener('DOMContentLoaded', scheduleTick);
+
+  const observer = new MutationObserver(scheduleTick);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  setInterval(scheduleTick, 900);
+  scheduleTick();
 })();
