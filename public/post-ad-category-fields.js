@@ -928,7 +928,12 @@
   }
 
   function cityOptions(district) {
-    const cities = DISTRICT_CITIES[district] || [];
+    const sharedCities = typeof window !== 'undefined'
+      ? window.EHM_LOCATION_DATA?.getCities?.(district)
+      : null;
+    const cities = Array.isArray(sharedCities) && sharedCities.length
+      ? sharedCities
+      : (DISTRICT_CITIES[district] || []);
     return [...cities, 'Other / Not listed'];
   }
 

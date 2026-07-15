@@ -571,8 +571,12 @@
     const populate = () => {
       const selectedDistrict = district.value;
       const previous = city.value;
+      const sharedCities = window.EHM_LOCATION_DATA?.getCities?.(selectedDistrict);
+      const districtCities = Array.isArray(sharedCities) && sharedCities.length
+        ? sharedCities
+        : (map[selectedDistrict] || []);
       const values = selectedDistrict
-        ? [...(map[selectedDistrict] || []), 'Other / Not listed']
+        ? [...districtCities, 'Other / Not listed']
         : [];
       city.disabled = !selectedDistrict;
       city.innerHTML = [

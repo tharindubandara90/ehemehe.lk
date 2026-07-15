@@ -1,0 +1,27 @@
+{
+  "source_project": "ehemehe_deep_performance_fixed_full_project.zip",
+  "root_cause": "The React City dropdown read its cities from window.EHM_POST_AD_FORM, but that object was supplied later by a route-loaded helper. In affected browser/WebView loads the React component rendered without that object, so only the hard-coded Other / Not listed option remained.",
+  "fix": [
+    "The complete 25-district city map is now embedded inside the production React bundle and is available before the Contact step renders.",
+    "District matching is normalized, so Kandy, Kandy District, case differences and extra spaces resolve to the same list.",
+    "The category helper and non-React fallback now reuse the same canonical getter.",
+    "No OTP, authentication, image upload, dashboard, ad-detail or performance logic was replaced."
+  ],
+  "tests": {
+    "javascript_syntax": true,
+    "district_count": 25,
+    "all_districts_have_at_least_5_cities": true,
+    "normalized_kandy_lookup": true,
+    "matale_laggala_lookup": true,
+    "native_react_option_input_test": "CITY_NATIVE_SELECT_REGRESSION_TEST_PASSED 20",
+    "browser_required_options": [
+      "Kandy",
+      "Peradeniya",
+      "Gampola",
+      "Katugastota",
+      "Other / Not listed"
+    ],
+    "node_test": "CITY_DATA_REGRESSION_TEST_PASSED"
+  },
+  "cache_version": "20260715-city-lists-inline-final-tested"
+}

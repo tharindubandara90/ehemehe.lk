@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const path = location.pathname.replace(/\/+$/, '') || '/';
-  const version = '20260715-final-performance-fix';
+  const version = '20260715-city-lists-inline-final-tested';
   const loaded = new Map();
 
   function script(src) {
