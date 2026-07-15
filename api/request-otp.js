@@ -19,7 +19,7 @@ module.exports = async function handler(req, res) {
     const allowed = settings.smsOtpEnabled && (
       (['register','register_phone','register_account'].includes(purpose) && settings.smsRegisterOtp) ||
       (['password_change','password_reset_phone'].includes(purpose) && settings.smsPasswordChangeOtp) ||
-      (purpose === 'post_ad' && settings.smsAdPhoneOtp) ||
+      ((purpose === 'post_ad' || /^post_ad_contact_[a-z0-9_-]{4,40}$/i.test(purpose)) && settings.smsAdPhoneOtp) ||
       purpose === 'admin_test'
     );
     if (!allowed) return json(res, 403, {ok:false,message:'SMS OTP is disabled for this action.'});

@@ -228,16 +228,15 @@
     const cityName = raw.cityName || raw.cities?.name || raw.city || raw.location || '';
     const districtId = raw.district_id || raw.districtId || raw.cities?.district_id || raw.district || raw.location || '';
     const seller = raw.seller && typeof raw.seller === 'object' ? { ...raw.seller } : {};
-    const contactPhone = String(
-      raw.contactPhone ||
-      raw.contact_phone ||
-      raw.phone ||
-      raw.phone_number ||
-      raw.mobile ||
-      seller.phone ||
-      seller.mobile ||
-      ''
+    let customFields = raw.custom_fields || raw.customFields || {};
+    if (typeof customFields === 'string') { try { customFields = JSON.parse(customFields); } catch (_) { customFields = {}; } }
+    const rawPhones = raw.contactPhones || raw.contact_phones || customFields.contact_phones || customFields.verified_contact_phones || [];
+    const phoneArray = Array.isArray(rawPhones) ? rawPhones : (rawPhones ? [rawPhones] : []);
+    const primaryPhone = String(
+      raw.contactPhone || raw.contact_phone || raw.phone || raw.phone_number || raw.mobile || seller.phone || seller.mobile || ''
     ).trim();
+    const contactPhones = Array.from(new Set([primaryPhone, ...phoneArray].map(value=>String(value||'').trim()).filter(Boolean)));
+    const contactPhone = contactPhones[0] || '';
 
     if (contactPhone && !seller.phone) seller.phone = contactPhone;
 
@@ -263,6 +262,8 @@
       viewCount: raw.viewCount ?? raw.view_count ?? 0,
       seller,
       contactPhone,
+      contactPhones,
+      customFields,
       source
     };
   }
@@ -1776,55 +1777,45 @@
     return staticRaw ? normalizeAd(staticRaw, 'static') : null;
   }
 
+  function formatPublicPhone(value) {
+    const digits=String(value||'').replace(/\D/g,'');
+    if(/^94\d{9}$/.test(digits))return `+94 ${digits.slice(2,4)} ${digits.slice(4,7)} ${digits.slice(7)}`;
+    return String(value||'').trim();
+  }
+
   function injectSellerPhoneAboveCall() {
     if (!isAdRoute()) return false;
 
-    const callButton = Array.from(
-      document.querySelectorAll('a[href^="tel:"], a, button')
-    ).find((node) => {
+    const callButton = Array.from(document.querySelectorAll('a[href^="tel:"], a, button')).find((node) => {
+      if(node.closest?.('#ehmSellerPhone'))return false;
       const text = String(node.textContent || '').replace(/\s+/g, ' ').trim();
       return /^call now$/i.test(text) || /^call$/i.test(text) || String(node.getAttribute?.('href') || '').startsWith('tel:');
     });
-
     if (!callButton || !callButton.parentElement) return false;
 
     const ad = currentAdForDetail();
     const hrefPhone = String(callButton.getAttribute?.('href') || '').replace(/^tel:/i, '').trim();
-    const phone = String(
-      ad?.contactPhone ||
-      ad?.contact_phone ||
-      ad?.phone ||
-      ad?.phone_number ||
-      ad?.seller?.phone ||
-      hrefPhone ||
-      ''
-    ).trim();
+    const phones = Array.from(new Set([
+      ...(Array.isArray(ad?.contactPhones) ? ad.contactPhones : []),
+      ad?.contactPhone, ad?.contact_phone, ad?.phone, ad?.phone_number, ad?.seller?.phone, hrefPhone
+    ].map(value=>String(value||'').trim()).filter(Boolean)));
 
     const existing = document.getElementById('ehmSellerPhone');
+    if (!phones.length) { if (existing) existing.remove(); return false; }
 
-    if (!phone) {
-      if (existing) existing.remove();
-      return false;
-    }
+    const content = `<div class="ehm-seller-phone-heading">Contact Number${phones.length===1?'':'s'}</div><div class="ehm-seller-phone-list">${phones.map((phone,index)=>{
+      const dialPhone=phone.replace(/[^\d+]/g,'');
+      return `<a href="tel:${esc(dialPhone)}"><span>${index===0?'Primary':`Contact ${index+1}`}</span><strong>${esc(formatPublicPhone(phone))}</strong></a>`;
+    }).join('')}</div>`;
 
-    const dialPhone = phone.replace(/[^\d+]/g, '');
-    const content = `
-      <span>Contact Number</span>
-      <a href="tel:${esc(dialPhone)}">${esc(phone)}</a>
-    `;
-
+    if (callButton.tagName === 'A') callButton.setAttribute('href', `tel:${phones[0].replace(/[^\d+]/g,'')}`);
     if (existing) {
       existing.innerHTML = content;
-      if (existing.nextElementSibling !== callButton) {
-        callButton.insertAdjacentElement('beforebegin', existing);
-      }
+      if (existing.nextElementSibling !== callButton) callButton.insertAdjacentElement('beforebegin', existing);
       return true;
     }
-
     const row = document.createElement('div');
-    row.id = 'ehmSellerPhone';
-    row.className = 'ehm-seller-phone';
-    row.innerHTML = content;
+    row.id = 'ehmSellerPhone'; row.className = 'ehm-seller-phone'; row.innerHTML = content;
     callButton.insertAdjacentElement('beforebegin', row);
     return true;
   }

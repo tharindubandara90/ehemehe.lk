@@ -1,0 +1,44 @@
+{
+  "source_project": "ehemehe_phone_auth_fixed_full_project.zip",
+  "contact_phone_rules": {
+    "minimum": 1,
+    "maximum": 5,
+    "duplicates_allowed": false,
+    "every_number_requires_sms_otp": true,
+    "publish_blocked_until_all_verified": true,
+    "server_token_validation_before_insert": true
+  },
+  "storage": {
+    "primary_phone": "ads.phone",
+    "all_numbers": "ads.custom_fields.contact_phones",
+    "verification_proof": "ads.custom_fields.contact_phone_verification_proof"
+  },
+  "public_ad": {
+    "all_verified_numbers_visible": true,
+    "each_number_click_to_call": true,
+    "primary_call_button_uses_first_number": true
+  },
+  "cache_version": "20260715-multi-verified-contact-phones",
+  "tests": {
+    "multi_phone_otp_unit_test": "MULTI_PHONE_OTP_TEST_PASSED",
+    "local_api_route": "POST /api/validate-ad-phones returned JSON 400 for empty list",
+    "javascript_syntax": "passed",
+    "static_checks": {
+      "dynamic_phone_list_html": true,
+      "small_verify_button": true,
+      "one_phone_required": true,
+      "maximum_five": true,
+      "duplicate_blocked": true,
+      "each_number_unique_otp_purpose": true,
+      "all_numbers_required_verified": true,
+      "server_validation_before_insert": true,
+      "all_numbers_saved": true,
+      "server_validation_route": true,
+      "otp_api_accepts_multi_purpose": true,
+      "public_all_numbers": true,
+      "session_preserves_verification": true,
+      "single_old_phone_removed": true
+    },
+    "ad_route_shells_synced": 100
+  }
+}

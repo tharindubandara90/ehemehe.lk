@@ -151,6 +151,7 @@ function normalizeAd(ad){
     category_id: String(ad.category_id || ad.categoryId || ad.categories?.id || ad.category || '').toLowerCase(),
     city_id: String(ad.city_id || ad.cityId || ad.cities?.id || ad.city || '').toLowerCase(),
     phone: ad.phone || ad.contact_phone || ad.mobile || '',
+    contact_phones: (()=>{let c=ad.custom_fields||{};if(typeof c==='string'){try{c=JSON.parse(c)}catch(_){c={}}}const p=ad.contact_phones||c.contact_phones||c.verified_contact_phones||[];return Array.from(new Set([ad.phone||ad.contact_phone||ad.mobile||'',...(Array.isArray(p)?p:[p])].filter(Boolean)));})(),
     status: ad.status || 'approved'
   };
 }

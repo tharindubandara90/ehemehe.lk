@@ -2,6 +2,7 @@ let CATEGORIES=[], CITIES=[], currentUser=null;
 let AUTH_MODE='login', REGISTER_METHOD='email', PUBLISH_AFTER_AUTH=false, IS_PUBLISHING=false;
 let AUTH_SETTINGS={emailOtpEnabled:true,emailRegisterOtp:true,emailPasswordResetOtp:true,smsOtpEnabled:true,smsRegisterOtp:true,smsPasswordChangeOtp:true,smsAdPhoneOtp:true};
 const DRAFT_KEY='ehemehe:postAdDraft:v2';
+const PHONE_VERIFY_SESSION_KEY='ehemehe:postAdPhoneVerifications:v1';
 // USER_FINANCE_RATE_INPUT_REMOVED: users only enter vehicle price; rate is admin-controlled.
 let FINANCE_SETTINGS = {downPaymentPercent:40, annualRatePercent:15, months:48, companyPhone:'+94 77 000 0000'};
 const el=(id)=>document.getElementById(id); const msg=(m)=>alert(m);
@@ -17,6 +18,8 @@ const SIMPLE_FIELD_DEFINITIONS={
   general:[['brand','Brand'],['model','Model'],['warranty','Warranty'],['extra_details','Extra Details']]
 };
 let SIMPLE_IMAGES=[];
+const MAX_CONTACT_PHONES=5;
+let CONTACT_PHONE_ROWS=[];
 function simpleFieldGroup(){
   const c=selectedCategory();
   const key=String(c.id||c.slug||c.name||'').toLowerCase();
@@ -53,15 +56,22 @@ function collectSimpleFields(){
 function draftSnapshot(){
   const fields={}; document.querySelectorAll('[data-draft-field]').forEach(n=>fields[n.dataset.draftField]=n.value||'');
   const custom={}; document.querySelectorAll('[data-simple-field]').forEach(n=>custom[n.dataset.simpleField]=n.value||'');
-  return {fields,custom,categoryGroup:simpleFieldGroup(),savedAt:Date.now()};
+  const contactPhones=CONTACT_PHONE_ROWS.map(row=>row.value||'').filter(Boolean);
+  return {fields,custom,contactPhones,categoryGroup:simpleFieldGroup(),savedAt:Date.now()};
 }
-function saveDraft(){ try{localStorage.setItem(DRAFT_KEY,JSON.stringify(draftSnapshot()));}catch(e){} }
+function saveDraft(){ try{localStorage.setItem(DRAFT_KEY,JSON.stringify(draftSnapshot()));sessionStorage.setItem(PHONE_VERIFY_SESSION_KEY,JSON.stringify(CONTACT_PHONE_ROWS.map(row=>({id:row.id,purpose:row.purpose,value:row.value,verified:row.verified,verifiedToken:row.verifiedToken}))));}catch(e){} }
 function restoreDraft(){
   let draft=null; try{draft=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');}catch(e){}
-  if(!draft)return;
+  if(!draft){setContactPhoneRows(['']);return;}
   Object.entries(draft.fields||{}).forEach(([k,v])=>{const n=document.querySelector(`[data-draft-field="${k}"]`);if(n&&v!==undefined)n.value=v;});
   try{renderSimpleDynamicFields();}catch(e){}
   Object.entries(draft.custom||{}).forEach(([k,v])=>{const n=document.querySelector(`[data-simple-field="${k}"]`);if(n)n.value=v;});
+  const legacyPhone=String(draft.fields?.phone||'').trim();
+  const phones=Array.isArray(draft.contactPhones)?draft.contactPhones.filter(Boolean):(legacyPhone?[legacyPhone]:['']);
+  let verificationRows=[];try{verificationRows=JSON.parse(sessionStorage.getItem(PHONE_VERIFY_SESSION_KEY)||'[]');}catch(_){}
+  const verifiedValues=Array.isArray(verificationRows)?verificationRows.map(row=>String(row.value||'')):[];
+  const canRestore=phones.length===verifiedValues.length&&phones.every((phone,index)=>EHM_OTP.normalizePhone(phone)===EHM_OTP.normalizePhone(verifiedValues[index]));
+  setContactPhoneRows(canRestore?verificationRows:(phones.length?phones:['']));
   updateFinanceBox();
 }
 function bindDraftSaving(){
@@ -69,10 +79,10 @@ function bindDraftSaving(){
   document.addEventListener('change',e=>{if(e.target.matches('[data-draft-field],[data-simple-field]'))setTimeout(saveDraft,0);});
   window.addEventListener('beforeunload',saveDraft);
 }
-function clearDraft(){try{localStorage.removeItem(DRAFT_KEY);}catch(e){}}
+function clearDraft(){try{localStorage.removeItem(DRAFT_KEY);sessionStorage.removeItem(PHONE_VERIFY_SESSION_KEY);}catch(e){}}
 
 function localSetting(key){try{return localStorage.getItem(localKey(key));}catch(e){return null;}}
-async function loadAuthSettings(){try{const r=await fetch('/api/auth-settings');const d=await r.json();AUTH_SETTINGS={...AUTH_SETTINGS,...(d.settings||{})};}catch(e){} const otpBox=el('adPhoneOtpStatus')?.closest('.otp-box');if(otpBox)otpBox.classList.toggle('hidden',!(AUTH_SETTINGS.smsOtpEnabled&&AUTH_SETTINGS.smsAdPhoneOtp));}
+async function loadAuthSettings(){try{const r=await fetch('/api/auth-settings');const d=await r.json();AUTH_SETTINGS={...AUTH_SETTINGS,...(d.settings||{})};}catch(e){} AUTH_SETTINGS.smsOtpEnabled=true; AUTH_SETTINGS.smsAdPhoneOtp=true;}
 async function init(){
   const {data}=await supabaseClient.auth.getSession();
   await Promise.all([loadLookups(), loadFinanceSettings(), loadAuthSettings()]);
@@ -129,31 +139,128 @@ function updateSignedInState(){
 async function continueAuthentication(){ await loginUser(); }
 
 
-function setOtpStatus(id, text, type='pending'){
-  const node=el(id); if(!node) return;
-  node.textContent=text;
-  node.className='otp-status '+type;
+function phoneRowId(){
+  try{return crypto.randomUUID().replace(/-/g,'').slice(0,12);}catch(_){return Math.random().toString(36).slice(2,14);}
 }
-function resetAdPhoneOtp(){
-  if(window.EHM_OTP) EHM_OTP.reset('post_ad');
-  setOtpStatus('adPhoneOtpStatus','Verify this phone number before submitting the ad.','pending');
+function makeContactPhoneRow(value=''){
+  const source=value&&typeof value==='object'?value:{value};
+  const id=String(source.id||phoneRowId()).replace(/[^a-z0-9]/gi,'').slice(0,20)||phoneRowId();
+  const purpose=String(source.purpose||`post_ad_contact_${id}`);
+  const verified=!!(source.verified&&source.verifiedToken);
+  return {id,purpose,value:String(source.value||''),otpSent:verified||!!source.otpSent,verified,verifiedToken:String(source.verifiedToken||''),status:verified?'Phone number verified successfully.':'Verify this number before publishing.',statusType:verified?'success':'pending'};
 }
-async function sendAdPhoneOtp(){
+function setContactPhoneRows(values){
+  CONTACT_PHONE_ROWS=(Array.isArray(values)?values:['']).slice(0,MAX_CONTACT_PHONES).map(value=>makeContactPhoneRow(value));
+  if(!CONTACT_PHONE_ROWS.length)CONTACT_PHONE_ROWS=[makeContactPhoneRow('')];
+  CONTACT_PHONE_ROWS.forEach(row=>{if(row.verified&&row.verifiedToken&&window.EHM_OTP?.restore)EHM_OTP.restore(row.value,row.purpose,row.verifiedToken);});
+  renderContactPhoneRows();
+}
+function contactPhoneRow(id){return CONTACT_PHONE_ROWS.find(row=>row.id===id);}
+function escapedAttr(value){return String(value??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function renderContactPhoneRows(){
+  const list=el('contactPhoneList'); if(!list)return;
+  list.innerHTML=CONTACT_PHONE_ROWS.map((row,index)=>`<div class="contact-phone-card ${row.verified?'verified':''} ${row.statusType==='error'?'error':''}" data-contact-phone-row="${row.id}">
+    <div class="contact-phone-main">
+      <div class="contact-phone-index">${index+1}</div>
+      <input class="input phone-number-input" type="tel" inputmode="tel" autocomplete="tel" placeholder="0771234567" value="${escapedAttr(row.value)}" oninput="updateContactPhone('${row.id}',this.value)">
+      <button class="phone-verify-button ${row.verified?'verified':''}" type="button" ${row.verified?'disabled':''} onclick="sendContactPhoneOtp('${row.id}')">${row.verified?'✓ Verified':'Verify'}</button>
+      <button class="phone-remove-button" type="button" aria-label="Remove phone number" ${CONTACT_PHONE_ROWS.length===1?'disabled':''} onclick="removeContactPhone('${row.id}')">×</button>
+    </div>
+    <div class="phone-otp-panel ${row.otpSent&&!row.verified?'':'hidden'}">
+      <input id="contactPhoneOtp_${row.id}" class="input phone-otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Enter 6-digit OTP">
+      <button class="phone-otp-button" type="button" onclick="verifyContactPhoneOtp('${row.id}')">Confirm OTP</button>
+      <button class="phone-resend-button" type="button" onclick="sendContactPhoneOtp('${row.id}',true)">Resend</button>
+    </div>
+    <div class="phone-row-status ${row.statusType}">${escapedAttr(row.status)}</div>
+  </div>`).join('');
+  const add=el('addContactPhoneButton'); if(add)add.disabled=CONTACT_PHONE_ROWS.length>=MAX_CONTACT_PHONES;
+  updateContactPhoneSummary();
+}
+function updateContactPhoneSummary(type=''){
+  const node=el('contactPhoneSummary');if(!node)return;
+  const entered=CONTACT_PHONE_ROWS.filter(row=>String(row.value||'').trim());
+  const verified=entered.filter(row=>row.verified);
+  if(!entered.length){node.textContent='Add at least one contact phone number.';node.className='contact-phone-summary error';return;}
+  if(verified.length===entered.length){node.textContent=`${verified.length} verified contact number${verified.length===1?'':'s'} ready.`;node.className='contact-phone-summary success';return;}
+  node.textContent=`${verified.length} of ${entered.length} contact numbers verified.`;node.className='contact-phone-summary '+(type||'');
+}
+function addContactPhone(){
+  if(CONTACT_PHONE_ROWS.length>=MAX_CONTACT_PHONES)return;
+  CONTACT_PHONE_ROWS.push(makeContactPhoneRow(''));
+  renderContactPhoneRows();saveDraft();
+  setTimeout(()=>document.querySelector(`[data-contact-phone-row="${CONTACT_PHONE_ROWS.at(-1).id}"] input`)?.focus(),0);
+}
+function removeContactPhone(id){
+  if(CONTACT_PHONE_ROWS.length===1)return;
+  const row=contactPhoneRow(id);if(row&&window.EHM_OTP)EHM_OTP.reset(row.purpose);
+  CONTACT_PHONE_ROWS=CONTACT_PHONE_ROWS.filter(row=>row.id!==id);
+  renderContactPhoneRows();saveDraft();
+}
+function updateContactPhone(id,value){
+  const row=contactPhoneRow(id);if(!row)return;
+  const normalizedBefore=window.EHM_OTP?EHM_OTP.normalizePhone(row.value):row.value;
+  const normalizedAfter=window.EHM_OTP?EHM_OTP.normalizePhone(value):value;
+  row.value=value;
+  if(row.verified||row.otpSent||normalizedBefore!==normalizedAfter){
+    if(window.EHM_OTP)EHM_OTP.reset(row.purpose);
+    row.otpSent=false;row.verified=false;row.verifiedToken='';row.status='Verify this number before publishing.';row.statusType='pending';
+    const card=document.querySelector(`[data-contact-phone-row="${id}"]`);card?.classList.remove('verified','error');
+    const button=card?.querySelector('.phone-verify-button');if(button){button.disabled=false;button.classList.remove('verified');button.textContent='Verify';}
+    card?.querySelector('.phone-otp-panel')?.classList.add('hidden');
+    const status=card?.querySelector('.phone-row-status');if(status){status.textContent=row.status;status.className='phone-row-status pending';}
+  }
+  updateContactPhoneSummary();saveDraft();
+}
+function setContactPhoneStatus(row,text,type='pending'){
+  row.status=text;row.statusType=type;
+  const card=document.querySelector(`[data-contact-phone-row="${row.id}"]`);
+  card?.classList.toggle('error',type==='error');
+  const node=card?.querySelector('.phone-row-status');if(node){node.textContent=text;node.className=`phone-row-status ${type}`;}
+  updateContactPhoneSummary(type==='error'?'error':'');
+}
+async function sendContactPhoneOtp(id,isResend=false){
+  const row=contactPhoneRow(id);if(!row||row.verified)return;
   try{
-    const phone=el('phone').value;
-    setOtpStatus('adPhoneOtpStatus','Sending OTP...','pending');
-    await EHM_OTP.request(phone,'post_ad');
-    setOtpStatus('adPhoneOtpStatus','OTP sent. Check your phone.','pending');
-  }catch(e){ setOtpStatus('adPhoneOtpStatus', e.message, 'error'); }
+    const normalized=EHM_OTP.normalizePhone(row.value);
+    if(!EHM_OTP.validPhone(normalized))throw new Error('Enter a valid Sri Lankan mobile number.');
+    const duplicate=CONTACT_PHONE_ROWS.some(other=>other.id!==row.id&&EHM_OTP.normalizePhone(other.value)===normalized);
+    if(duplicate)throw new Error('This number is already added.');
+    setContactPhoneStatus(row,isResend?'Resending OTP...':'Sending OTP...','pending');
+    EHM_OTP.reset(row.purpose);
+    await EHM_OTP.request(normalized,row.purpose);
+    row.value=normalized;row.otpSent=true;row.verified=false;row.verifiedToken='';
+    renderContactPhoneRows();
+    setContactPhoneStatus(row,'OTP sent. Enter the 6-digit code.','pending');
+    setTimeout(()=>el(`contactPhoneOtp_${row.id}`)?.focus(),0);
+  }catch(error){setContactPhoneStatus(row,error.message||'Could not send OTP.','error');}
 }
-async function verifyAdPhoneOtp(){
+async function verifyContactPhoneOtp(id){
+  const row=contactPhoneRow(id);if(!row)return;
   try{
-    const phone=el('phone').value;
-    const otp=el('adPhoneOtp').value;
-    setOtpStatus('adPhoneOtpStatus','Verifying OTP...','pending');
-    await EHM_OTP.verify(phone,'post_ad',otp);
-    setOtpStatus('adPhoneOtpStatus','Phone verified successfully.','');
-  }catch(e){ setOtpStatus('adPhoneOtpStatus', e.message, 'error'); }
+    const otp=String(el(`contactPhoneOtp_${row.id}`)?.value||'').trim();
+    if(!/^\d{6}$/.test(otp))throw new Error('Enter the 6-digit OTP code.');
+    setContactPhoneStatus(row,'Verifying OTP...','pending');
+    const result=await EHM_OTP.verify(row.value,row.purpose,otp);
+    row.value=EHM_OTP.normalizePhone(row.value);row.verified=true;row.verifiedToken=result.verifiedToken||EHM_OTP.getVerifiedToken(row.purpose);row.otpSent=true;
+    row.status='Phone number verified successfully.';row.statusType='success';
+    renderContactPhoneRows();saveDraft();
+  }catch(error){setContactPhoneStatus(row,error.message||'OTP verification failed.','error');}
+}
+function collectVerifiedContactPhones(){
+  const entered=CONTACT_PHONE_ROWS.filter(row=>String(row.value||'').trim());
+  if(!entered.length)throw new Error('Add at least one contact phone number.');
+  const normalized=entered.map(row=>({...row,phone:EHM_OTP.normalizePhone(row.value)}));
+  const invalid=normalized.find(row=>!EHM_OTP.validPhone(row.phone));if(invalid)throw new Error('Enter a valid phone number in every contact row.');
+  if(new Set(normalized.map(row=>row.phone)).size!==normalized.length)throw new Error('Remove duplicate contact phone numbers.');
+  const unverified=normalized.find(row=>!row.verified||!row.verifiedToken||!EHM_OTP.isVerified(row.phone,row.purpose));
+  if(unverified){setContactPhoneStatus(unverified,'Verify this number before publishing.','error');document.querySelector(`[data-contact-phone-row="${unverified.id}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});throw new Error('Verify every contact phone number before publishing.');}
+  return normalized.map(row=>({phone:row.phone,purpose:row.purpose,verifiedToken:row.verifiedToken}));
+}
+async function validateContactPhonesForAd(phones){
+  const response=await fetch('/api/validate-ad-phones',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({phones})});
+  const text=await response.text();let result={};try{result=text?JSON.parse(text):{};}catch(_){result={ok:false,message:`Server returned an invalid response (HTTP ${response.status}).`};}
+  if(!response.ok||result.ok===false)throw new Error(result.message||'Phone verification validation failed.');
+  return result;
 }
 
 async function loginUser(){
@@ -170,7 +277,7 @@ async function loginUser(){
     if(sessionResult.error) throw sessionResult.error;
     currentUser=sessionResult.data.user;
     const shouldPublish=PUBLISH_AFTER_AUTH;
-    closeAuthModal();restoreDraft();updateSignedInState();
+    closeAuthModal();updateSignedInState();
     if(shouldPublish)await submitAd();
   }catch(error){setAuthMessage(error.message||'Login failed.');}
 }
@@ -210,27 +317,32 @@ async function submitAd(){
   IS_PUBLISHING=true; const publishButton=el('publishAdButton'); if(publishButton){publishButton.disabled=true;publishButton.textContent='Publishing...';}
 
 
-  const verifiedPhone=EHM_OTP.normalizePhone(el('phone').value);
-  if(AUTH_SETTINGS.smsOtpEnabled&&AUTH_SETTINGS.smsAdPhoneOtp&&!EHM_OTP.isVerified(verifiedPhone,'post_ad')){
-    setOtpStatus('adPhoneOtpStatus','Verify this phone number before submitting the ad.','error');
+  let verifiedContacts=[];let phoneValidation=null;
+  try{
+    verifiedContacts=collectVerifiedContactPhones();
+    phoneValidation=await validateContactPhonesForAd(verifiedContacts);
+  }catch(error){
     IS_PUBLISHING=false;if(publishButton){publishButton.disabled=false;publishButton.textContent='Publish Ad';}
-    return;
+    msg(error.message||'Verify every contact phone number.');return;
   }
+  const verifiedPhone=verifiedContacts[0].phone;
+  const verifiedPhoneNumbers=verifiedContacts.map(item=>item.phone);
   const finance=isVehicleCategory()?calcFinance(el('price').value):null;
   const baseDescription=el('description').value.trim();
   const financeText=finance?`\n\nFinance Estimate:\nDown Payment: ${money(finance.downPayment)}\nMonthly Payment: ${money(finance.monthlyPayment)}\nFinance Company: ${FINANCE_SETTINGS.companyPhone}`:'';
-  const payload={user_id:currentUser.id,title:el('title').value.trim(),price:el('price').value||null,category_id:el('category').value||null,city_id:el('city').value||null,phone:verifiedPhone,phone_verified:!(AUTH_SETTINGS.smsOtpEnabled&&AUTH_SETTINGS.smsAdPhoneOtp)||EHM_OTP.isVerified(verifiedPhone,'post_ad'),phone_verified_at:new Date().toISOString(),image_url:SIMPLE_IMAGES[0]||'',images:SIMPLE_IMAGES,custom_fields:collectSimpleFields(),description:(baseDescription+financeText).trim(),status:'pending'};
+  const customFields={...collectSimpleFields(),contact_phones:verifiedPhoneNumbers,verified_contact_phones:verifiedPhoneNumbers,contact_phone_verification_proof:phoneValidation.proof||''};
+  const payload={user_id:currentUser.id,title:el('title').value.trim(),price:el('price').value||null,category_id:el('category').value||null,city_id:el('city').value||null,phone:verifiedPhone,phone_verified:true,phone_verified_at:new Date().toISOString(),image_url:SIMPLE_IMAGES[0]||'',images:SIMPLE_IMAGES,custom_fields:customFields,description:(baseDescription+financeText).trim(),status:'pending'};
   if(finance){ Object.assign(payload,{finance_enabled:true,finance_downpayment:finance.downPayment,finance_monthly_payment:finance.monthlyPayment,finance_downpayment_percent:finance.downPaymentPercent,finance_annual_rate_percent:finance.annualRatePercent,finance_months:finance.months,finance_company_phone:FINANCE_SETTINGS.companyPhone}); }
   if(!payload.title){msg('Title required');return;}
   let {error}=await supabaseClient.from('ads').insert(payload);
   if(error && String(error.message||'').includes('finance_')){
     const fallback={...payload};
-    ['finance_enabled','finance_downpayment','finance_monthly_payment','finance_downpayment_percent','finance_annual_rate_percent','finance_months','finance_company_phone','phone_verified','phone_verified_at','images','custom_fields'].forEach(k=>delete fallback[k]);
+    ['finance_enabled','finance_downpayment','finance_monthly_payment','finance_downpayment_percent','finance_annual_rate_percent','finance_months','finance_company_phone','phone_verified','phone_verified_at'].forEach(k=>delete fallback[k]);
     const retry=await supabaseClient.from('ads').insert(fallback); error=retry.error;
   }
   if(error){IS_PUBLISHING=false;if(publishButton){publishButton.disabled=false;publishButton.textContent='Publish Ad';}msg(error.message);return;}
   clearDraft();
-  msg('Ad submitted for admin approval'); ['title','price','phone','description'].forEach(id=>el(id).value=''); SIMPLE_IMAGES=[]; if(el('simpleImagePreview'))el('simpleImagePreview').innerHTML=''; document.querySelectorAll('[data-simple-field]').forEach(n=>n.value=''); IS_PUBLISHING=false;if(publishButton){publishButton.disabled=false;publishButton.textContent='Publish Ad';} updateFinanceBox();
+  msg('Ad submitted for admin approval'); ['title','price','description'].forEach(id=>el(id).value=''); setContactPhoneRows(['']); SIMPLE_IMAGES=[]; if(el('simpleImagePreview'))el('simpleImagePreview').innerHTML=''; document.querySelectorAll('[data-simple-field]').forEach(n=>n.value=''); IS_PUBLISHING=false;if(publishButton){publishButton.disabled=false;publishButton.textContent='Publish Ad';} updateFinanceBox();
 }
 function patchSiteNavigation(){
   document.querySelectorAll('a[href="/post"],a[href="/post/"]').forEach(a=>a.setAttribute('href','/post-ad'));

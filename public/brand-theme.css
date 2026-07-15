@@ -1086,3 +1086,7 @@ html.ehm-physical-mobile body.ehm-route-dashboard .ehm-dash-quick-actions>*{
   text-underline-offset:3px!important;
   overflow-wrap:anywhere!important;
 }
+
+
+/* Multiple verified seller contact numbers */
+.ehm-seller-phone{display:block!important;padding:12px 14px!important}.ehm-seller-phone-heading{color:#64748b;font-size:12px;font-weight:800;margin-bottom:8px}.ehm-seller-phone-list{display:grid;gap:7px}.ehm-seller-phone-list a{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:9px 10px!important;border-radius:10px!important;background:#fff!important;text-decoration:none!important}.ehm-seller-phone-list a span{font-size:11px!important;color:#64748b!important;font-weight:750!important}.ehm-seller-phone-list a strong{font-size:15px!important;color:#16845f!important;text-decoration:underline!important;text-underline-offset:3px!important}@media(max-width:420px){.ehm-seller-phone-list a{align-items:flex-start!important;flex-direction:column!important;gap:3px!important}.ehm-seller-phone-list a strong{font-size:16px!important}}

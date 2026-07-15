@@ -15,6 +15,7 @@ const registerVerifiedUser = require('./api/register-verified-user');
 const requestRegistrationOtp = require('./api/request-registration-otp');
 const verifyRegistrationOtp = require('./api/verify-registration-otp');
 const loginUser = require('./api/login-user');
+const validateAdPhones = require('./api/validate-ad-phones');
 
 function loadEnvFile(file) {
   const p = path.join(__dirname, file);
@@ -60,7 +61,8 @@ async function handler(req, res) {
     '/api/register-verified-user': registerVerifiedUser,
     '/api/request-registration-otp': requestRegistrationOtp,
     '/api/verify-registration-otp': verifyRegistrationOtp,
-    '/api/login-user': loginUser
+    '/api/login-user': loginUser,
+    '/api/validate-ad-phones': validateAdPhones
   };
 
   const apiHandler = apiRoutes[url.pathname];
