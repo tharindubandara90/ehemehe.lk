@@ -1,0 +1,64 @@
+{
+  "source_project": "ehemehe_category_location_full_fix.zip",
+  "root_causes": {
+    "photo_browser": "The previous category helper overwrote the script that defined window.ehmPostAdImagePicker, so the React Add Photo button called a missing function.",
+    "city": "The category/location helper only activated on /post-ad, but the React route is /post.",
+    "ad_phone_otp": "The previous multiple-phone OTP implementation was connected only to the fallback post-ad.html page, not the live React /post page.",
+    "fake_publish": "The React Post Ad handler only changed local component state to a success screen and never inserted an ad.",
+    "dashboard": "The React dashboard displays Ht.slice(0,3), a hard-coded sample list, instead of the signed-in user's ads.",
+    "password_reset": "otp-client.js declared a global lexical const but did not assign it to window.EHM_OTP, while the reset page called window.EHM_OTP.request."
+  },
+  "fixes": {
+    "photo_browser_and_optimization": true,
+    "district_city_cascade_on_react_route": true,
+    "one_to_five_sms_verified_numbers": true,
+    "contact_step_blocked_until_verified": true,
+    "server_authenticated_publish": true,
+    "pending_ad_saved_to_supabase": true,
+    "real_my_ads_endpoint_and_dashboard": true,
+    "password_reset_otp_client_global": true
+  },
+  "tests": {
+    "javascript_syntax": {
+      "public/post-ad-category-fields.js": true,
+      "public/otp-client.js": true,
+      "public/auth-unified.js": true,
+      "public/post-ad-runtime.js": true,
+      "api/publish-ad.js": true,
+      "api/my-ads.js": true,
+      "api/_otp-utils.js": true,
+      "server.js": true
+    },
+    "local_api_routes": {
+      "/api/publish-ad": {
+        "status": 401,
+        "content_type": "application/json",
+        "message": "Log in before publishing an ad."
+      },
+      "/api/my-ads": {
+        "status": 401,
+        "content_type": "application/json",
+        "message": "Log in to view your ads."
+      }
+    },
+    "static_checks": {
+      "react_post_route_enabled": true,
+      "image_picker_global_defined": true,
+      "image_input_clicks_real_file_browser": true,
+      "otp_client_attached_to_window": true,
+      "city_select_injected": true,
+      "multiple_phone_rows": true,
+      "every_phone_requires_otp": true,
+      "contact_continue_intercepted": true,
+      "publish_intercepted": true,
+      "server_publish_endpoint": true,
+      "server_my_ads_endpoint": true,
+      "dashboard_uses_real_ads": true,
+      "password_reset_otp_error_fixed": true,
+      "static_ad_shells_synced": true
+    }
+  },
+  "database_helper": "supabase_post_ad_end_to_end.sql",
+  "cache_version": "20260715-post-ad-end-to-end-fix",
+  "ad_shells_synced": 100
+}

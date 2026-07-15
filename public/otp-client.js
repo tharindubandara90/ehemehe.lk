@@ -70,3 +70,5 @@ const EHM_OTP = (() => {
 
   return { normalizePhone, validPhone, request, verify, isVerified, getVerifiedToken, restore, reset };
 })();
+
+if (typeof window !== 'undefined') window.EHM_OTP = EHM_OTP;

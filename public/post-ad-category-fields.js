@@ -684,7 +684,7 @@
   window.EHM_POST_AD_FORM = PUBLIC_API;
 
   const normalizedPath = location.pathname.replace(/\/+$/, '') || '/';
-  if (normalizedPath !== '/post-ad') return;
+  if (!['/post', '/post-ad'].includes(normalizedPath)) return;
 
   const state = {
     category: '',

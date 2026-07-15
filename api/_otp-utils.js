@@ -414,5 +414,6 @@ module.exports = {
   normalizeEmail, isValidEmail, sendRegistrationEmailOtp, findAuthUserByEmail,
   internalAuthEmail, isInternalAuthEmail, userContactEmail, supabasePublicKey,
   listAuthUsers, findAuthUserByIdentifier, ensureAuthEmail,
-  signInAuthUserWithPassword, publicUserProfile
+  signInAuthUserWithPassword, publicUserProfile,
+  supabaseAdminConfig
 };
