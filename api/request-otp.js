@@ -1,6 +1,6 @@
 const {
   json, readBody, normalizePhone, isSriLankaMobile, generateOtp, expiryMinutes,
-  makeToken, otpHash, sendTextLkSms, otpMessage, logOtpEvent, readSiteSettings
+  makeToken, otpHash, sendTextLkSms, otpMessage, logOtpEvent, readSiteSettings, findAuthUserByPhone
 } = require('./_otp-utils');
 
 module.exports = async function handler(req, res) {
@@ -23,6 +23,16 @@ module.exports = async function handler(req, res) {
       purpose === 'admin_test'
     );
     if (!allowed) return json(res, 403, {ok:false,message:'SMS OTP is disabled for this action.'});
+
+    if (purpose === 'password_reset_phone') {
+      const user = await findAuthUserByPhone(phone);
+      if (!user) {
+        return json(res, 404, {
+          ok: false,
+          message: 'No account was found for this phone number.'
+        });
+      }
+    }
 
     const code = generateOtp();
     const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);

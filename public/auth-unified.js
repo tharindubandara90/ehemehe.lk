@@ -62,6 +62,10 @@
   let otpSent = false;
   let busy = false;
 
+  let resetStep = 'phone';
+  let resetPhone = '';
+  let resetVerifiedToken = '';
+
   const normalizePhone = (value) => {
     if (window.EHM_OTP) return EHM_OTP.normalizePhone(value);
     let raw = String(value || '').replace(/[^\d+]/g, '');
@@ -104,19 +108,30 @@
 
   function setBusy(value) {
     busy = value;
-    ['ehmMainButton', 'ehmSendOtp'].forEach((id) => {
+
+    [
+      'ehmMainButton',
+      'ehmSendOtp',
+      'ehmResetSendOtp',
+      'ehmResetVerifyOtp',
+      'ehmResetResendOtp',
+      'ehmResetUpdatePassword'
+    ].forEach((id) => {
       const button = $(id);
       if (button) button.disabled = value;
     });
+
     const main = $('ehmMainButton');
     if (main) {
-      main.textContent = value
-        ? 'Please wait...'
-        : mode === 'login'
-          ? 'Log in'
-          : otpSent
-            ? 'Verify OTP & Create Account'
-            : 'Send Verification OTP';
+      if (value) {
+        main.textContent = 'Please wait...';
+      } else if (mode === 'login') {
+        main.textContent = 'Log in';
+      } else if (mode === 'register') {
+        main.textContent = otpSent
+          ? 'Verify OTP & Create Account'
+          : 'Send Verification OTP';
+      }
     }
   }
 
@@ -129,17 +144,30 @@
     if (otp) otp.value = '';
   }
 
+  function resetPasswordState() {
+    resetStep = 'phone';
+    resetPhone = '';
+    resetVerifiedToken = '';
+    try { window.EHM_OTP?.reset?.('password_reset_phone'); } catch (_) {}
+
+    ['ehmResetPhone', 'ehmResetOtp', 'ehmResetPassword', 'ehmResetPasswordConfirm']
+      .forEach((id) => {
+        const input = $(id);
+        if (input) input.value = '';
+      });
+  }
+
   function shell() {
     return `
       <main class="ehm-auth-page">
         <section class="ehm-auth-card">
           <div class="ehm-auth-heading">
             <span class="ehm-auth-eyebrow">EheMehe.lk Account</span>
-            <h1>${location.pathname.startsWith('/signup') ? 'Create your account' : 'Welcome back'}</h1>
-            <p class="ehm-auth-muted">Create and secure your account using SMS verification.</p>
+            <h1 id="ehmAuthTitle">Welcome back</h1>
+            <p id="ehmAuthSubtitle" class="ehm-auth-muted">Secure access to your account.</p>
           </div>
 
-          <div class="ehm-auth-tabs">
+          <div id="ehmAuthTabs" class="ehm-auth-tabs">
             <button type="button" data-auth-mode="login">Log in</button>
             <button type="button" data-auth-mode="register">Create account</button>
           </div>
@@ -200,6 +228,65 @@
             </div>
           </section>
 
+          <section id="ehmResetFields" class="ehm-hidden">
+            <div class="ehm-reset-progress" aria-label="Password reset progress">
+              <div data-reset-progress="phone"><span>1</span><small>Phone</small></div>
+              <i></i>
+              <div data-reset-progress="otp"><span>2</span><small>Verify OTP</small></div>
+              <i></i>
+              <div data-reset-progress="password"><span>3</span><small>New password</small></div>
+            </div>
+
+            <div id="ehmResetPhoneStep" class="ehm-reset-step">
+              <div class="ehm-reset-info">
+                <strong>Verify your registered mobile number</strong>
+                <span>We will send a 6-digit SMS code before allowing a password change.</span>
+              </div>
+              <div class="ehm-auth-field">
+                <label>Registered mobile number</label>
+                <input id="ehmResetPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="0771234567">
+              </div>
+              <button id="ehmResetSendOtp" class="ehm-auth-btn" type="button">Send SMS OTP</button>
+            </div>
+
+            <div id="ehmResetOtpStep" class="ehm-reset-step ehm-hidden">
+              <div class="ehm-reset-info">
+                <strong>Enter the SMS OTP</strong>
+                <span id="ehmResetDestination">A 6-digit code was sent to your phone.</span>
+              </div>
+              <div class="ehm-auth-field">
+                <label>Verification OTP</label>
+                <input id="ehmResetOtp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Enter 6-digit code">
+              </div>
+              <button id="ehmResetVerifyOtp" class="ehm-auth-btn" type="button">Verify OTP</button>
+              <div class="ehm-reset-actions">
+                <button id="ehmResetResendOtp" class="ehm-auth-link" type="button">Resend OTP</button>
+                <button id="ehmResetChangePhone" class="ehm-auth-link" type="button">Change number</button>
+              </div>
+            </div>
+
+            <div id="ehmResetPasswordStep" class="ehm-reset-step ehm-hidden">
+              <div class="ehm-reset-verified">
+                <span>✓</span>
+                <div>
+                  <strong>Phone number verified</strong>
+                  <small>You can now set a new password.</small>
+                </div>
+              </div>
+              <div class="ehm-auth-field">
+                <label>New password</label>
+                <input id="ehmResetPassword" type="password" autocomplete="new-password" placeholder="Minimum 6 characters">
+              </div>
+              <div class="ehm-auth-field">
+                <label>Confirm new password</label>
+                <input id="ehmResetPasswordConfirm" type="password" autocomplete="new-password" placeholder="Enter the password again">
+              </div>
+              <button id="ehmResetUpdatePassword" class="ehm-auth-btn" type="button">Update Password</button>
+            </div>
+
+            <button id="ehmResetBack" class="ehm-auth-link ehm-reset-back" type="button">← Back to login</button>
+          </section>
+
           <button id="ehmMainButton" class="ehm-auth-btn" type="button">Continue</button>
           <button id="ehmForgot" class="ehm-auth-link" type="button">Forgot password?</button>
           <div id="ehmAuthMessage" class="ehm-auth-message" aria-live="polite"></div>
@@ -216,10 +303,29 @@
       button.classList.toggle('active', button.dataset.loginMethod === loginMethod);
     });
 
+    const isReset = mode === 'reset';
+    $('ehmAuthTabs')?.classList.toggle('ehm-hidden', isReset);
     $('ehmLoginFields')?.classList.toggle('ehm-hidden', mode !== 'login');
     $('ehmRegisterFields')?.classList.toggle('ehm-hidden', mode !== 'register');
+    $('ehmResetFields')?.classList.toggle('ehm-hidden', !isReset);
     $('ehmForgot')?.classList.toggle('ehm-hidden', mode !== 'login');
+    $('ehmMainButton')?.classList.toggle('ehm-hidden', isReset);
     $('ehmOtpWrap')?.classList.toggle('ehm-hidden', mode !== 'register' || !otpSent);
+
+    const title = $('ehmAuthTitle');
+    const subtitle = $('ehmAuthSubtitle');
+    if (title && subtitle) {
+      if (mode === 'register') {
+        title.textContent = 'Create your account';
+        subtitle.textContent = 'Create and secure your account using SMS verification.';
+      } else if (mode === 'reset') {
+        title.textContent = 'Reset your password';
+        subtitle.textContent = 'SMS verification is required before a new password can be set.';
+      } else {
+        title.textContent = 'Welcome back';
+        subtitle.textContent = 'Log in using your email address or phone number.';
+      }
+    }
 
     const loginIdentifier = $('ehmLoginIdentifier');
     if (loginIdentifier) {
@@ -227,15 +333,35 @@
       loginIdentifier.placeholder = loginMethod === 'email' ? 'name@example.com' : '0771234567';
     }
     if ($('ehmLoginIdentifierLabel')) {
-      $('ehmLoginIdentifierLabel').textContent = loginMethod === 'email' ? 'Email address' : 'Mobile number';
+      $('ehmLoginIdentifierLabel').textContent = loginMethod === 'email'
+        ? 'Email address'
+        : 'Mobile number';
     }
 
-    $('ehmMainButton').textContent =
-      mode === 'login'
-        ? 'Log in'
-        : otpSent
-          ? 'Verify OTP & Create Account'
-          : 'Send Verification OTP';
+    const main = $('ehmMainButton');
+    if (main && !busy) {
+      main.textContent =
+        mode === 'login'
+          ? 'Log in'
+          : otpSent
+            ? 'Verify OTP & Create Account'
+            : 'Send Verification OTP';
+    }
+
+    if (isReset) {
+      $('ehmResetPhoneStep')?.classList.toggle('ehm-hidden', resetStep !== 'phone');
+      $('ehmResetOtpStep')?.classList.toggle('ehm-hidden', resetStep !== 'otp');
+      $('ehmResetPasswordStep')?.classList.toggle('ehm-hidden', resetStep !== 'password');
+
+      const order = { phone: 0, otp: 1, password: 2 };
+      document.querySelectorAll('[data-reset-progress]').forEach((node) => {
+        const nodeStep = node.dataset.resetProgress;
+        const active = order[nodeStep] === order[resetStep];
+        const complete = order[nodeStep] < order[resetStep];
+        node.classList.toggle('active', active);
+        node.classList.toggle('complete', complete);
+      });
+    }
 
     message('');
   }
@@ -387,55 +513,153 @@
     }
   }
 
-  async function forgotPassword() {
-    const s = await getSettings();
-    const entered = String($('ehmLoginIdentifier')?.value || '').trim();
+  function openPasswordReset() {
+    const loginValue = String($('ehmLoginIdentifier')?.value || '').trim();
 
-    if (loginMethod !== 'phone') {
-      loginMethod = 'phone';
-      render();
-      return message('Password reset uses SMS OTP. Enter your mobile number.');
+    resetPasswordState();
+    mode = 'reset';
+
+    if (loginMethod === 'phone' && validPhone(loginValue)) {
+      resetPhone = normalizePhone(loginValue);
     }
 
-    if (!validPhone(entered)) {
+    render();
+
+    const phoneInput = $('ehmResetPhone');
+    if (phoneInput) {
+      phoneInput.value = resetPhone ? `0${resetPhone.slice(2)}` : '';
+      setTimeout(() => phoneInput.focus(), 0);
+    }
+  }
+
+  function returnToLogin(successText = '') {
+    const verifiedPhone = resetPhone;
+    resetPasswordState();
+    mode = 'login';
+    loginMethod = 'phone';
+    render();
+
+    const loginInput = $('ehmLoginIdentifier');
+    if (loginInput && verifiedPhone) {
+      loginInput.value = `0${verifiedPhone.slice(2)}`;
+    }
+    const passwordInput = $('ehmLoginPassword');
+    if (passwordInput) passwordInput.value = '';
+
+    if (successText) message(successText, true);
+  }
+
+  async function sendPasswordResetOtp() {
+    const s = await getSettings();
+    const entered = String($('ehmResetPhone')?.value || '').trim();
+    const phone = normalizePhone(entered);
+
+    if (!validPhone(phone)) {
       return message('Enter a valid Sri Lankan mobile number.');
     }
     if (!(s.smsOtpEnabled && s.smsPasswordChangeOtp)) {
-      return message('SMS password reset is currently disabled.');
+      return message('SMS password reset is currently unavailable.');
     }
 
-    const newPassword = prompt('Enter your new password (minimum 6 characters):');
-    if (!newPassword || newPassword.length < 6) {
-      return message('Password change cancelled or password is too short.');
-    }
-
+    setBusy(true);
     try {
-      const sent = await window.EHM_OTP.request(entered, 'password_reset_phone');
-      const otp = prompt('Enter the SMS OTP sent to your phone:');
-      if (!otp) return message('Password reset cancelled.');
+      window.EHM_OTP?.reset?.('password_reset_phone');
+      const sent = await window.EHM_OTP.request(phone, 'password_reset_phone');
 
+      resetPhone = phone;
+      resetVerifiedToken = '';
+      resetStep = 'otp';
+      render();
+
+      const destination = $('ehmResetDestination');
+      if (destination) {
+        destination.textContent = `A 6-digit code was sent to 0${phone.slice(2, 5)}***${phone.slice(-3)}.`;
+      }
+
+      message(sent.message || 'SMS OTP sent successfully.', true);
+      setTimeout(() => $('ehmResetOtp')?.focus(), 0);
+    } catch (error) {
+      message(error.message || 'Could not send the SMS OTP.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyPasswordResetOtp() {
+    const otp = String($('ehmResetOtp')?.value || '').trim();
+
+    if (!resetPhone || !validPhone(resetPhone)) {
+      resetStep = 'phone';
+      render();
+      return message('Enter your mobile number and request a new OTP.');
+    }
+    if (!/^\d{6}$/.test(otp)) {
+      return message('Enter the 6-digit OTP code.');
+    }
+
+    setBusy(true);
+    try {
       const verified = await window.EHM_OTP.verify(
-        entered,
+        resetPhone,
         'password_reset_phone',
-        otp,
-        sent.verificationId
+        otp
       );
 
+      if (!verified.verifiedToken) {
+        throw new Error('The server did not return a valid verification token.');
+      }
+
+      resetVerifiedToken = verified.verifiedToken;
+      resetStep = 'password';
+      render();
+      message('Phone number verified. Enter your new password.', true);
+      setTimeout(() => $('ehmResetPassword')?.focus(), 0);
+    } catch (error) {
+      message(error.message || 'OTP verification failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateResetPassword() {
+    const password = String($('ehmResetPassword')?.value || '');
+    const confirmation = String($('ehmResetPasswordConfirm')?.value || '');
+
+    if (!resetVerifiedToken || resetStep !== 'password') {
+      return message('Verify the SMS OTP before setting a new password.');
+    }
+    if (password.length < 6) {
+      return message('New password must contain at least 6 characters.');
+    }
+    if (password !== confirmation) {
+      return message('The two passwords do not match.');
+    }
+
+    setBusy(true);
+    try {
       const response = await fetch('/api/reset-phone-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
-          phone: normalizePhone(entered),
-          password: newPassword,
-          verifiedToken: verified.verifiedToken
+          phone: resetPhone,
+          password,
+          verifiedToken: resetVerifiedToken
         })
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Could not change the password.');
 
-      message('Password changed successfully. You can now log in with your phone number.', true);
+      const result = await readApiResponse(response);
+      if (!response.ok || result.ok === false) {
+        throw new Error(result.message || `Could not change the password (HTTP ${response.status}).`);
+      }
+
+      returnToLogin('Password updated successfully. Log in using your new password.');
     } catch (error) {
-      message(error.message || 'Password reset failed.');
+      message(error.message || 'Could not update the password.');
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -473,7 +697,19 @@
       if (mode === 'login') return login();
       return otpSent ? verifyAndCreateAccount() : sendRegistrationOtp();
     };
-    $('ehmForgot').onclick = forgotPassword;
+
+    $('ehmForgot').onclick = openPasswordReset;
+    $('ehmResetSendOtp').onclick = sendPasswordResetOtp;
+    $('ehmResetVerifyOtp').onclick = verifyPasswordResetOtp;
+    $('ehmResetResendOtp').onclick = sendPasswordResetOtp;
+    $('ehmResetUpdatePassword').onclick = updateResetPassword;
+    $('ehmResetChangePhone').onclick = () => {
+      resetPasswordState();
+      mode = 'reset';
+      render();
+      setTimeout(() => $('ehmResetPhone')?.focus(), 0);
+    };
+    $('ehmResetBack').onclick = () => returnToLogin();
 
     render();
   }

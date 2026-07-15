@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
       purpose,
       verified: true,
       verifiedAt: Date.now(),
-      expiresAt: Date.now() + 24 * 60 * 60 * 1000
+      expiresAt: Date.now() + (purpose === 'password_reset_phone' ? 15 * 60 * 1000 : 24 * 60 * 60 * 1000)
     });
 
     await logOtpEvent({ phone, purpose, status:'verified', provider:'textlk', verified_at:new Date().toISOString() });
