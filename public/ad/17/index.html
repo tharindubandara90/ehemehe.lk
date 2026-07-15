@@ -1,102 +1,40 @@
-<!DOCTYPE html><html lang="en"><head><base href="/">
-    <meta charset="UTF-8">
-    <link rel="icon" type="image/png" href="/assets/ehemehe_favicon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script id="ehm-mobile-viewport-fix">
-(function () {
-  var nav = navigator || {};
-  var ua = nav.userAgent || '';
-  var touch = ('ontouchstart' in window) || (nav.maxTouchPoints || 0) > 0;
-  var mobileUA = /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
-  var phoneLike = mobileUA || (touch && Math.min(screen.width || 9999, screen.height || 9999) <= 1024);
-
-  if (!phoneLike) return;
-
-  document.documentElement.classList.add('ehm-physical-mobile');
-
-  var viewport = document.querySelector('meta[name="viewport"]');
-  if (!viewport) {
-    viewport = document.createElement('meta');
-    viewport.name = 'viewport';
-    document.head.appendChild(viewport);
-  }
-  viewport.setAttribute(
-    'content',
-    'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover'
-  );
-
-  function correctDesktopViewportScale() {
-    var physicalWidth = Math.min(screen.width || innerWidth, screen.height || innerHeight);
-    var layoutWidth = document.documentElement.clientWidth || innerWidth;
-
-    // Some iPhone browsers may still expose a ~980px desktop layout viewport.
-    // Compensate only in that case.
-    if (touch && physicalWidth > 0 && layoutWidth / physicalWidth > 1.35) {
-      var ratio = layoutWidth / physicalWidth;
-      document.documentElement.style.setProperty('--ehm-mobile-zoom', String(ratio));
-      document.documentElement.classList.add('ehm-desktop-viewport-on-phone');
-    } else {
-      document.documentElement.classList.remove('ehm-desktop-viewport-on-phone');
-      document.documentElement.style.removeProperty('--ehm-mobile-zoom');
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', correctDesktopViewportScale, { once: true });
-  window.addEventListener('load', correctDesktopViewportScale, { once: true });
-  window.addEventListener('orientationchange', function () {
-    setTimeout(correctDesktopViewportScale, 150);
-  });
-})();
-</script>
-
-    <meta name="description" content="ehemehe.lk - Sri Lanka's #1 Modern Marketplace. Buy, sell, and discover amazing deals.">
-    <meta name="theme-color" content="#3DC697">
-    <title>ehemehe.lk - Sri Lanka's Marketplace</title>
-    <script id="ehm-auth-route-isolation">
-(function () {
-  var path = location.pathname.replace(/\/+$/, '') || '/';
-  window.__EHM_AUTH_ONLY_ROUTE = path === '/login' || path === '/signup';
-})();
-</script>
-<script type="module">
-if (!window.__EHM_AUTH_ONLY_ROUTE) {
-  import('/js/index-BsKly-Vj.js?v=20260715-native-city-phone-verification');
-}
-</script>
-    <link rel="stylesheet" crossorigin="" href="css/index-DcB2eYwd.css">
-  
-  <style id="mobile-footer-hide">
-    @media (max-width: 767px) {
-      footer {
-        display: none !important;
-      }
-      body {
-        padding-bottom: 76px !important;
-      }
-    }
-  </style>
-  <link rel="stylesheet" href="/post-ad-runtime.css?v=20260715-native-city-phone-verification">
-  <link rel="stylesheet" href="/post-ad-form-fixes.css?v=20260715-native-city-phone-verification">
-  <link rel="stylesheet" href="/brand-theme.css?v=20260715-multi-verified-contact-phones">
-<link rel="stylesheet" href="/auth-unified.css?v=20260715-secure-password-reset-ui">
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#3dc697">
+  <link rel="icon" type="image/png" href="/assets/ehemehe_favicon.png">
+  <link rel="preload" href="/assets/ehemehe_logo_header.png" as="image">
+  <link rel="stylesheet" href="/ad-detail.css?v=20260715-final-performance-fix">
+  <title>Ad | ehemehe.lk</title>
 </head>
-  <body>
-    <div id="root"></div>
-  
+<body>
+  <header class="ad-header">
+    <a class="ad-logo" href="/" aria-label="ehemehe.lk home">
+      <img src="/assets/ehemehe_logo_header.png" alt="ehemehe.lk">
+    </a>
+    <nav>
+      <a href="/search">Browse Ads</a>
+      <a class="post-link" href="/post">＋ Post an Ad</a>
+    </nav>
+  </header>
 
+  <main id="adApp" class="ad-shell" aria-live="polite">
+    <div class="ad-skeleton">
+      <div class="skeleton-image"></div>
+      <div class="skeleton-card"><i></i><i></i><i></i><i></i></div>
+    </div>
+  </main>
 
+  <nav class="mobile-bottom" aria-label="Mobile navigation">
+    <a href="/"><span>⌂</span><small>Home</small></a>
+    <a href="/categories"><span>▦</span><small>Categories</small></a>
+    <a class="post" href="/post"><span>＋</span><small>Post Ad</small></a>
+    <a href="/dashboard/messages"><span>◯</span><small>Messages</small></a>
+    <a href="/dashboard"><span>♙</span><small>Profile</small></a>
+  </nav>
 
-
-  
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/supabase.js?v=20260714-supabase-project-match-final"></script>
-  <script src="/auth-session-bridge.js?v=20260715-no-supabase-phone-provider"></script>
-
-  <script src="./post-ad-category-fields.js?v=20260715-native-city-phone-verification"></script>
-  <script src="./index-filters.js?v=20260715-ad-load-speed-fix"></script>
-  <script src="/brand-theme.js?v=20260714-otp-gate-root-cause"></script>
-<script src="/otp-client.js?v=20260715-native-city-phone-verification"></script>
-<script src="/post-ad-runtime.js?v=20260715-login-required-location-state-fix"></script>
-<script src="/auth-unified.js?v=20260715-post-ad-end-to-end-fix"></script>
-</body></html>
+  <script src="/ad-detail.js?v=20260715-final-performance-fix" defer></script>
+</body>
+</html>

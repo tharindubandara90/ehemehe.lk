@@ -205,13 +205,45 @@
     markMobileOnlyLayout();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick);
-  else tick();
+  let observer = null;
+  let observerTimer = 0;
 
-  const observer = new MutationObserver(tick);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  function armMountObserver() {
+    observer?.disconnect();
+    clearTimeout(observerTimer);
+    observer = new MutationObserver(() => {
+      clearTimeout(observerTimer);
+      observerTimer = setTimeout(tick, 70);
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    setTimeout(() => observer?.disconnect(), 2800);
+  }
+
+  function runRoutePasses() {
+    tick();
+    setTimeout(tick, 120);
+    setTimeout(tick, 450);
+    setTimeout(tick, 1000);
+    armMountObserver();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', runRoutePasses, { once: true });
+  else runRoutePasses();
+
+  const originalPush = history.pushState;
+  const originalReplace = history.replaceState;
+  history.pushState = function () {
+    const result = originalPush.apply(this, arguments);
+    runRoutePasses();
+    return result;
+  };
+  history.replaceState = function () {
+    const result = originalReplace.apply(this, arguments);
+    runRoutePasses();
+    return result;
+  };
 
   window.addEventListener('resize', tick, { passive: true });
-  window.addEventListener('orientationchange', tick, { passive: true });
-  window.addEventListener('popstate', tick);
+  window.addEventListener('orientationchange', runRoutePasses, { passive: true });
+  window.addEventListener('popstate', runRoutePasses);
 })();

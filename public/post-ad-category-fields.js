@@ -1228,6 +1228,5 @@
   const observer = new MutationObserver(scheduleTick);
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  setInterval(scheduleTick, 900);
   scheduleTick();
 })();

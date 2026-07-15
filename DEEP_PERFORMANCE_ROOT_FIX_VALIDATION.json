@@ -1,0 +1,63 @@
+{
+  "source_file": "youware_to_vercel_helper(11).zip",
+  "root_causes_found": [
+    "New ad photos were stored as Base64 strings directly in ads.image_url and ads.images. Public list and detail requests could therefore transfer megabytes of JSON before the page rendered.",
+    "The My Ads API selected every column from up to 500 ads, including all Base64 images.",
+    "Every route downloaded and executed Post Ad, OTP, filters and authentication helper scripts, even when those features were not used.",
+    "Full-document MutationObservers and 900 ms polling loops stayed active after page mount.",
+    "Ad detail routes depended on the full React marketplace bundle and could remain blank when a data relationship query failed."
+  ],
+  "fixes": [
+    "Ad detail pages now use a dedicated lightweight page and direct metadata API.",
+    "Public metadata APIs exclude image columns and use a lazy binary image proxy.",
+    "New uploads are stored in Supabase Storage and only public URLs are saved in the ads table.",
+    "Old Base64 ads continue to display through /api/ad-image, and an optional migration script is included.",
+    "My Ads queries only the signed-in user and excludes raw image columns.",
+    "Route-specific script loading prevents unrelated helper bundles from running.",
+    "Permanent observers and polling intervals were removed or limited to the initial mount window."
+  ],
+  "measurements": {
+    "previous_local_helper_bytes_loaded_on_every_page": 229781,
+    "new_dedicated_ad_page_local_bytes": 16746,
+    "static_ad_routes_synced": 100
+  },
+  "tests": {
+    "syntax": {
+      "server.js": true,
+      "api/_otp-utils.js": true,
+      "api/_public-ads-utils.js": true,
+      "api/public-ads.js": true,
+      "api/public-ad.js": true,
+      "api/public-promotions.js": true,
+      "api/ad-image.js": true,
+      "api/publish-ad.js": true,
+      "api/my-ads.js": true,
+      "public/route-loader.js": true,
+      "public/index-filters.js": true,
+      "public/brand-theme.js": true,
+      "public/post-ad-runtime.js": true,
+      "public/post-ad-category-fields.js": true,
+      "public/ad-detail.js": true,
+      "scripts/migrate-base64-ad-images.js": true,
+      "performance_architecture_test.js": true
+    },
+    "architecture_test": "PERFORMANCE_ARCHITECTURE_TEST_PASSED",
+    "checks": {
+      "ad_routes_use_lightweight_page": true,
+      "ad_page_does_not_load_react": true,
+      "all_static_ad_shells_lightweight": true,
+      "public_lists_do_not_select_image_columns": true,
+      "public_list_uses_image_proxy": true,
+      "new_ads_upload_to_storage": true,
+      "new_ads_do_not_store_raw_client_images": true,
+      "my_ads_does_not_select_star": true,
+      "route_specific_scripts": true,
+      "no_permanent_filter_observer": true,
+      "no_post_polling_intervals": true,
+      "public_ads_use_server_api": true,
+      "lookup_tables_not_fetched_on_public_load": true,
+      "legacy_base64_proxy_supported": true,
+      "migration_script_included": true
+    }
+  }
+}

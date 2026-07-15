@@ -8,6 +8,9 @@
   const MAX_PHONES = 5;
   const MAX_IMAGES = 10;
 
+  const INITIAL_ROUTE = location.pathname.replace(/\/+$/, '') || '/';
+  if (!POST_ROUTES.has(INITIAL_ROUTE) && !INITIAL_ROUTE.startsWith('/dashboard')) return;
+
   const runtime = {
     rows: [],
     images: [],
@@ -802,6 +805,14 @@
         throw new Error(data.message || `Could not publish the ad (HTTP ${response.status}).`);
       }
 
+      let savedImages = data.ad?.images || [];
+      if (typeof savedImages === 'string') {
+        try { savedImages = JSON.parse(savedImages); } catch (_) { savedImages = []; }
+      }
+      if (!Array.isArray(savedImages)) savedImages = [];
+      const savedImageUrl = data.ad?.image_url || savedImages[0] ||
+        (data.ad?.id ? `/api/ad-image?id=${encodeURIComponent(data.ad.id)}&index=0` : '');
+
       const localAd = {
         localId: data.ad?.id || `local-${Date.now()}`,
         id: data.ad?.id || '',
@@ -817,8 +828,8 @@
         district: contact.district,
         city: contact.city,
         phones,
-        images: runtime.images,
-        image_url: runtime.images[0] || '',
+        images: savedImages,
+        image_url: savedImageUrl,
         created_at: data.ad?.created_at || new Date().toISOString(),
         server: true
       };
@@ -1074,6 +1085,5 @@
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
   window.addEventListener('popstate', () => setTimeout(tick, 0));
-  setInterval(tick, 900);
   tick();
 })();

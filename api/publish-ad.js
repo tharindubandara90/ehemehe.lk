@@ -86,6 +86,101 @@ async function resolveLookups(body) {
   };
 }
 
+function decodeImageDataUrl(value) {
+  const match = String(value || '').match(/^data:([^;,]+);base64,(.+)$/s);
+  if (!match) return null;
+  const mime = match[1].toLowerCase();
+  if (!['image/jpeg','image/png','image/webp','image/heic','image/heif'].includes(mime)) {
+    throw new Error('Unsupported photo format. Use JPG, PNG, WebP or HEIC.');
+  }
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length || buffer.length > 3 * 1024 * 1024) {
+    throw new Error('Each photo must be smaller than 3 MB after optimization.');
+  }
+  const extension = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : mime.includes('heic') || mime.includes('heif') ? 'heic' : 'jpg';
+  return { mime, buffer, extension };
+}
+
+async function ensureAdImagesBucket() {
+  const { url, key } = supabaseAdminConfig();
+  const response = await fetch(`${url}/storage/v1/bucket`, {
+    method: 'POST',
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      id: 'ad-images',
+      name: 'ad-images',
+      public: true,
+      file_size_limit: 5242880,
+      allowed_mime_types: ['image/jpeg','image/png','image/webp','image/heic','image/heif']
+    })
+  });
+  if (response.ok || response.status === 409) return;
+  const data = await response.json().catch(() => ({}));
+  if (response.status === 400 && /exist|duplicate/i.test(String(data.message || data.error || ''))) return;
+
+  // Older Storage API versions may reject optional bucket settings. Retry with
+  // the smallest supported public-bucket payload before failing.
+  if (response.status === 400) {
+    const retry = await fetch(`${url}/storage/v1/bucket`, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ id: 'ad-images', name: 'ad-images', public: true })
+    });
+    if (retry.ok || retry.status === 409) return;
+    const retryData = await retry.json().catch(() => ({}));
+    if (/exist|duplicate/i.test(String(retryData.message || retryData.error || ''))) return;
+    throw new Error(retryData.message || `Could not prepare photo storage (HTTP ${retry.status}).`);
+  }
+
+  throw new Error(data.message || `Could not prepare photo storage (HTTP ${response.status}).`);
+}
+
+async function uploadAdImages(images, userId) {
+  if (!images.length) return [];
+  await ensureAdImagesBucket();
+  const { url, key } = supabaseAdminConfig();
+  const output = [];
+
+  for (let index = 0; index < images.length; index += 1) {
+    const value = String(images[index] || '');
+    if (/^https?:\/\//i.test(value)) {
+      output.push(value);
+      continue;
+    }
+
+    const decoded = decodeImageDataUrl(value);
+    if (!decoded) throw new Error('A selected photo could not be read. Please choose it again.');
+    const safeUser = String(userId || 'user').replace(/[^a-zA-Z0-9_-]/g, '');
+    const objectPath = `${safeUser}/${Date.now()}-${index}-${Math.random().toString(36).slice(2,8)}.${decoded.extension}`;
+    const upload = await fetch(`${url}/storage/v1/object/ad-images/${objectPath}`, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        'Content-Type': decoded.mime,
+        'Content-Length': String(decoded.buffer.length),
+        'x-upsert': 'false'
+      },
+      body: decoded.buffer
+    });
+    if (!upload.ok) {
+      const data = await upload.json().catch(() => ({}));
+      throw new Error(data.message || `Photo ${index + 1} could not be uploaded.`);
+    }
+    output.push(`${url}/storage/v1/object/public/ad-images/${objectPath}`);
+  }
+
+  return output;
+}
+
 function validatePhoneProof(proof, phones) {
   const data = readToken(proof);
   const normalized = phones.map(normalizePhone);
@@ -159,7 +254,7 @@ module.exports = async function handler(req, res) {
     const description = String(body.description || '').trim();
     const price = Number(String(body.price || '').replace(/[^\d.]/g, ''));
     const phones = Array.isArray(body.phones) ? body.phones : [];
-    const images = Array.isArray(body.images) ? body.images.slice(0, 10) : [];
+    const rawImages = Array.isArray(body.images) ? body.images.slice(0, 10) : [];
 
     if (title.length < 3) throw new Error('Enter a valid ad title.');
     if (description.length < 5) throw new Error('Enter a complete description.');
@@ -171,6 +266,7 @@ module.exports = async function handler(req, res) {
     }
 
     const verifiedPhones = validatePhoneProof(body.phoneProof, phones);
+    const images = await uploadAdImages(rawImages, user.id);
     const lookups = await resolveLookups(body);
     const metadata = user.user_metadata || {};
 

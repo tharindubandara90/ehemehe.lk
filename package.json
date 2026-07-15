@@ -8,7 +8,8 @@
     "serve": "node server.js",
     "deploy": "vercel --prod",
     "sync-ad-shells": "node scripts/sync-ad-route-shells.js",
-    "validate-supabase": "node scripts/validate-supabase-config.js"
+    "validate-supabase": "node scripts/validate-supabase-config.js",
+    "migrate-images": "node scripts/migrate-base64-ad-images.js"
   },
   "devDependencies": {
     "vercel": "latest",
