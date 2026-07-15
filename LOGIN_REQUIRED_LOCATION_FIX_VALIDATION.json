@@ -1,0 +1,31 @@
+{
+  "source_project": "ehemehe_native_city_sms_verification_fixed_full_project.zip",
+  "issues_fixed": [
+    "The Review step no longer contains the Contact dropdowns, so DOM-only validation incorrectly returned Select a district.",
+    "Signed-out visitors could enter the Post Ad wizard before authentication."
+  ],
+  "new_behavior": [
+    "District and City are saved while the Contact step is visible and reused on Review and Publish.",
+    "A signed-out visitor opening /post is redirected immediately to Create Account.",
+    "The returnTo value points back to /post after signup or login.",
+    "Home, search, categories and ad detail pages stay public."
+  ],
+  "checks": {
+    "contact_location_saved_before_review": true,
+    "review_uses_saved_district_city": true,
+    "post_requires_login_before_form_use": true,
+    "signed_out_redirects_to_signup": true,
+    "public_browsing_remains_open": true,
+    "district_city_change_listener": true,
+    "cache_busted": true,
+    "ad_shells_synced": true
+  },
+  "syntax": {
+    "public/post-ad-runtime.js": true,
+    "public/js/index-BsKly-Vj.js": true,
+    "public/post-ad-category-fields.js": true,
+    "public/otp-client.js": true,
+    "server.js": true
+  },
+  "cache_version": "20260715-login-required-location-state-fix"
+}

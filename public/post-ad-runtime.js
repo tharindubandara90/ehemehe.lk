@@ -15,7 +15,10 @@
     publishing: false,
     dashboardLoading: false,
     dashboardLoadedAt: 0,
-    dashboardAds: []
+    dashboardAds: [],
+    authChecking: false,
+    authAllowed: false,
+    authRedirected: false
   };
 
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -590,18 +593,54 @@
     }
   }
 
-  function validateLocation() {
-    const container = heading('Contact & Location')?.parentElement ||
-      heading('Review Your Ad')?.parentElement;
-    const district = document.querySelector('[data-ehm-native-district]') ||
-      labeledControl(container, 'District', 'select') ||
-      document.querySelector('[data-ehm-district-select]');
+  function saveNativeLocationFromContactStep() {
+    const district = document.querySelector('[data-ehm-native-district]');
     const city = document.querySelector('[data-ehm-native-city] select') ||
       document.getElementById('ehm-city-select');
 
-    if (!district?.value) throw new Error('Select a district.');
-    if (!city?.value) throw new Error('Select a city or town.');
-    return { district: district.value, city: city.value };
+    if (!district || !city) return null;
+
+    const payload = {
+      district: String(district.value || ''),
+      city: String(city.value || '')
+    };
+
+    try {
+      sessionStorage.setItem(
+        'ehemehe:nativePostLocation:v2',
+        JSON.stringify(payload)
+      );
+    } catch (_) {}
+
+    return payload;
+  }
+
+  function storedNativeLocation() {
+    const live = saveNativeLocationFromContactStep();
+    if (live?.district || live?.city) return live;
+
+    try {
+      const saved = JSON.parse(
+        sessionStorage.getItem('ehemehe:nativePostLocation:v2') || 'null'
+      );
+      if (saved && typeof saved === 'object') {
+        return {
+          district: String(saved.district || ''),
+          city: String(saved.city || '')
+        };
+      }
+    } catch (_) {}
+
+    return { district: '', city: '' };
+  }
+
+  function validateLocation() {
+    const native = storedNativeLocation();
+
+    if (!native.district) throw new Error('Select a district.');
+    if (!native.city) throw new Error('Select a city or town.');
+
+    return native;
   }
 
   // -------------------------- Collect and publish -------------------------
@@ -677,6 +716,43 @@
     if (!client?.auth) return null;
     const result = await client.auth.getSession();
     return result.data?.session || null;
+  }
+
+  function setPostAuthLoading(loading) {
+    const root = document.getElementById('root');
+    if (!root) return;
+    root.style.visibility = loading ? 'hidden' : '';
+  }
+
+  async function ensurePostAuthentication() {
+    if (!isPostRoute()) return true;
+    if (runtime.authAllowed) return true;
+    if (runtime.authRedirected || runtime.authChecking) return false;
+
+    runtime.authChecking = true;
+    setPostAuthLoading(true);
+
+    try {
+      const authSession = await session();
+
+      if (authSession?.user) {
+        runtime.authAllowed = true;
+        setPostAuthLoading(false);
+        return true;
+      }
+
+      runtime.authRedirected = true;
+      const returnTo = `${location.pathname}${location.search}${location.hash}`;
+      location.replace(`/signup?returnTo=${encodeURIComponent(returnTo)}`);
+      return false;
+    } catch (_) {
+      runtime.authRedirected = true;
+      const returnTo = `${location.pathname}${location.search}${location.hash}`;
+      location.replace(`/signup?returnTo=${encodeURIComponent(returnTo)}`);
+      return false;
+    } finally {
+      runtime.authChecking = false;
+    }
   }
 
   async function publishAd(button) {
@@ -962,15 +1038,32 @@
 
   // -------------------------- Lifecycle -----------------------------------
 
-  function tick() {
+  async function tick() {
     if (isPostRoute()) {
+      const authenticated = await ensurePostAuthentication();
+      if (!authenticated) return;
+
       ensureCity();
       renderPhonePanel();
+      saveNativeLocationFromContactStep();
     }
+
     if (route().startsWith('/dashboard')) renderDashboard();
   }
 
   restoreRuntimeState();
+
+  document.addEventListener('change', (event) => {
+    if (!isPostRoute()) return;
+    if (
+      event.target?.matches?.('[data-ehm-native-district]') ||
+      event.target?.matches?.('[data-ehm-native-city] select') ||
+      event.target?.id === 'ehm-city-select'
+    ) {
+      saveNativeLocationFromContactStep();
+    }
+  }, true);
+
   document.addEventListener('click', interceptNavigation, true);
   document.addEventListener('DOMContentLoaded', tick);
 
