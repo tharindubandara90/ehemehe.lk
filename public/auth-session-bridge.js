@@ -2,6 +2,7 @@
   let currentSession = null;
   let storeWrapped = false;
   let retries = 0;
+  let initialized = false;
 
   function normalizedUser(user) {
     if (!user) return null;
@@ -48,21 +49,27 @@
   }
 
   async function initialize() {
-    if (!window.supabaseClient?.auth) {
-      setTimeout(initialize, 100);
-      return;
-    }
+    if (initialized) return;
 
-    const result = await window.supabaseClient.auth.getSession();
+    let client = window.supabaseClient;
+    if (!client?.auth && typeof window.waitForSupabaseClient === 'function') {
+      try { client = await window.waitForSupabaseClient(10000); }
+      catch (_) { return; }
+    }
+    if (!client?.auth || initialized) return;
+
+    initialized = true;
+    const result = await client.auth.getSession();
     currentSession = result.data?.session || null;
     applySessionToStore();
 
-    window.supabaseClient.auth.onAuthStateChange((_event, session) => {
+    client.auth.onAuthStateChange((_event, session) => {
       currentSession = session || null;
       retries = 0;
       applySessionToStore();
     });
   }
 
+  window.addEventListener('ehemehe:supabase-ready', initialize, { once: true });
   initialize();
 })();

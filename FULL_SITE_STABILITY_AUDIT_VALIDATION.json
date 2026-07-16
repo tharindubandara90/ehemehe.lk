@@ -1,0 +1,51 @@
+{
+  "project": "EheMehe.lk marketplace",
+  "source_of_truth": "ehemehe-review-publish-fixed-full.zip",
+  "audit_scope": {
+    "project_files_excluding_node_modules_before_audit_docs": 290,
+    "javascript_files": 49,
+    "html_files": 107,
+    "css_files": 6,
+    "api_files": 13,
+    "public_files": 135,
+    "static_ad_route_shells": 100
+  },
+  "root_causes": [
+    "MutationObserver feedback loop from unconditional category price/review text writes",
+    "MutationObserver feedback loop from unconditional verified-phone panel innerHTML rebuilds",
+    "Ad-detail seller phone and finance content rewritten on every observer pass",
+    "200ms ad-detail location polling loop lasting 15 seconds",
+    "Dashboard count rewritten with the same value",
+    "Theme DOM scans executed directly for each mutation instead of frame coalescing",
+    "Unbounded Supabase initialization retry",
+    "Required label matcher left trailing whitespace after removing the asterisk"
+  ],
+  "stability_changes": [
+    "Guarded DOM writes by comparing current and next values",
+    "Structural signature for phone panel and content signatures for seller phone/finance",
+    "Coalesced async Post Ad runtime ticks",
+    "Route-scoped observer lifecycle with disconnect outside relevant routes",
+    "Removed all custom permanent setInterval polling loops",
+    "Bounded route stabilization retries",
+    "Frame-coalesced brand/theme observer work",
+    "Bounded Supabase wait using the ready event",
+    "Correct required-label normalization",
+    "Content-hashed assets and synchronized ad route shells"
+  ],
+  "validation_passes": 3,
+  "each_pass": {
+    "javascript_syntax": "passed",
+    "automated_regression_tests": 14,
+    "category_schema": "13 main categories / 62 subcategories passed",
+    "http_routes_and_cache": "passed",
+    "supabase_configuration": "passed",
+    "browser_mutation_stability": "passed",
+    "custom_permanent_intervals": 0,
+    "ad_shell_sync": "100 of 100 passed"
+  },
+  "production_test_limitations": [
+    "No live Vercel deployment was performed",
+    "No real Text.lk OTP was sent",
+    "No production Supabase ad insert was performed"
+  ]
+}

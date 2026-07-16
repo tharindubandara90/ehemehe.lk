@@ -211,10 +211,20 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick);
   else tick();
 
-  const observer = new MutationObserver(tick);
+  let tickScheduled = false;
+  function scheduleTick() {
+    if (tickScheduled) return;
+    tickScheduled = true;
+    requestAnimationFrame(() => {
+      tickScheduled = false;
+      tick();
+    });
+  }
+
+  const observer = new MutationObserver(scheduleTick);
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  window.addEventListener('resize', tick, { passive: true });
-  window.addEventListener('orientationchange', tick, { passive: true });
-  window.addEventListener('popstate', tick);
+  window.addEventListener('resize', scheduleTick, { passive: true });
+  window.addEventListener('orientationchange', scheduleTick, { passive: true });
+  window.addEventListener('popstate', scheduleTick);
 })();

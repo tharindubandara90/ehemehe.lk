@@ -11,7 +11,9 @@
     "validate-supabase": "node scripts/validate-supabase-config.js",
     "version-assets": "node scripts/version-assets.js",
     "prepare-assets": "node scripts/version-assets.js && node scripts/sync-ad-route-shells.js",
-    "build": "npm run prepare-assets"
+    "build": "npm run prepare-assets",
+    "test": "node scripts/run-regression-tests.js",
+    "test:http": "node scripts/http-regression-test.js"
   },
   "devDependencies": {
     "vercel": "latest",

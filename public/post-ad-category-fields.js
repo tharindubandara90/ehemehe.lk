@@ -1397,7 +1397,10 @@
       if (label) label.dataset.ehmPriceLabel = '1';
     }
 
-    if (label) label.textContent = priceLabelFor(state.category, state.subcategory);
+    if (label) {
+      const nextLabel = priceLabelFor(state.category, state.subcategory);
+      if (label.textContent !== nextLabel) label.textContent = nextLabel;
+    }
   }
 
   function applyConditionVisibility(container) {
@@ -1621,12 +1624,12 @@
 
   function clearLocationError() {
     const error = document.getElementById('ehm-location-error');
-    if (error) error.textContent = '';
+    if (error && error.textContent) error.textContent = '';
   }
 
   function showLocationError(message) {
     const error = document.getElementById('ehm-location-error');
-    if (error) error.textContent = message;
+    if (error && error.textContent !== message) error.textContent = message;
   }
 
   function validateLocation() {
@@ -1668,12 +1671,14 @@
     const error = panel.querySelector('#ehm-category-fields-error');
 
     panel.querySelectorAll('.ehm-invalid').forEach((control) => control.classList.remove('ehm-invalid'));
-    if (error) error.textContent = '';
+    if (error && error.textContent) error.textContent = '';
 
     if (!invalid) return true;
 
     invalid.classList.add('ehm-invalid');
-    if (error) error.textContent = 'Complete all required category details before continuing.';
+    if (error && error.textContent !== 'Complete all required category details before continuing.') {
+      error.textContent = 'Complete all required category details before continuing.';
+    }
     invalid.focus();
     return false;
   }
@@ -1707,7 +1712,10 @@
     if (locationCard && state.location.district && state.location.city) {
       const valueNode = Array.from(locationCard.children)
         .find((child) => cleanLabel(child.textContent) !== 'location');
-      if (valueNode) valueNode.textContent = `${state.location.city}, ${state.location.district}`;
+      if (valueNode) {
+        const nextLocation = `${state.location.city}, ${state.location.district}`;
+        if (valueNode.textContent !== nextLocation) valueNode.textContent = nextLocation;
+      }
     }
 
     const key = stateKey();

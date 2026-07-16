@@ -21,11 +21,13 @@
     dashboardAds: [],
     authChecking: false,
     authAllowed: false,
-    authRedirected: false
+    authRedirected: false,
+    tickRunning: false,
+    tickQueued: false
   };
 
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
-  const labelKey = (value) => clean(value).replace(/\*/g, '').toLowerCase();
+  const labelKey = (value) => clean(clean(value).replace(/\*/g, '')).toLowerCase();
   const route = () => (location.pathname.replace(/\/+$/, '') || '/');
   const isPostRoute = () => POST_ROUTES.has(route());
   const isRuntimeRoute = () => isPostRoute() || route().startsWith('/dashboard');
@@ -352,6 +354,16 @@
     `;
   }
 
+  function phonePanelSignature() {
+    return JSON.stringify(runtime.rows.map((row) => ({
+      id: row.id,
+      otpSent: !!row.otpSent,
+      verified: !!row.verified,
+      status: String(row.status || ''),
+      statusType: String(row.statusType || '')
+    })));
+  }
+
   function renderPhonePanel() {
     if (!isPostRoute()) return;
     if (document.querySelector('[data-ehm-native-phone-verification]')) return;
@@ -445,7 +457,11 @@
       });
     }
 
-    panel.innerHTML = phonePanelHtml();
+    const signature = phonePanelSignature();
+    if (panel.dataset.signature !== signature) {
+      panel.dataset.signature = signature;
+      panel.innerHTML = phonePanelHtml();
+    }
     syncPrimaryPhone();
   }
 
@@ -1180,7 +1196,9 @@
       if (clean(node.textContent) !== 'My Ads') return;
       const card = node.closest('.bg-white');
       const number = card?.querySelector('.font-bold');
-      if (number && /^\d+$/.test(clean(number.textContent))) number.textContent = String(count);
+      if (number && /^\d+$/.test(clean(number.textContent)) && clean(number.textContent) !== String(count)) {
+        number.textContent = String(count);
+      }
     });
   }
 
@@ -1222,19 +1240,33 @@
   // -------------------------- Lifecycle -----------------------------------
 
   async function tick() {
-    if (isPostRoute()) {
-      const authenticated = await ensurePostAuthentication();
-      if (!authenticated) return;
-
-      captureCategorySelection();
-      captureBaseDetails();
-      captureContactDetails();
-      ensureCity();
-      renderPhonePanel();
-      saveNativeLocationFromContactStep();
+    if (runtime.tickRunning) {
+      runtime.tickQueued = true;
+      return;
     }
 
-    if (route().startsWith('/dashboard')) renderDashboard();
+    runtime.tickRunning = true;
+    try {
+      if (isPostRoute()) {
+        const authenticated = await ensurePostAuthentication();
+        if (!authenticated) return;
+
+        captureCategorySelection();
+        captureBaseDetails();
+        captureContactDetails();
+        ensureCity();
+        renderPhonePanel();
+        saveNativeLocationFromContactStep();
+      }
+
+      if (route().startsWith('/dashboard')) await renderDashboard();
+    } finally {
+      runtime.tickRunning = false;
+      if (runtime.tickQueued) {
+        runtime.tickQueued = false;
+        scheduleRuntimeTick(0);
+      }
+    }
   }
 
   if (window.__EHM_ENABLE_TEST_HOOKS__) {
@@ -1281,10 +1313,13 @@
 
   document.addEventListener('click', interceptNavigation, true);
 
-  const observer = new MutationObserver(() => {
-    clearTimeout(window.__ehmPostRuntimeTimer);
-    window.__ehmPostRuntimeTimer = setTimeout(tick, 40);
-  });
+  let runtimeTimer = 0;
+  function scheduleRuntimeTick(delay = 40) {
+    window.clearTimeout(runtimeTimer);
+    runtimeTimer = window.setTimeout(tick, delay);
+  }
+
+  const observer = new MutationObserver(() => scheduleRuntimeTick(40));
   let observingRuntimeRoute = false;
 
   function updateRuntimeLifecycle() {
@@ -1293,7 +1328,7 @@
         observer.observe(document.documentElement, { childList: true, subtree: true });
         observingRuntimeRoute = true;
       }
-      setTimeout(tick, 0);
+      scheduleRuntimeTick(0);
       return;
     }
 
@@ -1301,6 +1336,7 @@
       observer.disconnect();
       observingRuntimeRoute = false;
     }
+    window.clearTimeout(runtimeTimer);
   }
 
   document.addEventListener('DOMContentLoaded', updateRuntimeLifecycle);

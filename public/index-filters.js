@@ -764,6 +764,7 @@
       const txt = (node.textContent || '').replace(/\s+/g, ' ').trim();
       if (!txt) return;
       if (/Latest Ads|Featured Ads|Browse Categories|Got something to sell|Trusted by thousands|What are you looking for|Sri Lanka's #1 Modern Marketplace/i.test(txt) || node.tagName.toLowerCase() === 'footer') {
+        if (node.dataset.ehmMobileHidden === '1') return;
         node.setAttribute('data-ehm-mobile-hidden', '1');
         node.style.setProperty('display', 'none', 'important');
         node.style.setProperty('visibility', 'hidden', 'important');
@@ -803,17 +804,22 @@
       anchor.insertAdjacentElement('afterend', bar);
     }
 
-    bar.innerHTML = `
-      <button type="button" class="ehm-pill" id="ehmLocationBtn"><span id="ehmLocationText">${esc(getLocationLabel())}</span><b>${chevronSvg()}</b></button>
-      <button type="button" class="ehm-pill" id="ehmCategoryBtn"><span id="ehmCategoryText">${esc(getCategoryLabel())}</span><b>${chevronSvg()}</b></button>
-      <button type="button" class="ehm-view-toggle" id="ehmViewBtn" aria-label="Switch view">${viewSvg(state.view === 'grid' ? 'list' : 'grid')}</button>
-    `;
-    bar.querySelector('#ehmLocationBtn').addEventListener('click', openLocationModal);
-    bar.querySelector('#ehmCategoryBtn').addEventListener('click', openCategoryModal);
-    bar.querySelector('#ehmViewBtn').addEventListener('click', () => {
-      state.view = state.view === 'grid' ? 'list' : 'grid';
-      renderResults();
-    });
+    const signature = JSON.stringify([getLocationLabel(), getCategoryLabel(), state.view]);
+    if (bar.dataset.signature !== signature) {
+      bar.dataset.signature = signature;
+      bar.innerHTML = `
+        <button type="button" class="ehm-pill" id="ehmLocationBtn"><span id="ehmLocationText">${esc(getLocationLabel())}</span><b>${chevronSvg()}</b></button>
+        <button type="button" class="ehm-pill" id="ehmCategoryBtn"><span id="ehmCategoryText">${esc(getCategoryLabel())}</span><b>${chevronSvg()}</b></button>
+        <button type="button" class="ehm-view-toggle" id="ehmViewBtn" aria-label="Switch view">${viewSvg(state.view === 'grid' ? 'list' : 'grid')}</button>
+      `;
+      bar.querySelector('#ehmLocationBtn').addEventListener('click', openLocationModal);
+      bar.querySelector('#ehmCategoryBtn').addEventListener('click', openCategoryModal);
+      bar.querySelector('#ehmViewBtn').addEventListener('click', () => {
+        state.view = state.view === 'grid' ? 'list' : 'grid';
+        createFilterBar();
+        renderResults();
+      });
+    }
     return bar;
   }
 
@@ -892,7 +898,7 @@
     if (!host) return;
     const rows = filteredAds();
     const active = hasActiveFilters();
-    host.innerHTML = `
+    const html = `
       ${activeBannerHtml()}
       <div class="ehm-results-head ${active ? '' : 'ehm-results-head-default'}">
         ${active ? '<h2>Search Results</h2>' : ''}
@@ -900,8 +906,13 @@
       </div>
       ${rows.length ? `<div class="ehm-results-grid ${state.view}">${rows.map(renderAdCard).join('')}</div>` : '<div class="ehm-empty">No matching ads<br>found.</div>'}
     `;
+    if (host.__ehmRenderedHtml !== html) {
+      host.__ehmRenderedHtml = html;
+      host.innerHTML = html;
+    }
     const viewBtn = document.getElementById('ehmViewBtn');
-    if (viewBtn) viewBtn.innerHTML = viewSvg(state.view === 'grid' ? 'list' : 'grid');
+    const viewHtml = viewSvg(state.view === 'grid' ? 'list' : 'grid');
+    if (viewBtn && viewBtn.innerHTML !== viewHtml) viewBtn.innerHTML = viewHtml;
     hideOriginalHomeContent();
   }
 
@@ -1587,14 +1598,20 @@
     `;
 
     if (existing) {
-      existing.innerHTML = content;
-      if (existing.previousElementSibling === priceNode) return;
-      existing.remove();
+      if (existing.__ehmContent !== content) {
+        existing.__ehmContent = content;
+        existing.innerHTML = content;
+      }
+      if (existing.previousElementSibling !== priceNode) {
+        priceNode.insertAdjacentElement('afterend', existing);
+      }
+      return;
     }
 
     const box = document.createElement('div');
     box.id = 'ehmAdDetailFinance';
     box.className = 'ehm-finance-detail';
+    box.__ehmContent = content;
     box.innerHTML = content;
 
     priceNode.insertAdjacentElement('afterend', box);
@@ -1810,20 +1827,31 @@
 
     if (callButton.tagName === 'A') callButton.setAttribute('href', `tel:${phones[0].replace(/[^\d+]/g,'')}`);
     if (existing) {
-      existing.innerHTML = content;
+      if (existing.__ehmContent !== content) {
+        existing.__ehmContent = content;
+        existing.innerHTML = content;
+      }
       if (existing.nextElementSibling !== callButton) callButton.insertAdjacentElement('beforebegin', existing);
       return true;
     }
     const row = document.createElement('div');
-    row.id = 'ehmSellerPhone'; row.className = 'ehm-seller-phone'; row.innerHTML = content;
+    row.id = 'ehmSellerPhone'; row.className = 'ehm-seller-phone'; row.__ehmContent = content; row.innerHTML = content;
     callButton.insertAdjacentElement('beforebegin', row);
     return true;
   }
 
-  function scheduleSellerPhoneInjection() {
-    [0, 80, 220, 500, 1000, 1800].forEach((delay) => {
-      setTimeout(injectSellerPhoneAboveCall, delay);
-    });
+  let sellerRetryRoute = '';
+  let sellerRetryTimers = [];
+  function scheduleSellerPhoneInjection(force = false) {
+    const routeKey = isAdRoute() ? `${location.pathname}${location.search}` : '';
+    if (!routeKey) return;
+    if (!force && sellerRetryRoute === routeKey) return;
+
+    sellerRetryRoute = routeKey;
+    sellerRetryTimers.forEach((timer) => clearTimeout(timer));
+    sellerRetryTimers = [0, 100, 300, 700, 1400, 2600].map((delay) =>
+      setTimeout(injectSellerPhoneAboveCall, delay)
+    );
   }
 
   async function sync() {
@@ -1844,9 +1872,6 @@
         injectSellerPhoneAboveCall();
         scheduleSellerPhoneInjection();
         hideAdDetailLocation();
-        setTimeout(hideAdDetailLocation, 150);
-        setTimeout(hideAdDetailLocation, 500);
-        setTimeout(hideAdDetailLocation, 1200);
         return;
       }
 
@@ -1872,6 +1897,74 @@
     window.__ehmSyncTimer = window.setTimeout(sync, delay);
   }
 
+  let routeObserver = null;
+  let routeObserverActive = false;
+  let adStabilizeRoute = '';
+  let adStabilizeTimers = [];
+
+  function needsRouteObserver() {
+    return (isMobile() && isHomeRoute()) || isAdRoute();
+  }
+
+  function refreshRouteObserver() {
+    if (!routeObserver) {
+      routeObserver = new MutationObserver(() => {
+        if (window.__ehmMutating) return;
+        const path = window.location.pathname;
+        if (path !== lastPath) {
+          lastPath = path;
+          handleRouteChange();
+          return;
+        }
+        if (isMobile() && isHomeRoute()) {
+          hideOriginalHomeContent();
+          scheduleSync(80);
+        } else if (isAdRoute()) {
+          scheduleSync(80);
+        }
+      });
+    }
+
+    const shouldObserve = needsRouteObserver();
+    if (shouldObserve && !routeObserverActive) {
+      routeObserver.observe(document.body, { childList: true, subtree: true });
+      routeObserverActive = true;
+    } else if (!shouldObserve && routeObserverActive) {
+      routeObserver.disconnect();
+      routeObserverActive = false;
+    }
+  }
+
+  function scheduleAdDetailStabilization(force = false) {
+    const routeKey = isAdRoute() ? `${location.pathname}${location.search}` : '';
+    if (!routeKey) {
+      adStabilizeRoute = '';
+      adStabilizeTimers.forEach((timer) => clearTimeout(timer));
+      adStabilizeTimers = [];
+      return;
+    }
+    if (!force && adStabilizeRoute === routeKey) return;
+
+    adStabilizeRoute = routeKey;
+    adStabilizeTimers.forEach((timer) => clearTimeout(timer));
+    adStabilizeTimers = [0, 120, 350, 800, 1600, 3000].map((delay) =>
+      setTimeout(() => scheduleSync(0), delay)
+    );
+    scheduleSellerPhoneInjection(true);
+  }
+
+  function handleRouteChange() {
+    refreshRouteObserver();
+    if (isAdRoute()) {
+      window.__ehmAdTopRoute = '';
+      openAdPageAtTop(true);
+      scheduleAdDetailStabilization(true);
+    } else {
+      scheduleAdDetailStabilization(true);
+    }
+    scheduleSync(30);
+  }
+
   function installRouteWatchers() {
     if (window.__ehmFinalWatchers) return;
     window.__ehmFinalWatchers = true;
@@ -1881,64 +1974,35 @@
     history.pushState = function () {
       const previousPath = location.pathname;
       const result = originalPush.apply(this, arguments);
-      if (location.pathname !== previousPath && isAdRoute()) {
-        window.__ehmAdTopRoute = '';
-        openAdPageAtTop(true);
+      if (location.pathname !== previousPath) {
+        lastPath = location.pathname;
+        handleRouteChange();
       }
-      scheduleSync(30); scheduleSync(250);
       return result;
     };
     history.replaceState = function () {
       const previousPath = location.pathname;
       const result = originalReplace.apply(this, arguments);
-      if (location.pathname !== previousPath && isAdRoute()) {
-        window.__ehmAdTopRoute = '';
-        openAdPageAtTop(true);
+      if (location.pathname !== previousPath) {
+        lastPath = location.pathname;
+        handleRouteChange();
       }
-      scheduleSync(30); scheduleSync(250);
       return result;
     };
     window.addEventListener('popstate', () => {
-      if (isAdRoute()) {
-        window.__ehmAdTopRoute = '';
-        openAdPageAtTop(true);
-      }
-      scheduleSync(30);
-      setTimeout(sync, 250);
-      setTimeout(sync, 700);
+      lastPath = location.pathname;
+      handleRouteChange();
     });
     window.addEventListener('pageshow', () => {
-      if (isAdRoute()) {
-        window.__ehmAdTopRoute = '';
-        openAdPageAtTop(true);
-      }
-      scheduleSync(30);
-      setTimeout(sync, 250);
+      lastPath = location.pathname;
+      handleRouteChange();
     });
-    window.addEventListener('resize', () => scheduleSync(120));
+    window.addEventListener('resize', () => {
+      refreshRouteObserver();
+      scheduleSync(120);
+    });
 
-    const observer = new MutationObserver(() => {
-      if (window.__ehmMutating) return;
-      const path = window.location.pathname;
-      if (path !== lastPath) {
-        lastPath = path;
-        if (isAdRoute()) {
-          window.__ehmAdTopRoute = '';
-          openAdPageAtTop(true);
-        }
-        scheduleSync(30);
-        setTimeout(sync, 250);
-      } else if (isMobile() && isHomeRoute()) {
-        // React mounts the native sections in stages. Hide them immediately so
-        // the first visible mobile screen remains the two-column Latest Ads layout.
-        hideOriginalHomeContent();
-        scheduleSync(80);
-      } else if (isAdRoute()) {
-        injectSellerPhoneAboveCall();
-        scheduleSync(120);
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+    refreshRouteObserver();
   }
 
   async function init() {
@@ -1951,14 +2015,11 @@
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
       openAdPageAtTop(true);
-      window.clearInterval(window.__ehmAdLocationLongTimer);
-      window.__ehmAdLocationLongTimer = window.setInterval(hideAdDetailLocation, 200);
-      setTimeout(() => window.clearInterval(window.__ehmAdLocationLongTimer), 15000);
+      scheduleAdDetailStabilization(true);
     }
     await sync();
     setTimeout(sync, 300);
     setTimeout(sync, 900);
-    setTimeout(sync, 1800);
   }
 
   if (document.readyState === 'loading') {
