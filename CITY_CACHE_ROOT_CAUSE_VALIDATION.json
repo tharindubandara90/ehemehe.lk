@@ -1,0 +1,40 @@
+{
+  "source_project": "ehemehe-fixed.zip",
+  "root_causes": [
+    "The latest React bundle contained the native City/Town and verified-phone UI, but index.html still used an older reused version label while server.js cached every versioned asset as immutable for one year.",
+    "post-ad-category-fields.js permanently returned when the first page load was not /post or /post-ad, so category-specific helpers did not activate after client-side SPA navigation from Home to Post Ad.",
+    "Two 900 ms polling loops duplicated MutationObserver work on public pages."
+  ],
+  "fixes": [
+    "All local JS/CSS references are generated from their current SHA-256 content hashes.",
+    "Only content-hash version URLs receive immutable caching; reused human-readable labels must revalidate.",
+    "The category/location helper now checks the current route dynamically and activates after SPA navigation.",
+    "Permanent Post Ad polling loops were removed, and MutationObservers now run only on Post Ad or Dashboard routes.",
+    "All 100 static ad route shells were synchronized from the corrected index.html."
+  ],
+  "preserved_flows": [
+    "authentication and session persistence",
+    "unified SMS OTP signup/password reset/contact verification",
+    "category-specific Post Ad fields",
+    "multiple image selection and optimization",
+    "District/City selection and Review persistence",
+    "authenticated publishing and Dashboard My Ads",
+    "public browsing and ad detail routes",
+    "admin functions and responsive styling"
+  ],
+  "checks": {
+    "all_javascript_syntax": true,
+    "admin_dashboard_links_and_actions": true,
+    "multi_phone_otp_security": true,
+    "signup_and_phone_login_flow": true,
+    "password_reset_otp_gate": true,
+    "category_location_matrix": true,
+    "spa_route_and_cache_regression": true,
+    "unified_sms_service": true,
+    "supabase_project_configuration": true,
+    "static_ad_shells_synced": 100,
+    "local_http_routes_and_cache_headers": true
+  },
+  "production_tested": false,
+  "production_test_note": "The live Vercel/Supabase/Text.lk environment was not modified or used for a real OTP, database insert, or production publish test."
+}

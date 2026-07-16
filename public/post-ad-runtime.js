@@ -5,6 +5,9 @@
   const PHONE_STATE_KEY = 'ehemehe:reactPostPhones:v2';
   const IMAGE_STATE_KEY = 'ehemehe:reactPostImages:v2';
   const LOCAL_ADS_KEY = 'ehemehe:userSubmittedAds:v2';
+  const POST_DRAFT_KEY = 'ehemehe:reactPostDraft:v1';
+  const CATEGORY_FORM_KEY = 'ehemehe:postAdForm:v4';
+  const CATEGORY_SELECTION_KEY = 'ehemehe:postAdSelection:v1';
   const MAX_PHONES = 5;
   const MAX_IMAGES = 10;
 
@@ -25,6 +28,24 @@
   const labelKey = (value) => clean(value).replace(/\*/g, '').toLowerCase();
   const route = () => (location.pathname.replace(/\/+$/, '') || '/');
   const isPostRoute = () => POST_ROUTES.has(route());
+  const isRuntimeRoute = () => isPostRoute() || route().startsWith('/dashboard');
+
+  function installRouteChangeEvents() {
+    if (window.__ehmRouteChangeEventsInstalled) return;
+    window.__ehmRouteChangeEventsInstalled = true;
+
+    const emit = () => window.dispatchEvent(new Event('ehemehe:routechange'));
+    for (const method of ['pushState', 'replaceState']) {
+      const original = history[method];
+      if (typeof original !== 'function') continue;
+      history[method] = function ehmHistoryRouteChange(...args) {
+        const result = original.apply(this, args);
+        emit();
+        return result;
+      };
+    }
+    window.addEventListener('popstate', emit);
+  }
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
   }[c]));
@@ -645,31 +666,176 @@
 
   // -------------------------- Collect and publish -------------------------
 
-  function selectedCategory() {
+  function readPostDraft() {
+    const value = readJsonStorage(sessionStorage, POST_DRAFT_KEY, {});
+    return value && typeof value === 'object' ? value : {};
+  }
+
+  function savePostDraft(patch) {
+    try {
+      const current = readPostDraft();
+      sessionStorage.setItem(POST_DRAFT_KEY, JSON.stringify({
+        ...current,
+        ...patch,
+        updatedAt: Date.now()
+      }));
+    } catch (_) {}
+  }
+
+  function liveCategorySelection() {
     const container = heading('Select Category')?.parentElement;
     const category = labeledControl(container, 'Category', 'select');
     const subcategory = labeledControl(container, 'Subcategory', 'select');
+    if (!category && !subcategory) return null;
+
     return {
       categoryId: category?.value || '',
-      categoryName: category?.selectedOptions?.[0]?.textContent || '',
+      categoryName: clean(category?.selectedOptions?.[0]?.textContent || ''),
       subcategoryId: subcategory?.value || '',
-      subcategoryName: subcategory?.selectedOptions?.[0]?.textContent || ''
+      subcategoryName: clean(subcategory?.selectedOptions?.[0]?.textContent || '')
+    };
+  }
+
+  function captureCategorySelection() {
+    const live = liveCategorySelection();
+    if (!live || (!live.categoryId && !live.subcategoryId)) return null;
+    savePostDraft({ category: live });
+    return live;
+  }
+
+  function storedCategorySelection() {
+    const draft = readPostDraft();
+    if (draft.category && typeof draft.category === 'object') {
+      const category = {
+        categoryId: String(draft.category.categoryId || ''),
+        categoryName: String(draft.category.categoryName || ''),
+        subcategoryId: String(draft.category.subcategoryId || ''),
+        subcategoryName: String(draft.category.subcategoryName || '')
+      };
+      if (category.categoryId || category.subcategoryId) return category;
+    }
+
+    // Fallback for drafts created before the runtime snapshot was introduced.
+    for (const storage of [sessionStorage, localStorage]) {
+      try {
+        const selection = JSON.parse(storage.getItem(CATEGORY_SELECTION_KEY) || 'null');
+        if (selection && typeof selection === 'object') {
+          const categoryId = slug(selection.category);
+          const subcategoryId = slug(selection.subcategory);
+          if (categoryId || subcategoryId) {
+            return {
+              categoryId,
+              categoryName: String(selection.category || '').replace(/-/g, ' '),
+              subcategoryId,
+              subcategoryName: String(selection.subcategory || '').replace(/-/g, ' ')
+            };
+          }
+        }
+      } catch (_) {}
+    }
+
+    try {
+      const form = JSON.parse(localStorage.getItem(CATEGORY_FORM_KEY) || 'null');
+      if (form && typeof form === 'object') {
+        const categoryId = slug(form.category);
+        const subcategoryId = slug(form.subcategory);
+        if (categoryId || subcategoryId) {
+          return {
+            categoryId,
+            categoryName: String(form.category || '').replace(/-/g, ' '),
+            subcategoryId,
+            subcategoryName: String(form.subcategory || '').replace(/-/g, ' ')
+          };
+        }
+      }
+    } catch (_) {}
+
+    return { categoryId: '', categoryName: '', subcategoryId: '', subcategoryName: '' };
+  }
+
+  function selectedCategory() {
+    return captureCategorySelection() || storedCategorySelection();
+  }
+
+  const PRICE_LABELS = [
+    'Price (LKR)',
+    'Price / Rent (LKR)',
+    'Monthly Rent (LKR)',
+    'Salary / Pay (LKR)',
+    'Service Price / Starting Price (LKR)',
+    'Course / Class Fee (LKR)'
+  ];
+
+  function detailPriceControl(container) {
+    for (const label of PRICE_LABELS) {
+      const control = labeledControl(container, label);
+      if (control) return control;
+    }
+    return null;
+  }
+
+  function captureBaseDetails() {
+    const container = heading('Ad Details')?.parentElement;
+    if (!container) return null;
+
+    const details = {
+      title: labeledControl(container, 'Title')?.value || '',
+      description: labeledControl(container, 'Description')?.value || '',
+      price: detailPriceControl(container)?.value || '',
+      condition: labeledControl(container, 'Condition', 'select')?.value || ''
+    };
+    savePostDraft({ details });
+    return details;
+  }
+
+  function reviewValue(container, labelText) {
+    if (!container) return '';
+    const wanted = labelKey(labelText);
+
+    for (const label of container.querySelectorAll('div,span')) {
+      if (labelKey(label.textContent) !== wanted) continue;
+      if (label.children.length) continue;
+
+      const card = label.parentElement;
+      if (!card) continue;
+      const value = Array.from(card.children)
+        .find((child) => child !== label && labelKey(child.textContent) !== wanted);
+      if (value) return clean(value.textContent);
+    }
+    return '';
+  }
+
+  function detailsFromReview() {
+    const container = heading('Review Your Ad')?.parentElement;
+    const rawPrice = reviewValue(container, 'Price');
+    return {
+      title: reviewValue(container, 'Title'),
+      description: reviewValue(container, 'Description'),
+      price: rawPrice.replace(/[^\d.]/g, ''),
+      condition: reviewValue(container, 'Condition').toLowerCase()
     };
   }
 
   function collectDetails() {
-    const container = heading('Ad Details')?.parentElement ||
-      heading('Review Your Ad')?.parentElement;
+    const live = captureBaseDetails();
+    if (live) return live;
+
+    const draft = readPostDraft();
+    const stored = draft.details && typeof draft.details === 'object'
+      ? {
+          title: String(draft.details.title || ''),
+          description: String(draft.details.description || ''),
+          price: String(draft.details.price || ''),
+          condition: String(draft.details.condition || '')
+        }
+      : { title: '', description: '', price: '', condition: '' };
+
+    const review = detailsFromReview();
     return {
-      title: labeledControl(container, 'Title')?.value || '',
-      description: labeledControl(container, 'Description')?.value || '',
-      price: labeledControl(container, 'Price (LKR)')?.value ||
-        labeledControl(container, 'Price / Rent (LKR)')?.value ||
-        labeledControl(container, 'Monthly Rent (LKR)')?.value ||
-        labeledControl(container, 'Salary / Pay (LKR)')?.value ||
-        labeledControl(container, 'Service Price / Starting Price (LKR)')?.value ||
-        labeledControl(container, 'Course / Class Fee (LKR)')?.value || '',
-      condition: labeledControl(container, 'Condition', 'select')?.value || ''
+      title: stored.title || review.title,
+      description: stored.description || review.description,
+      price: stored.price || review.price,
+      condition: stored.condition || review.condition
     };
   }
 
@@ -689,11 +855,21 @@
     return output;
   }
 
+  function captureContactDetails() {
+    const container = heading('Contact & Location')?.parentElement;
+    if (!container) return null;
+    const contact = {
+      email: labeledControl(container, 'Email')?.value || ''
+    };
+    savePostDraft({ contact });
+    return contact;
+  }
+
   function collectContact() {
-    const container = heading('Contact & Location')?.parentElement ||
-      heading('Review Your Ad')?.parentElement;
+    const live = captureContactDetails();
+    const draft = readPostDraft();
     return {
-      email: labeledControl(container, 'Email')?.value || '',
+      email: String(live?.email || draft.contact?.email || ''),
       ...validateLocation()
     };
   }
@@ -826,6 +1002,7 @@
 
       sessionStorage.removeItem(PHONE_STATE_KEY);
       sessionStorage.removeItem(IMAGE_STATE_KEY);
+      sessionStorage.removeItem(POST_DRAFT_KEY);
       runtime.rows = [];
       runtime.images = [];
       runtime.phoneProof = '';
@@ -858,6 +1035,7 @@
     button.textContent = 'Checking...';
 
     try {
+      captureContactDetails();
       validateLocation();
       await validatePhoneProof();
       message('', 'success');
@@ -887,6 +1065,11 @@
     }
 
     const text = labelKey(button.textContent);
+
+    if (heading('Select Category')) captureCategorySelection();
+    if (heading('Ad Details')) captureBaseDetails();
+    if (heading('Contact & Location')) captureContactDetails();
+
     if (text === 'continue' && heading('Contact & Location')) {
       event.preventDefault();
       event.stopPropagation();
@@ -1043,6 +1226,9 @@
       const authenticated = await ensurePostAuthentication();
       if (!authenticated) return;
 
+      captureCategorySelection();
+      captureBaseDetails();
+      captureContactDetails();
       ensureCity();
       renderPhonePanel();
       saveNativeLocationFromContactStep();
@@ -1051,9 +1237,38 @@
     if (route().startsWith('/dashboard')) renderDashboard();
   }
 
-  restoreRuntimeState();
+  if (window.__EHM_ENABLE_TEST_HOOKS__) {
+    window.__EHM_POST_RUNTIME_TEST__ = {
+      captureCategorySelection,
+      selectedCategory,
+      captureBaseDetails,
+      collectDetails,
+      captureContactDetails,
+      collectContact,
+      detailsFromReview,
+      readPostDraft
+    };
+  }
 
+  restoreRuntimeState();
+  installRouteChangeEvents();
+
+  function capturePostFormInput(event) {
+    if (!isPostRoute()) return;
+
+    if (event.target?.closest?.('[data-ehm-post-step="category"]')) {
+      captureCategorySelection();
+    }
+    if (event.target?.closest?.('[data-ehm-post-step="details"]')) {
+      captureBaseDetails();
+    }
+    const contactContainer = heading('Contact & Location')?.parentElement;
+    if (contactContainer?.contains(event.target)) captureContactDetails();
+  }
+
+  document.addEventListener('input', capturePostFormInput, true);
   document.addEventListener('change', (event) => {
+    capturePostFormInput(event);
     if (!isPostRoute()) return;
     if (
       event.target?.matches?.('[data-ehm-native-district]') ||
@@ -1065,15 +1280,30 @@
   }, true);
 
   document.addEventListener('click', interceptNavigation, true);
-  document.addEventListener('DOMContentLoaded', tick);
 
   const observer = new MutationObserver(() => {
     clearTimeout(window.__ehmPostRuntimeTimer);
     window.__ehmPostRuntimeTimer = setTimeout(tick, 40);
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  let observingRuntimeRoute = false;
 
-  window.addEventListener('popstate', () => setTimeout(tick, 0));
-  setInterval(tick, 900);
-  tick();
+  function updateRuntimeLifecycle() {
+    if (isRuntimeRoute()) {
+      if (!observingRuntimeRoute) {
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        observingRuntimeRoute = true;
+      }
+      setTimeout(tick, 0);
+      return;
+    }
+
+    if (observingRuntimeRoute) {
+      observer.disconnect();
+      observingRuntimeRoute = false;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', updateRuntimeLifecycle);
+  window.addEventListener('ehemehe:routechange', updateRuntimeLifecycle);
+  updateRuntimeLifecycle();
 })();

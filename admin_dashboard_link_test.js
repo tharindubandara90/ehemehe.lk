@@ -37,6 +37,10 @@ class Element {
   get innerHTML(){ return this._innerHTML; }
   appendChild(child){ this.children.push(child); return child; }
   replaceWith(){ }
+  addEventListener(){ }
+  removeEventListener(){ }
+  focus(){ }
+  scrollIntoView(){ }
   getContext(){
     const noop=()=>{};
     return {

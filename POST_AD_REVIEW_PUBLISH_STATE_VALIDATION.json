@@ -1,0 +1,29 @@
+{
+  "feature": "Post Ad review and publish state preservation",
+  "status": "validated",
+  "root_cause": "The publisher queried form controls that had already been unmounted by React on the Review step, while the Review UI displayed values from React state.",
+  "fixed_data": [
+    "categoryId",
+    "categoryName",
+    "subcategoryId",
+    "subcategoryName",
+    "title",
+    "description",
+    "price",
+    "condition",
+    "contact email",
+    "district",
+    "city"
+  ],
+  "preserved_flows": [
+    "category-specific fields",
+    "image uploads",
+    "multi-phone SMS OTP",
+    "publish API",
+    "Dashboard My Ads",
+    "public ad browsing",
+    "admin functions"
+  ],
+  "production_tested": false,
+  "notes": "Static, unit-style runtime and local HTTP checks were performed. Live Vercel, Text.lk and production Supabase publishing were not executed."
+}

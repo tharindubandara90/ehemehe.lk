@@ -6,9 +6,12 @@
     "dev": "node server.js",
     "start": "node server.js",
     "serve": "node server.js",
-    "deploy": "vercel --prod",
+    "deploy": "npm run prepare-assets && vercel --prod",
     "sync-ad-shells": "node scripts/sync-ad-route-shells.js",
-    "validate-supabase": "node scripts/validate-supabase-config.js"
+    "validate-supabase": "node scripts/validate-supabase-config.js",
+    "version-assets": "node scripts/version-assets.js",
+    "prepare-assets": "node scripts/version-assets.js && node scripts/sync-ad-route-shells.js",
+    "build": "npm run prepare-assets"
   },
   "devDependencies": {
     "vercel": "latest",

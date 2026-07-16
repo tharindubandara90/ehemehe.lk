@@ -48,12 +48,15 @@ function sendFile(res, filePath, requestUrl) {
       return fs.createReadStream(path.join(publicDir, '404.html')).pipe(res);
     }
     res.setHeader('Content-Type', types[ext] || 'application/octet-stream');
-    const versioned = Boolean(requestUrl?.searchParams?.get('v'));
+    const assetVersion = requestUrl?.searchParams?.get('v') || '';
+    const contentHashedVersion = /^[a-f0-9]{12,64}$/i.test(assetVersion);
     if (ext === '.html') {
       res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
-    } else if (versioned && ['.js', '.css', '.png', '.jpg', '.jpeg', '.svg'].includes(ext)) {
+    } else if (contentHashedVersion && ['.js', '.css', '.png', '.jpg', '.jpeg', '.svg'].includes(ext)) {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     } else if (['.js', '.css', '.json'].includes(ext)) {
+      // Human-readable/reused version labels must revalidate so a later patch cannot
+      // be hidden behind a year-long browser/CDN cache entry.
       res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
     }
     res.end(data);
@@ -114,7 +117,14 @@ async function handler(req, res) {
   let pathname = decodeURIComponent(url.pathname);
   if (pathname === '/') pathname = '/index.html';
   if (pathname === '/admin' || pathname === '/admin/') pathname = '/admin.html';
-  if (pathname === '/post-ad') pathname = '/post-ad.html';
+  // The React /post route is the source of truth. Preserve old bookmarks and
+  // signup return URLs without exposing the competing legacy one-page form.
+  if (pathname === '/post-ad' || pathname === '/post-ad/' || pathname === '/post-ad.html') {
+    res.statusCode = 308;
+    res.setHeader('Location', `/post${url.search || ''}`);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.end();
+  }
   if (pathname === '/browse') pathname = '/browse.html';
 
   const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');

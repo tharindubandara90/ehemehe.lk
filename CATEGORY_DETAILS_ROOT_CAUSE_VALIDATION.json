@@ -1,0 +1,23 @@
+{
+  "issue": "Category-specific fields such as vehicle model and mileage were missing before the Review step.",
+  "root_cause": "The React category and subcategory selects use Supabase UUID values, while post-ad-category-fields.js expected slug values such as vehicles and cars. It stored the UUIDs as schema keys, so the category-specific schema could not be resolved.",
+  "fixes": [
+    "Resolve category and subcategory from the selected option's visible name instead of its UUID value.",
+    "Normalize aliases for all 13 marketplace category names.",
+    "Preserve per-category field state, required-field validation, condition visibility, price labels, review summary, publishing custom_fields, District/City and OTP flows.",
+    "Regenerate content-hash asset versions and synchronize all 100 static ad route shells."
+  ],
+  "tests": {
+    "category_taxonomy_uuid_regression": "passed",
+    "post_ad_category_location": "passed",
+    "post_ad_route_cache": "passed",
+    "otp_security": "passed",
+    "multi_phone_otp": "passed",
+    "password_reset_otp": "passed",
+    "unified_sms": "passed",
+    "phone_auth": "passed",
+    "javascript_syntax": "passed",
+    "supabase_config": "passed"
+  },
+  "production_tested": false
+}

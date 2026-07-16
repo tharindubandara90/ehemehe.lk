@@ -2,6 +2,7 @@
   'use strict';
 
   const STORAGE_KEY = 'ehemehe:postAdForm:v4';
+  const SELECTION_KEY = 'ehemehe:postAdSelection:v1';
   const LEGACY_FIELDS_KEY = 'ehemehePostAdExtraFields';
 
   const DISTRICT_CITIES = {
@@ -276,6 +277,41 @@
           placeholder: 'Road frontage, loading access, power supply, approvals...'
         })
       ],
+      'property-rent': [
+        f('property_type', 'Property Type', 'select', {
+          required: true,
+          options: ['House', 'Apartment', 'Annex', 'Room', 'Commercial Property', 'Villa', 'Other']
+        }),
+        f('bedrooms', 'Bedrooms', 'number'),
+        f('bathrooms', 'Bathrooms', 'number'),
+        f('floor_area_sqft', 'Floor Area (sq.ft)', 'number'),
+        f('furnished', 'Furnished', 'select', {
+          options: ['Unfurnished', 'Semi furnished', 'Fully furnished']
+        }),
+        f('parking', 'Parking', 'select', {
+          options: ['No parking', '1 vehicle', '2 vehicles', '3+ vehicles']
+        }),
+        f('minimum_lease', 'Minimum Rental Period', 'text'),
+        f('advance_payment', 'Advance / Key Money', 'text'),
+        f('property_features', 'Amenities, Rules & Property Details', 'textarea')
+      ],
+      'property-sale': [
+        f('property_type', 'Property Type', 'select', {
+          required: true,
+          options: ['House', 'Apartment', 'Land', 'Commercial Property', 'Villa', 'Other']
+        }),
+        f('bedrooms', 'Bedrooms', 'number'),
+        f('bathrooms', 'Bathrooms', 'number'),
+        f('floor_area_sqft', 'Floor Area (sq.ft)', 'number'),
+        f('land_size', 'Land Size', 'text'),
+        f('parking', 'Parking', 'select', {
+          options: ['No parking', '1 vehicle', '2 vehicles', '3+ vehicles']
+        }),
+        f('deed_type', 'Deed / Title', 'select', {
+          required: true, options: ['Clear deed', 'Permit', 'Grant', 'Lease agreement', 'Other']
+        }),
+        f('property_features', 'Road Access, Utilities & Property Details', 'textarea')
+      ],
       default: [
         f('property_type', 'Property Type', 'select', {
           required: true,
@@ -342,17 +378,7 @@
       default: COMMON_VEHICLE
     },
     'mobile-phones': {
-      'phone-accessories': [
-        f('accessory_type', 'Accessory Type', 'select', {
-          required: true,
-          options: ['Charger', 'Cable', 'Earphones / Headset', 'Case / Cover', 'Screen Protector', 'Power Bank', 'Smart Watch', 'Spare Part', 'Other']
-        }),
-        f('brand', 'Brand', 'text'),
-        f('compatible_models', 'Compatible Phone Models', 'text'),
-        f('warranty', 'Warranty', 'text'),
-        f('accessory_details', 'Accessory Details', 'textarea')
-      ],
-      default: [
+      phones: [
         f('phone_brand', 'Brand', 'select', {
           required: true,
           options: ['Apple', 'Samsung', 'Xiaomi', 'Huawei', 'Oppo', 'Vivo', 'Nokia', 'Google', 'OnePlus', 'Realme', 'Other']
@@ -366,71 +392,242 @@
         f('ram', 'RAM', 'select', {
           options: ['2GB', '3GB', '4GB', '6GB', '8GB', '12GB', '16GB+']
         }),
-        f('battery_health', 'Battery Health (%)', 'number', { placeholder: '88' }),
+        f('battery_health', 'Battery Health (%)', 'number', { min: 0, max: 100, placeholder: '88' }),
         f('network', 'Network / SIM', 'select', {
-          options: ['Single SIM', 'Dual SIM', 'eSIM', 'Wi-Fi only', 'Other']
+          options: ['Single SIM', 'Dual SIM', 'eSIM', 'Dual SIM + eSIM', 'Other']
         }),
+        f('color', 'Colour', 'text'),
         f('warranty', 'Warranty', 'select', {
           options: ['No warranty', 'Shop warranty', 'Company warranty', 'AppleCare / official warranty']
         }),
-        f('box_accessories', 'Box / Accessories', 'textarea', {
-          placeholder: 'Box, charger, cable, bill, cover, defects...'
+        f('box_accessories', 'Box / Accessories & Notes', 'textarea', {
+          placeholder: 'Box, charger, cable, bill, cover, repairs, defects...'
         })
-      ]
+      ],
+      tablets: [
+        f('phone_brand', 'Brand', 'select', {
+          required: true,
+          options: ['Apple', 'Samsung', 'Xiaomi', 'Huawei', 'Lenovo', 'Amazon', 'Microsoft', 'Other']
+        }),
+        f('phone_model', 'Model', 'text', { required: true }),
+        f('screen_size', 'Screen Size', 'text', { placeholder: '10.9 inches' }),
+        f('storage', 'Storage', 'select', {
+          options: ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB']
+        }),
+        f('ram', 'RAM', 'select', {
+          options: ['2GB', '3GB', '4GB', '6GB', '8GB', '12GB', '16GB+']
+        }),
+        f('network', 'Connectivity', 'select', {
+          options: ['Wi-Fi only', 'Wi-Fi + Cellular', 'Single SIM', 'Dual SIM', 'eSIM', 'Other']
+        }),
+        f('battery_health', 'Battery Health (%)', 'number', { min: 0, max: 100 }),
+        f('warranty', 'Warranty', 'text'),
+        f('box_accessories', 'Box / Accessories & Notes', 'textarea')
+      ],
+      'phone-accessories': [
+        f('accessory_type', 'Accessory Type', 'select', {
+          required: true,
+          options: ['Charger', 'Cable', 'Earphones / Headset', 'Case / Cover', 'Screen Protector', 'Power Bank', 'Smart Watch', 'Spare Part', 'Other']
+        }),
+        f('brand', 'Brand', 'text'),
+        f('compatible_models', 'Compatible Phone Models', 'text'),
+        f('connectivity', 'Connectivity / Connector', 'text', { placeholder: 'USB-C, Lightning, Bluetooth...' }),
+        f('warranty', 'Warranty', 'text'),
+        f('accessory_details', 'Accessory Details', 'textarea')
+      ],
+      default: GENERIC_ITEM
     },
     electronics: {
-      default: [
+      tvs: [
         f('electronics_brand', 'Brand', 'text', { required: true }),
         f('electronics_model', 'Model', 'text'),
-        f('warranty', 'Warranty', 'select', {
-          options: ['No warranty', 'Shop warranty', 'Company warranty', 'International warranty']
+        f('screen_size', 'Screen Size', 'text', { required: true, placeholder: '55 inches' }),
+        f('display_type', 'Display Type', 'select', {
+          options: ['LED', 'QLED', 'OLED', 'Mini LED', 'LCD', 'Plasma', 'Other']
         }),
+        f('resolution', 'Resolution', 'select', {
+          options: ['HD', 'Full HD', '4K UHD', '8K', 'Other']
+        }),
+        f('smart_tv', 'Smart TV', 'select', { options: ['Yes', 'No'] }),
+        f('warranty', 'Warranty', 'text'),
+        f('specifications', 'Accessories / Repairs / Other Details', 'textarea')
+      ],
+      'audio-video': [
+        f('item_type', 'Audio / Video Item Type', 'select', {
+          required: true,
+          options: ['Speaker', 'Soundbar', 'Home Theatre', 'Amplifier', 'Receiver', 'Projector', 'Media Player', 'Microphone', 'Other']
+        }),
+        f('electronics_brand', 'Brand', 'text'),
+        f('electronics_model', 'Model', 'text'),
+        f('connectivity', 'Connectivity', 'text', { placeholder: 'Bluetooth, HDMI, AUX, Wi-Fi...' }),
+        f('power_output', 'Power Output / Rating', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('specifications', 'Specifications & Included Items', 'textarea')
+      ],
+      cameras: [
+        f('camera_type', 'Camera Type', 'select', {
+          required: true,
+          options: ['DSLR', 'Mirrorless', 'Compact', 'Action Camera', 'Video Camera', 'CCTV Camera', 'Drone Camera', 'Lens', 'Other']
+        }),
+        f('electronics_brand', 'Brand', 'text', { required: true }),
+        f('electronics_model', 'Model', 'text'),
+        f('megapixels', 'Megapixels / Sensor', 'text'),
+        f('lens_details', 'Lens Included / Mount', 'text'),
+        f('shutter_count', 'Shutter Count / Usage', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('specifications', 'Accessories, Repairs & Other Details', 'textarea')
+      ],
+      'computers-tablets': [
+        f('device_type', 'Device Type', 'select', {
+          required: true,
+          options: ['Laptop', 'Desktop', 'All-in-One', 'Tablet', 'Server', 'Mini PC', 'Other']
+        }),
+        f('electronics_brand', 'Brand', 'text', { required: true }),
+        f('electronics_model', 'Model', 'text'),
+        f('processor', 'Processor', 'text'),
+        f('ram', 'RAM', 'text'),
+        f('storage', 'Storage', 'text'),
+        f('graphics', 'Graphics', 'text'),
         f('screen_size', 'Screen Size', 'text'),
-        f('power_details', 'Power / Voltage Details', 'text'),
-        f('specifications', 'Specifications & Accessories', 'textarea', {
-          placeholder: 'Processor, RAM, storage, resolution, included items, defects...'
-        })
-      ]
+        f('operating_system', 'Operating System', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('specifications', 'Specifications, Battery & Accessories', 'textarea')
+      ],
+      'computer-accessories': [
+        f('accessory_type', 'Accessory Type', 'select', {
+          required: true,
+          options: ['Monitor', 'Keyboard', 'Mouse', 'Printer', 'Scanner', 'UPS', 'Storage Drive', 'RAM', 'Graphics Card', 'Motherboard', 'Networking', 'Other']
+        }),
+        f('electronics_brand', 'Brand', 'text'),
+        f('electronics_model', 'Model', 'text'),
+        f('compatibility', 'Compatibility', 'text'),
+        f('connectivity', 'Connectivity / Interface', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('specifications', 'Specifications & Included Items', 'textarea')
+      ],
+      default: GENERIC_ITEM
     },
     'home-garden': {
-      default: [
-        f('item_type', 'Item Type', 'text', { required: true }),
+      furniture: [
+        f('furniture_type', 'Furniture Type', 'text', { required: true }),
         f('brand', 'Brand', 'text'),
         f('material', 'Material', 'text'),
         f('dimensions', 'Dimensions / Size', 'text'),
+        f('pieces', 'Number of Pieces', 'text'),
+        f('assembly', 'Assembly / Delivery', 'text'),
+        f('item_details', 'Condition, Style & Other Details', 'textarea')
+      ],
+      'kitchen-appliances': [
+        f('appliance_type', 'Appliance Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text', { required: true }),
+        f('model', 'Model', 'text'),
+        f('capacity', 'Capacity / Size', 'text'),
+        f('power_details', 'Power / Voltage', 'text'),
         f('warranty', 'Warranty', 'text'),
+        f('item_details', 'Accessories, Repairs & Other Details', 'textarea')
+      ],
+      'home-decor': [
+        f('decor_type', 'Decor Item Type', 'text', { required: true }),
+        f('brand', 'Brand / Artist', 'text'),
+        f('material', 'Material', 'text'),
+        f('dimensions', 'Dimensions / Size', 'text'),
+        f('colour_style', 'Colour / Style', 'text'),
         f('item_details', 'Item Details', 'textarea')
-      ]
-    },
-    'health-beauty': {
-      'fitness-equipment': [
-        f('equipment_type', 'Equipment Type', 'text', { required: true }),
+      ],
+      'garden-tools': [
+        f('tool_type', 'Garden Tool / Equipment Type', 'text', { required: true }),
         f('brand', 'Brand', 'text'),
         f('model', 'Model', 'text'),
-        f('maximum_capacity', 'Maximum Capacity', 'text'),
+        f('power_source', 'Power Source', 'select', {
+          options: ['Manual', 'Electric', 'Battery', 'Petrol', 'Diesel', 'Other']
+        }),
+        f('power_capacity', 'Power / Engine / Capacity', 'text'),
         f('warranty', 'Warranty', 'text'),
-        f('equipment_details', 'Equipment Details', 'textarea')
+        f('item_details', 'Accessories & Service Details', 'textarea')
       ],
-      default: [
-        f('product_type', 'Product Type', 'text', { required: true }),
+      default: GENERIC_ITEM
+    },
+    'health-beauty': {
+      'beauty-products': [
+        f('product_type', 'Beauty Product Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('shade_variant', 'Shade / Variant', 'text'),
+        f('size_volume', 'Size / Volume', 'text'),
+        f('expiry_date', 'Expiry Date', 'text', { placeholder: 'MM/YYYY' }),
+        f('sealed_status', 'Package Status', 'select', {
+          required: true, options: ['Factory sealed', 'Opened but unused']
+        }),
+        f('product_details', 'Ingredients / Authenticity / Other Details', 'textarea')
+      ],
+      'health-personal-care': [
+        f('product_type', 'Personal Care Item Type', 'text', { required: true }),
         f('brand', 'Brand', 'text'),
         f('size_volume', 'Size / Volume', 'text'),
         f('expiry_date', 'Expiry Date', 'text', { placeholder: 'MM/YYYY' }),
         f('sealed_status', 'Package Status', 'select', {
           required: true, options: ['Factory sealed', 'Opened but unused']
         }),
-        f('product_details', 'Product Details', 'textarea')
-      ]
-    },
-    'sports-hobbies-kids': {
-      default: [
-        f('item_type', 'Item Type', 'text', { required: true }),
+        f('product_details', 'Product Specifications & Other Details', 'textarea')
+      ],
+      'fitness-equipment': [
+        f('equipment_type', 'Equipment Type', 'text', { required: true }),
         f('brand', 'Brand', 'text'),
         f('model', 'Model', 'text'),
+        f('maximum_capacity', 'Maximum Capacity', 'text'),
+        f('dimensions', 'Dimensions / Size', 'text'),
+        f('warranty', 'Warranty', 'text'),
+        f('equipment_details', 'Accessories, Service & Condition Details', 'textarea')
+      ],
+      default: GENERIC_ITEM
+    },
+    'sports-hobbies-kids': {
+      'sports-equipment': [
+        f('sport_type', 'Sport / Activity', 'text', { required: true }),
+        f('item_type', 'Equipment Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('model', 'Model', 'text'),
+        f('size', 'Size', 'text'),
+        f('skill_level', 'Skill Level', 'select', {
+          options: ['Beginner', 'Intermediate', 'Advanced', 'Professional', 'All levels']
+        }),
+        f('included_items', 'Included Items & Details', 'textarea')
+      ],
+      'musical-instruments': [
+        f('instrument_type', 'Instrument Type', 'text', { required: true }),
+        f('brand', 'Brand / Maker', 'text'),
+        f('model', 'Model', 'text'),
+        f('instrument_size', 'Size / Key / Range', 'text'),
+        f('electric_acoustic', 'Instrument Format', 'select', {
+          options: ['Acoustic', 'Electric', 'Electronic / Digital', 'Other']
+        }),
+        f('included_items', 'Case, Accessories, Repairs & Details', 'textarea')
+      ],
+      books: [
+        f('book_title', 'Book Title', 'text', { required: true }),
+        f('author', 'Author', 'text'),
+        f('genre', 'Genre / Subject', 'text'),
+        f('language', 'Language', 'text'),
+        f('edition', 'Edition / Publication Year', 'text'),
+        f('isbn', 'ISBN', 'text'),
+        f('book_details', 'Book Condition & Other Details', 'textarea')
+      ],
+      toys: [
+        f('toy_type', 'Toy Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('age_group', 'Recommended Age', 'text'),
+        f('material', 'Material', 'text'),
+        f('battery_required', 'Battery Required', 'select', { options: ['Yes', 'No'] }),
+        f('included_items', 'Included Parts & Details', 'textarea')
+      ],
+      'baby-kids': [
+        f('item_type', 'Baby / Kids Item Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
         f('age_group', 'Age Group', 'text'),
         f('size', 'Size', 'text'),
-        f('included_items', 'Included Items / Accessories', 'textarea')
-      ]
+        f('safety_standard', 'Safety / Expiry Information', 'text'),
+        f('included_items', 'Included Items & Details', 'textarea')
+      ],
+      default: GENERIC_ITEM
     },
     education: {
       'tuition-classes': [
@@ -470,6 +667,47 @@
       default: GENERIC_ITEM
     },
     'animals-pets': {
+      dogs: [
+        f('breed', 'Breed', 'text', { required: true }),
+        f('age', 'Age', 'text', { required: true }),
+        f('gender', 'Gender', 'select', { required: true, options: ['Male', 'Female', 'Pair', 'Not sure'] }),
+        f('vaccinated', 'Vaccinated', 'select', { options: ['Yes', 'No', 'Partially'] }),
+        f('microchipped', 'Microchipped', 'select', { options: ['Yes', 'No', 'Not sure'] }),
+        f('health_status', 'Health / Veterinary Status', 'text'),
+        f('parent_details', 'Parent / Pedigree Details', 'text'),
+        f('pet_notes', 'Temperament, Food & Other Details', 'textarea')
+      ],
+      cats: [
+        f('breed', 'Breed', 'text', { required: true }),
+        f('age', 'Age', 'text', { required: true }),
+        f('gender', 'Gender', 'select', { required: true, options: ['Male', 'Female', 'Pair', 'Not sure'] }),
+        f('vaccinated', 'Vaccinated', 'select', { options: ['Yes', 'No', 'Partially'] }),
+        f('litter_trained', 'Litter Trained', 'select', { options: ['Yes', 'No', 'Partially'] }),
+        f('health_status', 'Health / Veterinary Status', 'text'),
+        f('parent_details', 'Parent / Pedigree Details', 'text'),
+        f('pet_notes', 'Temperament, Food & Other Details', 'textarea')
+      ],
+      birds: [
+        f('breed', 'Bird Species / Breed', 'text', { required: true }),
+        f('age', 'Age', 'text'),
+        f('gender', 'Gender', 'select', { options: ['Male', 'Female', 'Pair', 'Not sure'] }),
+        f('hand_tamed', 'Hand Tamed', 'select', { options: ['Yes', 'No', 'Partially'] }),
+        f('ringed', 'Ringed / Documented', 'select', { options: ['Yes', 'No', 'Not applicable'] }),
+        f('cage_included', 'Cage Included', 'select', { options: ['Yes', 'No'] }),
+        f('health_status', 'Health Status', 'text'),
+        f('pet_notes', 'Food, Behaviour & Other Details', 'textarea')
+      ],
+      fish: [
+        f('species', 'Fish Species / Variety', 'text', { required: true }),
+        f('quantity', 'Quantity', 'number', { required: true, min: 1 }),
+        f('size', 'Approximate Size', 'text'),
+        f('water_type', 'Water Type', 'select', {
+          options: ['Freshwater', 'Saltwater / Marine', 'Brackish', 'Pond', 'Other']
+        }),
+        f('origin', 'Origin', 'select', { options: ['Locally bred', 'Imported', 'Not sure'] }),
+        f('health_status', 'Health / Quarantine Status', 'text'),
+        f('pet_notes', 'Food, Tank Requirements & Other Details', 'textarea')
+      ],
       'pet-accessories': [
         f('accessory_type', 'Accessory Type', 'text', { required: true }),
         f('suitable_for', 'Suitable For', 'select', {
@@ -480,35 +718,41 @@
         f('accessory_details', 'Accessory Details', 'textarea')
       ],
       default: [
-        f('breed', 'Breed', 'text', { required: true }),
-        f('age', 'Age', 'text', { required: true }),
-        f('gender', 'Gender', 'select', {
-          required: true, options: ['Male', 'Female', 'Pair', 'Not sure']
-        }),
-        f('vaccinated', 'Vaccinated', 'select', {
-          options: ['Yes', 'No', 'Partially']
-        }),
+        f('species', 'Animal / Pet Type', 'text', { required: true }),
+        f('breed', 'Breed / Variety', 'text'),
+        f('age', 'Age', 'text'),
+        f('gender', 'Gender', 'select', { options: ['Male', 'Female', 'Pair', 'Not sure'] }),
         f('health_status', 'Health / Veterinary Status', 'text'),
-        f('parent_details', 'Parent / Pedigree Details', 'text'),
-        f('pet_notes', 'Pet Details', 'textarea', {
-          placeholder: 'Health, food, temperament, documents, delivery...'
-        })
+        f('pet_notes', 'Animal / Pet Details', 'textarea')
       ]
     },
     jobs: {
-      default: [
+      vacancies: [
+        f('job_title', 'Job Title / Position', 'text', { required: true }),
+        f('company_name', 'Company Name', 'text', { required: true }),
         f('job_type', 'Job Type', 'select', {
           required: true, options: ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance']
         }),
-        f('company_name', 'Company Name', 'text'),
-        f('work_location', 'Work Arrangement', 'select', {
-          options: ['On-site', 'Remote', 'Hybrid']
-        }),
-        f('salary', 'Salary / Pay', 'text'),
+        f('work_location', 'Work Arrangement', 'select', { options: ['On-site', 'Remote', 'Hybrid'] }),
+        f('salary', 'Salary / Pay Range', 'text'),
         f('experience', 'Experience Required', 'text'),
         f('education', 'Education / Qualification', 'text'),
-        f('application_details', 'How to Apply', 'textarea')
-      ]
+        f('deadline', 'Application Deadline', 'text'),
+        f('application_details', 'Responsibilities & How to Apply', 'textarea')
+      ],
+      'job-wanted': [
+        f('desired_position', 'Desired Position / Work Type', 'text', { required: true }),
+        f('job_type', 'Preferred Job Type', 'select', {
+          options: ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance']
+        }),
+        f('work_location', 'Preferred Work Arrangement', 'select', { options: ['On-site', 'Remote', 'Hybrid', 'Any'] }),
+        f('experience', 'Experience', 'text'),
+        f('education', 'Education / Qualification', 'text'),
+        f('skills', 'Skills', 'textarea'),
+        f('availability', 'Availability', 'text'),
+        f('application_details', 'Profile / Work Preference Details', 'textarea')
+      ],
+      default: GENERIC_ITEM
     },
     'business-industry-agriculture': {
       'office-equipment': [
@@ -536,38 +780,133 @@
         f('variety', 'Variety / Model', 'text'),
         f('quantity', 'Quantity / Capacity', 'text'),
         f('grade', 'Grade / Quality', 'text'),
+        f('harvest_manufacture_date', 'Harvest / Manufacture Date', 'text'),
         f('delivery', 'Delivery / Collection', 'text'),
         f('agriculture_details', 'Agriculture Details', 'textarea')
       ],
       default: GENERIC_ITEM
     },
     services: {
-      default: [
-        f('service_type', 'Service Type', 'text', { required: true }),
-        f('service_area', 'Service Area', 'text', {
-          required: true, placeholder: 'Colombo, Kandy, islandwide...'
-        }),
+      repair: [
+        f('service_type', 'Repair Service Type', 'text', { required: true }),
+        f('items_serviced', 'Items / Brands Serviced', 'text'),
+        f('service_area', 'Service Area', 'text', { required: true }),
         f('experience_years', 'Experience', 'text'),
-        f('availability', 'Availability', 'text', {
-          placeholder: 'Weekdays / 24 hours / appointment only'
-        }),
+        f('onsite_service', 'On-site Service', 'select', { options: ['Available', 'Not available', 'Depends on location'] }),
+        f('availability', 'Availability', 'text'),
+        f('pricing', 'Inspection / Labour Pricing', 'text'),
+        f('service_details', 'Warranty & Service Details', 'textarea')
+      ],
+      cleaning: [
+        f('service_type', 'Cleaning Service Type', 'text', { required: true }),
+        f('property_type', 'Property / Item Type', 'text'),
+        f('service_area', 'Service Area', 'text', { required: true }),
+        f('team_size', 'Team Size', 'text'),
+        f('equipment_included', 'Equipment / Chemicals Included', 'select', { options: ['Yes', 'No', 'Depends on job'] }),
+        f('availability', 'Availability', 'text'),
+        f('pricing', 'Pricing Method', 'text'),
+        f('service_details', 'Service Details', 'textarea')
+      ],
+      event: [
+        f('service_type', 'Event Service Type', 'text', { required: true }),
+        f('event_types', 'Events Covered', 'text'),
+        f('service_area', 'Service Area', 'text', { required: true }),
+        f('package_details', 'Packages / Capacity', 'text'),
+        f('availability', 'Availability / Booking Notice', 'text'),
+        f('pricing', 'Starting Price / Package Price', 'text'),
+        f('service_details', 'Equipment, Team & Service Details', 'textarea')
+      ],
+      'it-services': [
+        f('service_type', 'IT Service Type', 'text', { required: true }),
+        f('technologies', 'Technologies / Platforms', 'text'),
+        f('service_area', 'Service Area', 'text', { required: true, placeholder: 'Remote / Colombo / islandwide' }),
+        f('experience_years', 'Experience', 'text'),
+        f('delivery_time', 'Typical Delivery Time', 'text'),
+        f('pricing', 'Pricing / Hourly Rate', 'text'),
+        f('service_details', 'Scope, Support & Portfolio Details', 'textarea')
+      ],
+      construction: [
+        f('service_type', 'Construction Service Type', 'text', { required: true }),
+        f('specialization', 'Specialization', 'text'),
+        f('service_area', 'Service Area', 'text', { required: true }),
+        f('license_registration', 'Registration / Qualification', 'text'),
+        f('experience_years', 'Experience', 'text'),
+        f('pricing', 'Estimate / Pricing Method', 'text'),
+        f('service_details', 'Team, Materials & Project Details', 'textarea')
+      ],
+      'beauty-services': [
+        f('service_type', 'Beauty Service Type', 'text', { required: true }),
+        f('client_type', 'Client Type', 'select', { options: ['Women', 'Men', 'Kids', 'All'] }),
+        f('service_area', 'Salon / Service Area', 'text', { required: true }),
+        f('home_visit', 'Home Visit', 'select', { options: ['Available', 'Not available', 'Depends on location'] }),
+        f('availability', 'Availability / Appointment', 'text'),
+        f('pricing', 'Starting Price / Packages', 'text'),
+        f('service_details', 'Products, Qualifications & Service Details', 'textarea')
+      ],
+      'other-services': [
+        f('service_type', 'Service Type', 'text', { required: true }),
+        f('service_area', 'Service Area', 'text', { required: true, placeholder: 'Colombo, Kandy, islandwide...' }),
+        f('experience_years', 'Experience', 'text'),
+        f('availability', 'Availability', 'text'),
         f('pricing', 'Pricing Details', 'text'),
         f('service_details', 'Service Details', 'textarea')
-      ]
+      ],
+      default: GENERIC_ITEM
     },
     fashion: {
-      default: [
+      clothing: [
+        f('clothing_type', 'Clothing Type', 'text', { required: true }),
         f('brand', 'Brand', 'text'),
         f('size', 'Size', 'text', { required: true }),
-        f('gender', 'Gender', 'select', {
-          options: ['Men', 'Women', 'Kids', 'Unisex']
-        }),
+        f('gender', 'Gender', 'select', { options: ['Men', 'Women', 'Kids', 'Unisex'] }),
         f('material', 'Material', 'text'),
-        f('originality', 'Originality', 'select', {
-          options: ['Original', 'Replica', 'Not sure']
+        f('colour', 'Colour', 'text'),
+        f('originality', 'Originality', 'select', { options: ['Original', 'Replica', 'Not sure'] }),
+        f('fashion_details', 'Measurements & Item Details', 'textarea')
+      ],
+      shoes: [
+        f('shoe_type', 'Shoe Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('size', 'Shoe Size', 'text', { required: true }),
+        f('gender', 'Gender', 'select', { options: ['Men', 'Women', 'Kids', 'Unisex'] }),
+        f('colour', 'Colour', 'text'),
+        f('material', 'Material', 'text'),
+        f('originality', 'Originality', 'select', { options: ['Original', 'Replica', 'Not sure'] }),
+        f('fashion_details', 'Box, Usage & Item Details', 'textarea')
+      ],
+      watches: [
+        f('watch_type', 'Watch Type', 'select', {
+          required: true,
+          options: ['Analog', 'Digital', 'Smart Watch', 'Automatic', 'Quartz', 'Mechanical', 'Other']
         }),
+        f('brand', 'Brand', 'text', { required: true }),
+        f('model', 'Model / Reference', 'text'),
+        f('case_size', 'Case Size', 'text'),
+        f('strap_material', 'Strap / Bracelet Material', 'text'),
+        f('box_papers', 'Box / Papers', 'select', { options: ['Both included', 'Box only', 'Papers only', 'Not included'] }),
+        f('originality', 'Originality', 'select', { options: ['Original', 'Replica', 'Not sure'] }),
+        f('fashion_details', 'Service History & Item Details', 'textarea')
+      ],
+      bags: [
+        f('bag_type', 'Bag Type', 'text', { required: true }),
+        f('brand', 'Brand', 'text'),
+        f('dimensions', 'Dimensions / Size', 'text'),
+        f('material', 'Material', 'text'),
+        f('colour', 'Colour', 'text'),
+        f('originality', 'Originality', 'select', { options: ['Original', 'Replica', 'Not sure'] }),
+        f('fashion_details', 'Accessories & Item Details', 'textarea')
+      ],
+      'jewelry-accessories': [
+        f('jewelry_type', 'Jewelry / Accessory Type', 'text', { required: true }),
+        f('brand', 'Brand / Maker', 'text'),
+        f('material', 'Material / Metal', 'text'),
+        f('weight', 'Weight', 'text'),
+        f('size', 'Size / Length', 'text'),
+        f('gemstone', 'Gemstone / Details', 'text'),
+        f('certificate', 'Certificate / Hallmark', 'text'),
         f('fashion_details', 'Item Details', 'textarea')
-      ]
+      ],
+      default: GENERIC_ITEM
     },
     general: {
       default: GENERIC_ITEM
@@ -581,6 +920,118 @@
       .replace(/&/g, 'and')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
+  }
+
+  const CATEGORY_ALIASES = {
+    'mobile-phones-and-tablets': 'mobile-phones',
+    'mobile-phones-tablets': 'mobile-phones',
+    'home-and-garden': 'home-garden',
+    'health-and-beauty': 'health-beauty',
+    'sports-hobbies-and-kids': 'sports-hobbies-kids',
+    'sports-hobbies-kids': 'sports-hobbies-kids',
+    'animals-and-pets': 'animals-pets',
+    'business-industry-and-agriculture': 'business-industry-agriculture',
+    'business-industry-agriculture': 'business-industry-agriculture'
+  };
+
+  const SUBCATEGORY_ALIASES = {
+    vehicles: {
+      'vehicle-parts-and-accessories': 'vehicle-parts'
+    },
+    property: {
+      'rooms-for-rent': 'rooms-rent',
+      'property-for-rent': 'property-rent',
+      'property-for-sale': 'property-sale'
+    },
+    electronics: {
+      'audio-and-video': 'audio-video',
+      'computers-and-tablets': 'computers-tablets',
+      'laptops-and-computers': 'computers-tablets',
+      'laptops-computers': 'computers-tablets'
+    },
+    'mobile-phones': {
+      'mobile-phones': 'phones',
+      accessories: 'phone-accessories',
+      'mobile-phone-accessories': 'phone-accessories'
+    },
+    'home-garden': {
+      'kitchen-and-appliances': 'kitchen-appliances'
+    },
+    'health-beauty': {
+      'health-and-personal-care': 'health-personal-care'
+    },
+    'sports-hobbies-kids': {
+      'baby-and-kids-items': 'baby-kids'
+    },
+    education: {
+      books: 'edu-books',
+      'education-books': 'edu-books'
+    },
+    jobs: {
+      'job-vacancies': 'vacancies',
+      'jobs-wanted': 'job-wanted'
+    },
+    services: {
+      'repair-services': 'repair',
+      'cleaning-services': 'cleaning',
+      'event-services': 'event'
+    },
+    fashion: {
+      'mens-clothing': 'clothing',
+      'men-s-clothing': 'clothing',
+      'womens-clothing': 'clothing',
+      'women-s-clothing': 'clothing',
+      'jewelry-and-accessories': 'jewelry-accessories'
+    }
+  };
+
+  function normalizeCategoryKey(value) {
+    const key = slug(value);
+    return CATEGORY_ALIASES[key] || key;
+  }
+
+  function normalizeSubcategoryKey(value, category) {
+    const key = slug(value);
+    const categoryId = normalizeCategoryKey(category);
+    return SUBCATEGORY_ALIASES[categoryId]?.[key] || key;
+  }
+
+  function selectedOptionName(select) {
+    if (!select) return '';
+    const option = select.selectedOptions?.[0] || select.options?.[select.selectedIndex];
+    const text = String(option?.textContent || '').trim();
+    if (!select.value || /^select\b/i.test(text)) return '';
+    return text;
+  }
+
+  function isKnownCategory(category) {
+    const categoryId = normalizeCategoryKey(category);
+    return categoryId !== 'general' && Object.prototype.hasOwnProperty.call(SCHEMAS, categoryId);
+  }
+
+  function isKnownSubcategory(category, subcategory) {
+    const categoryId = normalizeCategoryKey(category);
+    const subcategoryId = normalizeSubcategoryKey(subcategory, categoryId);
+    if (categoryId === 'vehicles' && Object.prototype.hasOwnProperty.call(VEHICLE_BODY_TYPES, subcategoryId)) {
+      return true;
+    }
+    const categorySchema = SCHEMAS[categoryId];
+    return Boolean(categorySchema && subcategoryId && Object.prototype.hasOwnProperty.call(categorySchema, subcategoryId));
+  }
+
+  function categoryKeyFromSelect(select) {
+    const fromValue = normalizeCategoryKey(select?.value);
+    if (isKnownCategory(fromValue)) return fromValue;
+    const fromName = normalizeCategoryKey(selectedOptionName(select));
+    return isKnownCategory(fromName) ? fromName : fromValue;
+  }
+
+  function subcategoryKeyFromSelect(select, category) {
+    const categoryId = normalizeCategoryKey(category);
+    const fromValue = normalizeSubcategoryKey(select?.value, categoryId);
+    if (isKnownSubcategory(categoryId, fromValue)) return fromValue;
+    const fromName = normalizeSubcategoryKey(selectedOptionName(select), categoryId);
+    return isKnownSubcategory(categoryId, fromName) ? fromName : fromValue;
   }
 
   function cleanLabel(value) {
@@ -627,8 +1078,8 @@
   }
 
   function fieldsFor(category, subcategory) {
-    const categoryId = slug(category);
-    const subcategoryId = slug(subcategory);
+    const categoryId = normalizeCategoryKey(category);
+    const subcategoryId = normalizeSubcategoryKey(subcategory, categoryId);
 
     if (categoryId === 'vehicles') return vehicleFields(subcategoryId);
 
@@ -638,8 +1089,8 @@
   }
 
   function conditionApplies(category, subcategory) {
-    const categoryId = slug(category);
-    const subcategoryId = slug(subcategory);
+    const categoryId = normalizeCategoryKey(category);
+    const subcategoryId = normalizeSubcategoryKey(subcategory, categoryId);
 
     if (['property', 'jobs', 'services'].includes(categoryId)) return false;
     if (categoryId === 'education') return subcategoryId === 'edu-books';
@@ -652,8 +1103,8 @@
   }
 
   function priceLabelFor(category, subcategory) {
-    const categoryId = slug(category);
-    const subcategoryId = slug(subcategory);
+    const categoryId = normalizeCategoryKey(category);
+    const subcategoryId = normalizeSubcategoryKey(subcategory, categoryId);
 
     if (categoryId === 'jobs') return 'Salary / Pay (LKR) *';
     if (categoryId === 'services') return 'Service Price / Starting Price (LKR) *';
@@ -672,6 +1123,8 @@
     fieldsFor,
     conditionApplies,
     priceLabelFor,
+    normalizeCategoryKey,
+    normalizeSubcategoryKey,
     slug
   };
 
@@ -683,8 +1136,27 @@
 
   window.EHM_POST_AD_FORM = PUBLIC_API;
 
-  const normalizedPath = location.pathname.replace(/\/+$/, '') || '/';
-  if (!['/post', '/post-ad'].includes(normalizedPath)) return;
+  function isPostRoute() {
+    const normalizedPath = location.pathname.replace(/\/+$/, '') || '/';
+    return ['/post', '/post-ad'].includes(normalizedPath);
+  }
+
+  function installRouteChangeEvents() {
+    if (window.__ehmRouteChangeEventsInstalled) return;
+    window.__ehmRouteChangeEventsInstalled = true;
+
+    const emit = () => window.dispatchEvent(new Event('ehemehe:routechange'));
+    for (const method of ['pushState', 'replaceState']) {
+      const original = history[method];
+      if (typeof original !== 'function') continue;
+      history[method] = function ehmHistoryRouteChange(...args) {
+        const result = original.apply(this, args);
+        emit();
+        return result;
+      };
+    }
+    window.addEventListener('popstate', emit);
+  }
 
   const state = {
     category: '',
@@ -696,15 +1168,50 @@
   };
 
   function stateKey() {
-    return `${slug(state.category) || 'general'}:${slug(state.subcategory) || 'all'}`;
+    const categoryId = normalizeCategoryKey(state.category);
+    const subcategoryId = normalizeSubcategoryKey(state.subcategory, categoryId);
+    return `${categoryId || 'general'}:${subcategoryId || 'all'}`;
+  }
+
+  function availableFormStorages() {
+    const targets = [];
+    try { if (window.sessionStorage) targets.push(window.sessionStorage); } catch (_) {}
+    try { if (window.localStorage) targets.push(window.localStorage); } catch (_) {}
+    return targets;
+  }
+
+  function readSelectionSnapshot() {
+    for (const storageTarget of availableFormStorages()) {
+      try {
+        const snapshot = JSON.parse(storageTarget.getItem(SELECTION_KEY) || 'null');
+        if (snapshot && typeof snapshot === 'object') {
+          const category = normalizeCategoryKey(snapshot.category);
+          const subcategory = normalizeSubcategoryKey(snapshot.subcategory, category);
+          if (category || subcategory) return { category, subcategory };
+        }
+      } catch (_) {}
+    }
+    return { category: '', subcategory: '' };
+  }
+
+  function saveSelectionSnapshot() {
+    const payload = JSON.stringify({
+      category: state.category,
+      subcategory: state.subcategory,
+      savedAt: Date.now()
+    });
+    for (const storageTarget of availableFormStorages()) {
+      try { storageTarget.setItem(SELECTION_KEY, payload); }
+      catch (_) {}
+    }
   }
 
   function loadState() {
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
       if (stored && typeof stored === 'object') {
-        state.category = slug(stored.category);
-        state.subcategory = slug(stored.subcategory);
+        state.category = normalizeCategoryKey(stored.category);
+        state.subcategory = normalizeSubcategoryKey(stored.subcategory, state.category);
         state.fieldsByKey = stored.fieldsByKey && typeof stored.fieldsByKey === 'object'
           ? stored.fieldsByKey
           : {};
@@ -716,10 +1223,16 @@
           : { district: '', city: '' };
       }
 
+      const selection = readSelectionSnapshot();
+      if (!state.category && selection.category) state.category = selection.category;
+      if (!state.subcategory && selection.subcategory) state.subcategory = selection.subcategory;
+
       if (!Object.keys(state.fieldsByKey).length) {
         const legacy = JSON.parse(localStorage.getItem(LEGACY_FIELDS_KEY) || 'null');
         if (legacy?.fields && typeof legacy.fields === 'object') {
-          const legacyKey = `${slug(legacy.category) || 'general'}:${slug(legacy.subcategory) || 'all'}`;
+          const legacyCategory = normalizeCategoryKey(legacy.category);
+          const legacySubcategory = normalizeSubcategoryKey(legacy.subcategory, legacyCategory);
+          const legacyKey = `${legacyCategory || 'general'}:${legacySubcategory || 'all'}`;
           state.fieldsByKey[legacyKey] = { ...legacy.fields };
         }
       }
@@ -736,6 +1249,7 @@
         savedAt: Date.now()
       }));
     } catch (_) {}
+    saveSelectionSnapshot();
   }
 
   function heading(text) {
@@ -765,18 +1279,30 @@
     return control?.closest('div') || null;
   }
 
+  function categoryStepContainer() {
+    return document.querySelector('[data-ehm-post-step="category"]') ||
+      heading('Select Category')?.parentElement ||
+      null;
+  }
+
+  function categoryControls() {
+    const container = categoryStepContainer();
+    if (!container) return { categorySelect: null, subcategorySelect: null };
+    return {
+      categorySelect: container.querySelector('[data-ehm-category-select]') ||
+        labeledControl(container, 'Category', 'select'),
+      subcategorySelect: container.querySelector('[data-ehm-subcategory-select]') ||
+        labeledControl(container, 'Subcategory', 'select')
+    };
+  }
+
   function rememberCategorySelection() {
-    const categoryHeading = heading('Select Category');
-    if (!categoryHeading) return false;
-
-    const container = categoryHeading.parentElement;
-    const categorySelect = labeledControl(container, 'Category');
-    const subcategorySelect = labeledControl(container, 'Subcategory');
-
+    const { categorySelect, subcategorySelect } = categoryControls();
     if (!categorySelect) return false;
 
-    const category = slug(categorySelect.value);
-    const subcategory = slug(subcategorySelect?.value || '');
+    const category = categoryKeyFromSelect(categorySelect);
+    const subcategory = subcategoryKeyFromSelect(subcategorySelect, category);
+    if (!category && !subcategory) return false;
 
     const changed = category !== state.category || subcategory !== state.subcategory;
     if (changed) {
@@ -785,6 +1311,37 @@
       saveState();
     }
     return changed;
+  }
+
+  function captureChangedCategoryControl(select) {
+    if (!select || select.tagName !== 'SELECT') return false;
+
+    const label = select.closest('div')?.querySelector(':scope > label');
+    const labelName = cleanLabel(label?.textContent);
+    const isCategory = select.matches('[data-ehm-category-select]') || labelName === 'category';
+    const isSubcategory = select.matches('[data-ehm-subcategory-select]') || labelName === 'subcategory';
+    if (!isCategory && !isSubcategory) return false;
+
+    if (isCategory) {
+      const category = categoryKeyFromSelect(select);
+      if (category !== state.category) {
+        state.category = category;
+        // React resets the subcategory when the main category changes. Reset it
+        // here in the capture phase as well, before the old select is unmounted.
+        state.subcategory = '';
+      }
+    } else {
+      state.subcategory = subcategoryKeyFromSelect(select, state.category);
+    }
+
+    saveState();
+    return true;
+  }
+
+  function scheduleStepTransitionTicks() {
+    [0, 40, 120, 300].forEach((delay) => {
+      window.setTimeout(scheduleTick, delay);
+    });
   }
 
   function readCurrentFields() {
@@ -872,21 +1429,38 @@
   }
 
   function injectDetailsFields() {
-    const detailsHeading = heading('Ad Details');
-    if (!detailsHeading || !state.category || !state.subcategory) return;
+    const detailsHost = document.querySelector('[data-ehm-post-step="details"]') ||
+      heading('Ad Details')?.parentElement ||
+      null;
+    if (!detailsHost) return;
 
-    const container = detailsHeading.parentElement;
-    if (!container) return;
+    // The category step may have unmounted before a deferred change handler ran.
+    // Reload the synchronously saved selection before deciding there is no schema.
+    if (!state.category || !state.subcategory) {
+      const selection = readSelectionSnapshot();
+      if (!state.category) state.category = selection.category;
+      if (!state.subcategory) state.subcategory = selection.subcategory;
+    }
+    if (!state.category || !state.subcategory) return;
 
-    updatePriceLabel(container);
-    applyConditionVisibility(container);
+    updatePriceLabel(detailsHost);
+    applyConditionVisibility(detailsHost);
 
     const key = stateKey();
     const fields = fieldsFor(state.category, state.subcategory);
     const savedValues = state.fieldsByKey[key] || {};
+    const mount = detailsHost.querySelector('#ehm-category-fields-host') || detailsHost;
 
-    let panel = container.querySelector('#ehm-category-fields-panel');
-    if (panel?.dataset.key === key) return;
+    let panel = mount.querySelector('#ehm-category-fields-panel') ||
+      detailsHost.querySelector('#ehm-category-fields-panel');
+    const expectedFieldCount = String(fields.length);
+    if (
+      panel?.dataset.key === key &&
+      panel.dataset.fieldCount === expectedFieldCount &&
+      panel.querySelectorAll('[data-ehm-field]').length === fields.length
+    ) {
+      return;
+    }
 
     if (panel) {
       readCurrentFields();
@@ -896,6 +1470,7 @@
     panel = document.createElement('section');
     panel.id = 'ehm-category-fields-panel';
     panel.dataset.key = key;
+    panel.dataset.fieldCount = expectedFieldCount;
     panel.className = 'ehm-extra-fields';
     panel.innerHTML = `
       <div class="ehm-extra-fields-heading">
@@ -903,7 +1478,7 @@
           <h3>Category Details</h3>
           <p>Fill the details buyers usually check before contacting you.</p>
         </div>
-        <span>${escapeHtml(state.category.replace(/-/g, ' '))}</span>
+        <span>${escapeHtml(state.subcategory.replace(/-/g, ' '))}</span>
       </div>
       <div class="ehm-extra-fields-grid">
         ${fields.map((field) => `
@@ -916,15 +1491,23 @@
       <div id="ehm-category-fields-error" class="ehm-inline-error" aria-live="polite"></div>
     `;
 
-    const baseFields = detailsHeading.nextElementSibling;
-    if (baseFields?.parentElement === container) {
-      baseFields.insertAdjacentElement('afterend', panel);
+    if (mount.id === 'ehm-category-fields-host') {
+      mount.replaceChildren(panel);
     } else {
-      container.appendChild(panel);
+      const detailsHeading = heading('Ad Details');
+      const baseFields = detailsHeading?.nextElementSibling;
+      if (baseFields?.parentElement === detailsHost) {
+        baseFields.insertAdjacentElement('afterend', panel);
+      } else {
+        detailsHost.appendChild(panel);
+      }
     }
 
     panel.addEventListener('input', readCurrentFields);
     panel.addEventListener('change', readCurrentFields);
+    window.dispatchEvent(new CustomEvent('ehemehe:category-fields-ready', {
+      detail: { category: state.category, subcategory: state.subcategory, count: fields.length }
+    }));
   }
 
   function cityOptions(district) {
@@ -1162,35 +1745,46 @@
   }
 
   function handleNavigationValidation(event) {
+    if (!isPostRoute()) return;
     const button = event.target?.closest?.('button');
     if (!button) return;
 
     const buttonText = cleanLabel(button.textContent);
-    if (!['continue', 'post ad'].includes(buttonText)) return;
+    if (!['continue', 'post ad', 'back'].includes(buttonText)) return;
 
-    if (heading('Ad Details') && !validateCategoryFields()) {
+    // Capture Category/Subcategory synchronously, before React unmounts step 1.
+    if (heading('Select Category')) rememberCategorySelection();
+
+    if (buttonText === 'continue' && heading('Ad Details') && !validateCategoryFields()) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
       return;
     }
 
-    if ((heading('Contact & Location') || heading('Review Your Ad')) && !validateLocation()) {
+    if (
+      ['continue', 'post ad'].includes(buttonText) &&
+      (heading('Contact & Location') || heading('Review Your Ad')) &&
+      !validateLocation()
+    ) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
+      return;
     }
+
+    scheduleStepTransitionTicks();
   }
 
   function handleSelectChange(event) {
+    if (!isPostRoute()) return;
     const select = event.target;
-    if (!(select instanceof HTMLSelectElement)) return;
+    if (!select || select.tagName !== 'SELECT') return;
 
-    const label = select.closest('div')?.querySelector(':scope > label');
-    const labelName = cleanLabel(label?.textContent);
-
-    if (labelName === 'category' || labelName === 'subcategory') {
-      setTimeout(() => {
+    if (captureChangedCategoryControl(select)) {
+      // Read again after React has applied its controlled-select update, but the
+      // important values have already been saved synchronously above.
+      window.setTimeout(() => {
         rememberCategorySelection();
         scheduleTick();
       }, 0);
@@ -1199,8 +1793,14 @@
 
   function tick() {
     state.ticking = false;
+    if (!isPostRoute()) return;
 
     rememberCategorySelection();
+    if (!state.category || !state.subcategory) {
+      const selection = readSelectionSnapshot();
+      if (!state.category) state.category = selection.category;
+      if (!state.subcategory) state.subcategory = selection.subcategory;
+    }
 
     if (heading('Ad Details')) {
       injectDetailsFields();
@@ -1220,14 +1820,31 @@
   }
 
   loadState();
+  installRouteChangeEvents();
 
   document.addEventListener('click', handleNavigationValidation, true);
   document.addEventListener('change', handleSelectChange, true);
-  document.addEventListener('DOMContentLoaded', scheduleTick);
 
   const observer = new MutationObserver(scheduleTick);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  let observingPostRoute = false;
 
-  setInterval(scheduleTick, 900);
-  scheduleTick();
+  function updateRouteLifecycle() {
+    if (isPostRoute()) {
+      if (!observingPostRoute) {
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        observingPostRoute = true;
+      }
+      scheduleTick();
+      return;
+    }
+
+    if (observingPostRoute) {
+      observer.disconnect();
+      observingPostRoute = false;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', updateRouteLifecycle);
+  window.addEventListener('ehemehe:routechange', updateRouteLifecycle);
+  updateRouteLifecycle();
 })();

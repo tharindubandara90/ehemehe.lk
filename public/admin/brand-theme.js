@@ -106,7 +106,7 @@
 
   function patchMarketplaceRoutes() {
     const mobile = window.matchMedia('(max-width: 767px)').matches;
-    document.querySelectorAll('a[href="/post"],a[href="/post/"]').forEach(a => a.setAttribute('href','/post-ad'));
+    document.querySelectorAll('a[href="/post-ad"],a[href="/post-ad/"]').forEach(a => a.setAttribute('href','/post'));
 
     document.querySelectorAll('a[href="/categories"],a[href="/categories/"]').forEach(a => {
       if (mobile) {
