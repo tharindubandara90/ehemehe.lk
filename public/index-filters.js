@@ -2,11 +2,6 @@
 (function () {
   'use strict';
 
-  const EHM_ROUTE = location.pathname.replace(/\/+$/, '') || '/';
-  const EHM_IS_AD_ROUTE = /^\/ad\/[^/]+$/.test(EHM_ROUTE);
-  const EHM_IS_LISTING_ROUTE = EHM_ROUTE === '/' || EHM_ROUTE === '/search' || EHM_ROUTE === '/categories' || EHM_ROUTE.startsWith('/category/');
-  if (!EHM_IS_LISTING_ROUTE) return;
-
   const THEME = '#06b6d4';
   const THEME_DARK = '#0891b2';
   const MOBILE_QUERY = '(max-width: 767px)';
@@ -218,7 +213,7 @@
 
   function relativeDate(dateText) {
     if (!dateText) return 'Today';
-    const today = new Date();
+    const today = new Date('2026-06-21T00:00:00');
     const posted = new Date(dateText);
     if (Number.isNaN(posted.getTime())) return String(dateText);
     const days = Math.max(0, Math.floor((today - posted) / 86400000));
@@ -315,9 +310,7 @@
     if (lookupsLoaded) return lookups;
     lookupsLoaded = true;
 
-    // Public browsing uses the complete local Sri Lankan category/location map.
-    // Avoid three remote lookup requests on every first page load.
-    const cities = FALLBACK_DISTRICTS.flatMap((district) => {
+    const fallbackCities = FALLBACK_DISTRICTS.flatMap((district) => {
       const names = FALLBACK_CITIES[district.slug] || [];
       return names.map((name) => ({
         id: `${district.id}__${slugify(name)}`,
@@ -328,46 +321,63 @@
       }));
     });
 
-    lookups = {
-      districts: [...FALLBACK_DISTRICTS],
-      cities,
-      categories: JSON.parse(JSON.stringify(CATEGORY_TREE))
-    };
+    let districts = [...FALLBACK_DISTRICTS];
+    let cities = [...fallbackCities];
+    let categories = JSON.parse(JSON.stringify(CATEGORY_TREE));
+
+    try {
+      if (!window.supabaseClient) throw new Error('No Supabase client');
+      const [dRes, cRes, cityRes] = await Promise.all([
+        window.supabaseClient.from('districts').select('id,name,slug,is_active').eq('is_active', true).order('name'),
+        window.supabaseClient.from('categories').select('id,name,slug,is_active').eq('is_active', true).order('name'),
+        window.supabaseClient.from('cities').select('id,name,district_id,is_active').eq('is_active', true).order('name')
+      ]);
+
+      if (Array.isArray(dRes.data) && dRes.data.length) {
+        const bySlug = new Map(districts.map((d) => [slugify(d.slug || d.name), d]));
+        dRes.data.forEach((d) => {
+          const slug = slugify(d.slug || d.name);
+          bySlug.set(slug, { id: d.id, name: d.name, slug, source: 'supabase' });
+        });
+        districts = Array.from(bySlug.values()).sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      if (Array.isArray(cityRes.data) && cityRes.data.length) {
+        const cityKey = (c) => `${String(c.district_id).toLowerCase()}|${slugify(c.name)}`;
+        const map = new Map(cities.map((c) => [cityKey(c), c]));
+        cityRes.data.forEach((c) => map.set(cityKey(c), { ...c, source: 'supabase' }));
+        cities = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      if (Array.isArray(cRes.data) && cRes.data.length) {
+        const known = new Map(categories.map((c) => [slugify(c.id || c.slug || c.name), c]));
+        cRes.data.forEach((c) => {
+          const slug = slugify(c.slug || c.name);
+          if (!known.has(slug)) known.set(slug, { id: c.id, slug, name: c.name, children: [], source: 'supabase' });
+        });
+        categories = Array.from(known.values());
+      }
+    } catch (e) {
+      // Fallback data is enough for the current static site.
+    }
+
+    lookups = { districts, cities, categories };
     return lookups;
   }
 
   async function loadAds() {
     if (adsLoaded) return supabaseAds;
     adsLoaded = true;
-
-    const cacheKey = 'ehemehe:publicAdsCache:v3';
     try {
-      const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-      if (cached?.expiresAt > Date.now() && Array.isArray(cached.ads)) {
-        supabaseAds = cached.ads.map((ad) => normalizeAd(ad, 'api'));
-        return supabaseAds;
-      }
-    } catch (_) {}
-
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5200);
-      const response = await fetch('/api/public-ads?limit=60', {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' }
-      });
-      clearTimeout(timer);
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.ok === false) throw new Error(data.message || `HTTP ${response.status}`);
-      const rows = Array.isArray(data.ads) ? data.ads : [];
-      supabaseAds = rows.map((ad) => normalizeAd(ad, 'api'));
-      try {
-        sessionStorage.setItem(cacheKey, JSON.stringify({
-          expiresAt: Date.now() + 60_000,
-          ads: rows
-        }));
-      } catch (_) {}
-    } catch (_) {
+      if (!window.supabaseClient) throw new Error('No Supabase client');
+      const { data, error } = await window.supabaseClient
+        .from('ads')
+        .select('*, categories(name,slug), cities(id,name,district_id)')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      supabaseAds = (data || []).map((ad) => normalizeAd(ad, 'supabase'));
+    } catch (e) {
       supabaseAds = [];
     }
     return supabaseAds;
@@ -376,35 +386,24 @@
   async function loadPromotions() {
     if (promotionsLoaded) return { adPromotions, bannerAds };
     promotionsLoaded = true;
-
     const localPromos = readLocalArray(AD_PROMOTIONS_KEY);
     const localBanners = readLocalArray(BANNER_ADS_KEY);
     let remotePromos = [];
     let remoteBanners = [];
-
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 3600);
-      const response = await fetch('/api/public-promotions', {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' }
-      });
-      clearTimeout(timer);
-      const data = await response.json().catch(() => ({}));
-      if (response.ok && data.ok !== false) {
-        remotePromos = Array.isArray(data.promotions) ? data.promotions : [];
-        remoteBanners = Array.isArray(data.banners) ? data.banners : [];
+      if (window.supabaseClient) {
+        const [pRes, bRes] = await Promise.all([
+          window.supabaseClient.from('ad_promotions').select('*').eq('promotion_type','top').order('created_at', { ascending:false }),
+          window.supabaseClient.from('banner_ads').select('*').order('created_at', { ascending:false })
+        ]);
+        if (Array.isArray(pRes.data)) remotePromos = pRes.data;
+        if (Array.isArray(bRes.data)) remoteBanners = bRes.data;
       }
-    } catch (_) {}
-
+    } catch (e) {}
     const promoMap = new Map();
-    [...remotePromos, ...localPromos].forEach((row) => {
-      promoMap.set(String(row.id || `${row.ad_id}|${row.end_at}`), row);
-    });
+    [...remotePromos, ...localPromos].forEach((p) => promoMap.set(String(p.id || `${p.ad_id}|${p.end_at}`), p));
     const bannerMap = new Map();
-    [...remoteBanners, ...localBanners].forEach((row) => {
-      bannerMap.set(String(row.id || `${row.image_url}|${row.end_at}`), row);
-    });
+    [...remoteBanners, ...localBanners].forEach((b) => bannerMap.set(String(b.id || `${b.image_url}|${b.end_at}`), b));
     adPromotions = Array.from(promoMap.values()).filter(isActivePromo);
     bannerAds = Array.from(bannerMap.values()).filter(isActivePromo);
     return { adPromotions, bannerAds };
@@ -1918,14 +1917,28 @@
     });
     window.addEventListener('resize', () => scheduleSync(120));
 
-    // Observe only during the short React mounting window. A permanent full-page
-    // subtree observer caused continuous CPU usage while images and cards changed.
     const observer = new MutationObserver(() => {
       if (window.__ehmMutating) return;
-      scheduleSync(90);
+      const path = window.location.pathname;
+      if (path !== lastPath) {
+        lastPath = path;
+        if (isAdRoute()) {
+          window.__ehmAdTopRoute = '';
+          openAdPageAtTop(true);
+        }
+        scheduleSync(30);
+        setTimeout(sync, 250);
+      } else if (isMobile() && isHomeRoute()) {
+        // React mounts the native sections in stages. Hide them immediately so
+        // the first visible mobile screen remains the two-column Latest Ads layout.
+        hideOriginalHomeContent();
+        scheduleSync(80);
+      } else if (isAdRoute()) {
+        injectSellerPhoneAboveCall();
+        scheduleSync(120);
+      }
     });
     observer.observe(document.body, { childList: true, subtree: true });
-    setTimeout(() => observer.disconnect(), 2600);
   }
 
   async function init() {
@@ -1938,15 +1951,14 @@
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
       openAdPageAtTop(true);
-      // The old 200ms DOM polling loop ran for 15 seconds on every ad page and
-      // made mobile browsers noticeably slow. A few scheduled passes are enough.
-      hideAdDetailLocation();
-      setTimeout(hideAdDetailLocation, 350);
-      setTimeout(hideAdDetailLocation, 1100);
+      window.clearInterval(window.__ehmAdLocationLongTimer);
+      window.__ehmAdLocationLongTimer = window.setInterval(hideAdDetailLocation, 200);
+      setTimeout(() => window.clearInterval(window.__ehmAdLocationLongTimer), 15000);
     }
     await sync();
-    setTimeout(sync, 350);
-    setTimeout(sync, 1100);
+    setTimeout(sync, 300);
+    setTimeout(sync, 900);
+    setTimeout(sync, 1800);
   }
 
   if (document.readyState === 'loading') {

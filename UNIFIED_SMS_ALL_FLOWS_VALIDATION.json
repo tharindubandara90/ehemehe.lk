@@ -1,0 +1,59 @@
+{
+  "source_project": "ehemehe_login_required_district_fixed_full_project.zip",
+  "root_cause": [
+    "The React bundle could render before a reliable shared OTP client was available, and several pages used separate OTP implementations or direct API calls.",
+    "The same cache version had been reused across multiple patches, so mobile browsers could keep an older OTP client while loading a newer Contact component.",
+    "Signup, password reset, React Post Ad, and the fallback Post Ad page did not all use one client-side SMS state/service."
+  ],
+  "fix": [
+    "Added one synchronous sms-verification-service.js loaded before the React bundle.",
+    "EHM_OTP is now only a compatibility alias to EHM_SMS.otp, so there is one shared state store.",
+    "Signup, account creation, password reset, contact-number OTP, resend, restore, and multi-number verification use the shared service.",
+    "The old otp-client.js is now a self-healing compatibility loader for old cached pages.",
+    "Added new cache versions and correct HTML/versioned-asset cache headers.",
+    "Preserved District/City data, login-before-posting, public ad browsing, and admin OTP switches."
+  ],
+  "tests": [
+    "UNIFIED_SMS_SERVICE_TEST_PASSED",
+    "OTP_SECURITY_TEST_PASSED",
+    "PHONE_AUTH_FLOW_TEST_PASSED",
+    "MULTI_PHONE_OTP_TEST_PASSED",
+    "PASSWORD_RESET_OTP_GATE_TEST_PASSED",
+    "POST_AD_CATEGORY_LOCATION_TEST_PASSED",
+    "ALL_JAVASCRIPT_SYNTAX_PASSED",
+    "LOCAL_SERVER_INTEGRATION_TEST_PASSED"
+  ],
+  "cache_version": "20260715-unified-sms-service-v1",
+  "checks": {
+    "shared_service_loaded_before_react": true,
+    "react_waits_for_shared_service": true,
+    "legacy_otp_is_same_shared_object": true,
+    "legacy_loader_has_no_second_state_store": true,
+    "signup_uses_shared_registration_service": true,
+    "password_reset_uses_shared_service": true,
+    "post_ad_native_uses_shared_alias": true,
+    "post_ad_runtime_uses_shared_service": true,
+    "old_loading_error_removed": true,
+    "city_data_preserved": true,
+    "post_requires_login": true,
+    "fallback_post_requires_login": true,
+    "public_pages_not_gated": true,
+    "signup_return_to_post_supported": true,
+    "admin_sms_switches_preserved": true,
+    "all_ad_shells_synced": true
+  },
+  "changed_files": [
+    "public/sms-verification-service.js",
+    "public/otp-client.js",
+    "public/index.html",
+    "public/auth-unified.js",
+    "public/post-ad-runtime.js",
+    "public/post-ad.js",
+    "public/post-ad.html",
+    "public/js/index-BsKly-Vj.js",
+    "public/ad/*/index.html",
+    "server.js",
+    "otp_security_test.js",
+    "unified_sms_service_test.js"
+  ]
+}

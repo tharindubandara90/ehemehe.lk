@@ -82,11 +82,16 @@ function bindDraftSaving(){
 function clearDraft(){try{localStorage.removeItem(DRAFT_KEY);sessionStorage.removeItem(PHONE_VERIFY_SESSION_KEY);}catch(e){}}
 
 function localSetting(key){try{return localStorage.getItem(localKey(key));}catch(e){return null;}}
-async function loadAuthSettings(){try{const r=await fetch('/api/auth-settings');const d=await r.json();AUTH_SETTINGS={...AUTH_SETTINGS,...(d.settings||{})};}catch(e){} AUTH_SETTINGS.smsOtpEnabled=true; AUTH_SETTINGS.smsAdPhoneOtp=true;}
+async function loadAuthSettings(){try{const sms=await window.EHM_SMS.whenReady();const current=await sms.settings();AUTH_SETTINGS={...AUTH_SETTINGS,...current};}catch(e){console.warn('Auth settings fallback:',e.message||e);}}
 async function init(){
   const {data}=await supabaseClient.auth.getSession();
-  await Promise.all([loadLookups(), loadFinanceSettings(), loadAuthSettings()]);
   currentUser=data.session?.user||null;
+  if(!currentUser){
+    const returnTo=encodeURIComponent('/post-ad');
+    location.replace(`/signup?returnTo=${returnTo}`);
+    return;
+  }
+  await Promise.all([loadLookups(), loadFinanceSettings(), loadAuthSettings()]);
   showPost();
   restoreDraft();
   bindDraftSaving();

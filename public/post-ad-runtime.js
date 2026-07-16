@@ -8,9 +8,6 @@
   const MAX_PHONES = 5;
   const MAX_IMAGES = 10;
 
-  const INITIAL_ROUTE = location.pathname.replace(/\/+$/, '') || '/';
-  if (!POST_ROUTES.has(INITIAL_ROUTE) && !INITIAL_ROUTE.startsWith('/dashboard')) return;
-
   const runtime = {
     rows: [],
     images: [],
@@ -35,9 +32,9 @@
     .toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   function otpClient() {
-    const client = window.EHM_OTP;
+    const client = window.EHM_SMS?.otp || window.EHM_OTP;
     if (!client || typeof client.request !== 'function' || typeof client.verify !== 'function') {
-      throw new Error('SMS verification is still loading. Refresh the page and try again.');
+      throw new Error('SMS verification service could not start. Reload the page once.');
     }
     return client;
   }
@@ -571,12 +568,8 @@
     const populate = () => {
       const selectedDistrict = district.value;
       const previous = city.value;
-      const sharedCities = window.EHM_LOCATION_DATA?.getCities?.(selectedDistrict);
-      const districtCities = Array.isArray(sharedCities) && sharedCities.length
-        ? sharedCities
-        : (map[selectedDistrict] || []);
       const values = selectedDistrict
-        ? [...districtCities, 'Other / Not listed']
+        ? [...(map[selectedDistrict] || []), 'Other / Not listed']
         : [];
       city.disabled = !selectedDistrict;
       city.innerHTML = [
@@ -809,14 +802,6 @@
         throw new Error(data.message || `Could not publish the ad (HTTP ${response.status}).`);
       }
 
-      let savedImages = data.ad?.images || [];
-      if (typeof savedImages === 'string') {
-        try { savedImages = JSON.parse(savedImages); } catch (_) { savedImages = []; }
-      }
-      if (!Array.isArray(savedImages)) savedImages = [];
-      const savedImageUrl = data.ad?.image_url || savedImages[0] ||
-        (data.ad?.id ? `/api/ad-image?id=${encodeURIComponent(data.ad.id)}&index=0` : '');
-
       const localAd = {
         localId: data.ad?.id || `local-${Date.now()}`,
         id: data.ad?.id || '',
@@ -832,8 +817,8 @@
         district: contact.district,
         city: contact.city,
         phones,
-        images: savedImages,
-        image_url: savedImageUrl,
+        images: runtime.images,
+        image_url: runtime.images[0] || '',
         created_at: data.ad?.created_at || new Date().toISOString(),
         server: true
       };
@@ -1089,5 +1074,6 @@
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
   window.addEventListener('popstate', () => setTimeout(tick, 0));
+  setInterval(tick, 900);
   tick();
 })();

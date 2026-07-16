@@ -53,6 +53,7 @@
     <meta name="description" content="ehemehe.lk - Sri Lanka's #1 Modern Marketplace. Buy, sell, and discover amazing deals.">
     <meta name="theme-color" content="#3DC697">
     <title>ehemehe.lk - Sri Lanka's Marketplace</title>
+    <script src="/sms-verification-service.js?v=20260715-unified-sms-service-v1" data-ehm-unified-sms="primary"></script>
     <script id="ehm-auth-route-isolation">
 (function () {
   var path = location.pathname.replace(/\/+$/, '') || '/';
@@ -61,7 +62,8 @@
 </script>
 <script type="module">
 if (!window.__EHM_AUTH_ONLY_ROUTE) {
-  import('/js/index-BsKly-Vj.js?v=20260715-city-lists-inline-final-tested');
+  await window.EHM_SMS.whenReady();
+  await import('/js/index-BsKly-Vj.js?v=20260715-unified-sms-service-v1');
 }
 </script>
     <link rel="stylesheet" crossorigin="" href="css/index-DcB2eYwd.css">
@@ -76,15 +78,26 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
       }
     }
   </style>
-  <link rel="stylesheet" href="/post-ad-runtime.css?v=20260715-city-lists-inline-final-tested">
-  <link rel="stylesheet" href="/post-ad-form-fixes.css?v=20260715-city-lists-inline-final-tested">
+  <link rel="stylesheet" href="/post-ad-runtime.css?v=20260715-unified-sms-service-v1">
+  <link rel="stylesheet" href="/post-ad-form-fixes.css?v=20260715-unified-sms-service-v1">
   <link rel="stylesheet" href="/brand-theme.css?v=20260715-multi-verified-contact-phones">
 <link rel="stylesheet" href="/auth-unified.css?v=20260715-secure-password-reset-ui">
 </head>
   <body>
     <div id="root"></div>
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="/supabase.js?v=20260715-final-performance-fix"></script>
-  <script defer src="/auth-session-bridge.js?v=20260715-final-performance-fix"></script>
-  <script defer src="/route-loader.js?v=20260715-city-lists-inline-final-tested"></script>
+  
+
+
+
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/supabase.js?v=20260714-supabase-project-match-final"></script>
+  <script src="/auth-session-bridge.js?v=20260715-no-supabase-phone-provider"></script>
+
+  <script src="./post-ad-category-fields.js?v=20260715-unified-sms-service-v1"></script>
+  <script src="./index-filters.js?v=20260715-multi-verified-contact-phones"></script>
+  <script src="/brand-theme.js?v=20260714-otp-gate-root-cause"></script>
+<script src="/post-ad-runtime.js?v=20260715-unified-sms-service-v1"></script>
+<script src="/auth-unified.js?v=20260715-unified-sms-service-v1"></script>
 </body></html>

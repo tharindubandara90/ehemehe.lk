@@ -928,12 +928,7 @@
   }
 
   function cityOptions(district) {
-    const sharedCities = typeof window !== 'undefined'
-      ? window.EHM_LOCATION_DATA?.getCities?.(district)
-      : null;
-    const cities = Array.isArray(sharedCities) && sharedCities.length
-      ? sharedCities
-      : (DISTRICT_CITIES[district] || []);
+    const cities = DISTRICT_CITIES[district] || [];
     return [...cities, 'Other / Not listed'];
   }
 
@@ -1233,5 +1228,6 @@
   const observer = new MutationObserver(scheduleTick);
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
+  setInterval(scheduleTick, 900);
   scheduleTick();
 })();

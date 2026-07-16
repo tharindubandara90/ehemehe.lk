@@ -18,10 +18,6 @@ const loginUser = require('./api/login-user');
 const validateAdPhones = require('./api/validate-ad-phones');
 const publishAd = require('./api/publish-ad');
 const myAds = require('./api/my-ads');
-const publicAds = require('./api/public-ads');
-const publicAd = require('./api/public-ad');
-const publicPromotions = require('./api/public-promotions');
-const adImage = require('./api/ad-image');
 
 function loadEnvFile(file) {
   const p = path.join(__dirname, file);
@@ -39,7 +35,7 @@ function loadEnvFile(file) {
   }
 }
 
-function sendFile(res, filePath) {
+function sendFile(res, filePath, requestUrl) {
   const ext = path.extname(filePath).toLowerCase();
   const types = {
     '.html':'text/html; charset=utf-8', '.js':'application/javascript; charset=utf-8',
@@ -52,10 +48,13 @@ function sendFile(res, filePath) {
       return fs.createReadStream(path.join(publicDir, '404.html')).pipe(res);
     }
     res.setHeader('Content-Type', types[ext] || 'application/octet-stream');
+    const versioned = Boolean(requestUrl?.searchParams?.get('v'));
     if (ext === '.html') {
-      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
-    } else if (['.js','.css','.json','.png','.jpg','.jpeg','.svg'].includes(ext)) {
-      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+    } else if (versioned && ['.js', '.css', '.png', '.jpg', '.jpeg', '.svg'].includes(ext)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (['.js', '.css', '.json'].includes(ext)) {
+      res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
     }
     res.end(data);
   });
@@ -75,11 +74,7 @@ async function handler(req, res) {
     '/api/login-user': loginUser,
     '/api/validate-ad-phones': validateAdPhones,
     '/api/publish-ad': publishAd,
-    '/api/my-ads': myAds,
-    '/api/public-ads': publicAds,
-    '/api/public-ad': publicAd,
-    '/api/public-promotions': publicPromotions,
-    '/api/ad-image': adImage
+    '/api/my-ads': myAds
   };
 
   const apiHandler = apiRoutes[url.pathname];
@@ -117,7 +112,6 @@ async function handler(req, res) {
   }
 
   let pathname = decodeURIComponent(url.pathname);
-  if (/^\/ad\/[^/]+\/?$/.test(pathname)) pathname = '/ad-detail.html';
   if (pathname === '/') pathname = '/index.html';
   if (pathname === '/admin' || pathname === '/admin/') pathname = '/admin.html';
   if (pathname === '/post-ad') pathname = '/post-ad.html';
@@ -130,7 +124,7 @@ async function handler(req, res) {
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     if (!path.extname(pathname)) filePath = path.join(publicDir, 'index.html');
   }
-  return sendFile(res, filePath);
+  return sendFile(res, filePath, url);
 }
 
 module.exports = handler;

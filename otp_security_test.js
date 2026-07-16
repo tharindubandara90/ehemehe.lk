@@ -79,7 +79,10 @@ async function invoke(handler, body) {
     }
     if (String(url).includes('/auth/v1/admin/users') && options.method === 'POST') {
       createCount++;
-      return {ok:true,status:200,json:async()=>({id:'user-1',phone:'+94771234567'})};
+      return {ok:true,status:200,json:async()=>({id:'user-1',email:'phone-94771234567@auth.ehemehe.lk',user_metadata:{phone:'94771234567'}})};
+    }
+    if (String(url).includes('/auth/v1/token?grant_type=password')) {
+      return {ok:true,status:200,json:async()=>({access_token:'access',refresh_token:'refresh',expires_in:3600,token_type:'bearer',user:{id:'user-1',email:'phone-94771234567@auth.ehemehe.lk',user_metadata:{phone:'94771234567'}}})};
     }
     throw new Error('Unexpected URL '+url);
   };

@@ -8,7 +8,8 @@
 
   function safeReturnTarget() {
     try {
-      const requested = new URLSearchParams(location.search).get('return') || '';
+      const params = new URLSearchParams(location.search);
+      const requested = params.get('returnTo') || params.get('return') || '';
       if (requested.startsWith('/') && !requested.startsWith('//')) return requested;
     } catch (_) {}
     return '/dashboard';
@@ -67,11 +68,12 @@
   let resetVerifiedToken = '';
 
   const normalizePhone = (value) => {
-    if (window.EHM_OTP) return EHM_OTP.normalizePhone(value);
+    const service = window.EHM_SMS;
+    if (service?.normalizePhone) return service.normalizePhone(value);
     let raw = String(value || '').replace(/[^\d+]/g, '');
     if (raw.startsWith('+')) raw = raw.slice(1);
-    if (raw.startsWith('0') && raw.length === 10) raw = '94' + raw.slice(1);
-    if (raw.length === 9 && raw.startsWith('7')) raw = '94' + raw;
+    if (raw.startsWith('0') && raw.length === 10) raw = `94${raw.slice(1)}`;
+    if (raw.length === 9 && raw.startsWith('7')) raw = `94${raw}`;
     return raw;
   };
 
@@ -81,9 +83,8 @@
   async function getSettings() {
     if (settings) return settings;
     try {
-      const response = await fetch('/api/auth-settings', { cache: 'no-store' });
-      const data = await response.json();
-      settings = data.settings || {};
+      const sms = await window.EHM_SMS.whenReady();
+      settings = await sms.settings();
     } catch (_) {
       settings = {
         emailOtpEnabled: true,
@@ -140,6 +141,7 @@
     registrationChallenge = '';
     smsVerificationId = '';
     smsVerifiedToken = '';
+    try { window.EHM_SMS?.registration?.reset?.(); } catch (_) {}
     const otp = $('ehmOtp');
     if (otp) otp.value = '';
   }
@@ -148,7 +150,7 @@
     resetStep = 'phone';
     resetPhone = '';
     resetVerifiedToken = '';
-    try { window.EHM_OTP?.reset?.('password_reset_phone'); } catch (_) {}
+    try { window.EHM_SMS?.passwordReset?.reset?.(); } catch (_) {}
 
     ['ehmResetPhone', 'ehmResetOtp', 'ehmResetPassword', 'ehmResetPasswordConfirm']
       .forEach((id) => {
@@ -425,16 +427,11 @@
     setBusy(true);
 
     try {
-      const response = await fetch('/api/request-registration-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: data.phone,
-          email: data.email
-        })
+      const sms = await window.EHM_SMS.whenReady();
+      const result = await sms.registration.request({
+        phone: data.phone,
+        email: data.email
       });
-      const result = await readApiResponse(response);
-      if (!response.ok || result.ok === false) throw new Error(result.message || `Could not send the OTP (HTTP ${response.status}).`);
 
       registrationChallenge = result.challenge || '';
       otpSent = true;
@@ -459,23 +456,17 @@
     setBusy(true);
 
     try {
-      const response = await fetch('/api/verify-registration-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challenge: registrationChallenge,
-          code: otp,
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          password: data.password
-        })
+      const sms = await window.EHM_SMS.whenReady();
+      const result = await sms.registration.verifyAndCreate({
+        challenge: registrationChallenge,
+        code: otp,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        password: data.password
       });
-      const result = await readApiResponse(response);
-      if (!response.ok || result.ok === false) throw new Error(result.message || `OTP verification failed (HTTP ${response.status}).`);
 
       await installServerSession(result.session);
-
       message('OTP verified. Your account has been created successfully.', true);
       setTimeout(() => { location.href = safeReturnTarget(); }, 600);
     } catch (error) {
@@ -550,21 +541,21 @@
   }
 
   async function sendPasswordResetOtp() {
-    const s = await getSettings();
+    const currentSettings = await getSettings();
     const entered = String($('ehmResetPhone')?.value || '').trim();
     const phone = normalizePhone(entered);
 
     if (!validPhone(phone)) {
       return message('Enter a valid Sri Lankan mobile number.');
     }
-    if (!(s.smsOtpEnabled && s.smsPasswordChangeOtp)) {
+    if (!(currentSettings.smsOtpEnabled && currentSettings.smsPasswordChangeOtp)) {
       return message('SMS password reset is currently unavailable.');
     }
 
     setBusy(true);
     try {
-      window.EHM_OTP?.reset?.('password_reset_phone');
-      const sent = await window.EHM_OTP.request(phone, 'password_reset_phone');
+      const sms = await window.EHM_SMS.whenReady();
+      const sent = await sms.passwordReset.request(phone);
 
       resetPhone = phone;
       resetVerifiedToken = '';
@@ -599,11 +590,8 @@
 
     setBusy(true);
     try {
-      const verified = await window.EHM_OTP.verify(
-        resetPhone,
-        'password_reset_phone',
-        otp
-      );
+      const sms = await window.EHM_SMS.whenReady();
+      const verified = await sms.passwordReset.verify(resetPhone, otp);
 
       if (!verified.verifiedToken) {
         throw new Error('The server did not return a valid verification token.');
@@ -637,24 +625,8 @@
 
     setBusy(true);
     try {
-      const response = await fetch('/api/reset-phone-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          phone: resetPhone,
-          password,
-          verifiedToken: resetVerifiedToken
-        })
-      });
-
-      const result = await readApiResponse(response);
-      if (!response.ok || result.ok === false) {
-        throw new Error(result.message || `Could not change the password (HTTP ${response.status}).`);
-      }
-
+      const sms = await window.EHM_SMS.whenReady();
+      await sms.passwordReset.update(resetPhone, password, resetVerifiedToken);
       returnToLogin('Password updated successfully. Log in using your new password.');
     } catch (error) {
       message(error.message || 'Could not update the password.');
@@ -667,6 +639,7 @@
     const path = location.pathname.replace(/\/$/, '');
     if (!['/login', '/signup'].includes(path)) return;
 
+    await window.EHM_SMS.whenReady();
     await getSettings();
 
     const root = document.getElementById('root');

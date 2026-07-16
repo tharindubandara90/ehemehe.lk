@@ -8,7 +8,7 @@ const DEFAULT_SUPABASE_URL = 'https://ieymsjeywkapqeniirlm.supabase.co';
 function json(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
-  if (!res.hasHeader || !res.hasHeader('Cache-Control')) res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(body));
 }
 
