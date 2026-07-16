@@ -36,7 +36,13 @@ module.exports = async function handler(req, res) {
     );
     const data = await response.json().catch(() => []);
     if (!response.ok) {
-      throw new Error(data.message || data.details || 'Could not read your ads.');
+      const message = data.message || data.details || 'Could not read your ads.';
+      const missingAdsTable =
+        data.code === 'PGRST205' ||
+        data.code === '42P01' ||
+        /could not find the table ['"]?public\.ads|relation ['"]?public\.ads|relation ['"]?ads['"]? does not exist/i.test(message);
+      if (missingAdsTable) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
+      throw new Error(message);
     }
 
     const ads = (Array.isArray(data) ? data : []).filter((row) => {
@@ -54,9 +60,15 @@ module.exports = async function handler(req, res) {
     return json(res, 200, { ok: true, ads });
   } catch (error) {
     const auth = error.message === 'AUTH_REQUIRED';
-    return json(res, auth ? 401 : 400, {
+    const schemaMissing = error.message === 'DATABASE_SCHEMA_MISSING_ADS';
+    return json(res, auth ? 401 : (schemaMissing ? 503 : 400), {
       ok: false,
-      message: auth ? 'Log in to view your ads.' : (error.message || 'Could not read your ads.')
+      code: schemaMissing ? 'DATABASE_SCHEMA_MISSING_ADS' : undefined,
+      message: auth
+        ? 'Log in to view your ads.'
+        : schemaMissing
+          ? 'Marketplace database setup is incomplete. Run supabase_marketplace_core_schema.sql once in the Supabase SQL Editor.'
+          : (error.message || 'Could not read your ads.')
     });
   }
 };

@@ -75,11 +75,22 @@ function siteStaticAdminAds(){
   return SITE_STATIC_ADS.map(normalizeSiteStaticAd).filter(Boolean);
 }
 function enrichSupabaseAd(ad){
+  let custom = ad.custom_fields || {};
+  if(typeof custom === 'string'){
+    try{ custom = JSON.parse(custom); }catch(_){ custom = {}; }
+  }
+  const categoryId = String(ad.category_id || ad.categories?.id || custom.subcategory_slug || custom.category_slug || '').toLowerCase();
+  const cityId = String(ad.city_id || ad.cities?.id || custom.city || ad.city || '').toLowerCase();
+  const categoryName = ad.categories?.name || custom.subcategory_name || custom.category_name || '';
+  const cityName = ad.cities?.name || custom.city || ad.city || '';
   return {
     ...ad,
+    custom_fields: custom,
     source: ad.source || 'supabase',
-    category_id: String(ad.category_id || ad.categories?.id || '').toLowerCase(),
-    city_id: String(ad.city_id || ad.cities?.id || ad.city || '').toLowerCase()
+    category_id: categoryId,
+    city_id: cityId,
+    categories: ad.categories || (categoryName ? {id:categoryId, name:categoryName, slug:categoryId} : null),
+    cities: ad.cities || (cityName ? {id:cityId, name:cityName, district_id:custom.district || ad.district_id || ''} : null)
   };
 }
 function mergeDashboardAds(supabaseRows, staticRows){

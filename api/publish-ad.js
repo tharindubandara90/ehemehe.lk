@@ -78,7 +78,9 @@ async function resolveLookups(body) {
   }) || cities.find((row) => slug(row.name) === cityWanted) || null;
 
   return {
-    categoryId: category?.id || body.subcategoryId || body.categoryId || null,
+    // Only store lookup IDs that actually exist in this Supabase project.
+    // Category/city slugs and names remain safely preserved in custom_fields.
+    categoryId: category?.id || null,
     cityId: city?.id || null,
     category,
     city,
@@ -141,7 +143,13 @@ async function insertAd(payload) {
     if (response.ok) return Array.isArray(data) ? data[0] : data;
     lastMessage = data.message || data.details || data.hint || `HTTP ${response.status}`;
 
-    const retryable = /column|schema cache|foreign key|violates|not present/i.test(lastMessage);
+    const missingAdsTable =
+      data.code === 'PGRST205' ||
+      data.code === '42P01' ||
+      /could not find the table ['"]?public\.ads|relation ['"]?public\.ads|relation ['"]?ads['"]? does not exist/i.test(lastMessage);
+    if (missingAdsTable) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
+
+    const retryable = /column|foreign key|violates|not present/i.test(lastMessage);
     if (!retryable) break;
   }
 
@@ -219,9 +227,15 @@ module.exports = async function handler(req, res) {
     });
   } catch (error) {
     const auth = error.message === 'AUTH_REQUIRED';
-    return json(res, auth ? 401 : 400, {
+    const schemaMissing = error.message === 'DATABASE_SCHEMA_MISSING_ADS';
+    return json(res, auth ? 401 : (schemaMissing ? 503 : 400), {
       ok: false,
-      message: auth ? 'Log in before publishing an ad.' : (error.message || 'Could not publish the ad.')
+      code: schemaMissing ? 'DATABASE_SCHEMA_MISSING_ADS' : undefined,
+      message: auth
+        ? 'Log in before publishing an ad.'
+        : schemaMissing
+          ? 'Marketplace database setup is incomplete. Run supabase_marketplace_core_schema.sql once in the Supabase SQL Editor.'
+          : (error.message || 'Could not publish the ad.')
     });
   }
 };

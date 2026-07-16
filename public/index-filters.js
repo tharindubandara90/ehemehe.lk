@@ -224,12 +224,12 @@
 
   function normalizeAd(raw, source = 'static') {
     const image = raw.image_url || raw.image || (Array.isArray(raw.images) ? raw.images[0] : '');
-    const categoryName = raw.categoryName || raw.categories?.name || raw.category || '';
-    const cityName = raw.cityName || raw.cities?.name || raw.city || raw.location || '';
-    const districtId = raw.district_id || raw.districtId || raw.cities?.district_id || raw.district || raw.location || '';
-    const seller = raw.seller && typeof raw.seller === 'object' ? { ...raw.seller } : {};
     let customFields = raw.custom_fields || raw.customFields || {};
     if (typeof customFields === 'string') { try { customFields = JSON.parse(customFields); } catch (_) { customFields = {}; } }
+    const categoryName = raw.categoryName || raw.categories?.name || raw.category || customFields.subcategory_name || customFields.category_name || '';
+    const cityName = raw.cityName || raw.cities?.name || raw.city || raw.location || customFields.city || '';
+    const districtId = raw.district_id || raw.districtId || raw.cities?.district_id || raw.district || raw.location || customFields.district || '';
+    const seller = raw.seller && typeof raw.seller === 'object' ? { ...raw.seller } : {};
     const rawPhones = raw.contactPhones || raw.contact_phones || customFields.contact_phones || customFields.verified_contact_phones || [];
     const phoneArray = Array.isArray(rawPhones) ? rawPhones : (rawPhones ? [rawPhones] : []);
     const primaryPhone = String(

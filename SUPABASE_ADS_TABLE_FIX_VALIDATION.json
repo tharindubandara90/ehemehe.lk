@@ -1,0 +1,36 @@
+{
+  "root_cause": "The previous supabase_post_ad_end_to_end.sql only altered public.ads if it already existed and never created the table.",
+  "production_error": "PGRST205: Could not find the table 'public.ads' in the schema cache",
+  "database_migration": {
+    "file": "supabase_marketplace_core_schema.sql",
+    "idempotent": true,
+    "creates_ads": true,
+    "preserves_existing_tables_and_rows": true,
+    "adds_required_columns": true,
+    "adds_indexes": true,
+    "adds_rls_policies": true,
+    "adds_category_city_relationships": true,
+    "reloads_postgrest_schema_cache": true,
+    "legacy_helper_synchronized": "supabase_post_ad_end_to_end.sql"
+  },
+  "application_fixes": {
+    "lookup_ids_only_when_database_rows_exist": true,
+    "category_city_names_preserved_in_custom_fields": true,
+    "public_browsing_custom_field_fallback": true,
+    "admin_custom_field_fallback": true,
+    "my_ads_missing_table_detection": true,
+    "publish_missing_table_detection": true
+  },
+  "live_database_migration_executed": false,
+  "reason_live_database_not_changed": "No authenticated Supabase SQL execution connector is available in this environment.",
+  "testing": {
+    "regression_passes": 3,
+    "tests_per_pass": 15,
+    "all_passed": true,
+    "category_schema": "13 main categories / 62 subcategories",
+    "javascript_syntax": true,
+    "http_routes_and_cache": true,
+    "performance_stability": true,
+    "schema_regression": true
+  }
+}

@@ -142,16 +142,29 @@ function getDistrictId(ad){
 }
 
 function normalizeAd(ad){
+  let custom = ad.custom_fields || {};
+  if(typeof custom === 'string'){
+    try{ custom = JSON.parse(custom); }catch(_){ custom = {}; }
+  }
+  const categoryId = String(ad.category_id || ad.categoryId || ad.categories?.id || custom.subcategory_slug || custom.category_slug || ad.category || '').toLowerCase();
+  const cityId = String(ad.city_id || ad.cityId || ad.cities?.id || custom.city || ad.city || '').toLowerCase();
+  const categoryName = ad.categories?.name || ad.category_name || custom.subcategory_name || custom.category_name || '';
+  const cityName = ad.cities?.name || ad.city_name || custom.city || ad.city || ad.location || '';
+  const districtId = ad.cities?.district_id || ad.district_id || custom.district || '';
+  const phones = ad.contact_phones || custom.contact_phones || custom.verified_contact_phones || [];
   return {
     ...ad,
+    custom_fields: custom,
     id: String(ad.id ?? ad.slug ?? cryptoRandomId()),
     title: ad.title || ad.name || 'Untitled ad',
     price: ad.price ?? ad.amount ?? '',
     description: ad.description || ad.details || '',
-    category_id: String(ad.category_id || ad.categoryId || ad.categories?.id || ad.category || '').toLowerCase(),
-    city_id: String(ad.city_id || ad.cityId || ad.cities?.id || ad.city || '').toLowerCase(),
+    category_id: categoryId,
+    city_id: cityId,
+    categories: ad.categories || (categoryName ? {id:categoryId, name:categoryName, slug:categoryId} : null),
+    cities: ad.cities || (cityName ? {id:cityId, name:cityName, district_id:districtId} : null),
     phone: ad.phone || ad.contact_phone || ad.mobile || '',
-    contact_phones: (()=>{let c=ad.custom_fields||{};if(typeof c==='string'){try{c=JSON.parse(c)}catch(_){c={}}}const p=ad.contact_phones||c.contact_phones||c.verified_contact_phones||[];return Array.from(new Set([ad.phone||ad.contact_phone||ad.mobile||'',...(Array.isArray(p)?p:[p])].filter(Boolean)));})(),
+    contact_phones: Array.from(new Set([ad.phone||ad.contact_phone||ad.mobile||'', ...(Array.isArray(phones)?phones:[phones])].filter(Boolean))),
     status: ad.status || 'approved'
   };
 }
