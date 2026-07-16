@@ -22,6 +22,11 @@ assert(helper.includes("target.id = 'ehmDynamicAdDetail'"), 'Dynamic detail host
 assert(helper.includes('Category Details'), 'Category-specific public details are missing');
 assert(helper.includes('Contact Seller'), 'Seller contact block is missing');
 assert(helper.includes('data-ehm-detail-image'), 'Multi-image detail gallery is missing');
+assert(helper.includes('body.ehm-ad-detail-pending #root main'), 'Database ad route does not hide the temporary React not-found main area');
+assert(helper.includes('beginDynamicDetailPending();'), 'Pre-paint database detail loading guard is not activated');
+assert(helper.includes('cachePublicDetailAd(selected)'), 'Clicked live ad is not cached before navigation');
+assert(helper.includes('const routeAdPromise = loadAdForCurrentRoute();'), 'Selected ad is not fetched before background list/settings work');
+assert(helper.includes('Promise.allSettled([loadFinanceSettings(), loadPromotions(), loadAds()])'), 'Non-critical ad detail work is not deferred to the background');
 
 // Desktop must display live ads without requiring a banner or an active filter.
 assert(helper.includes('renderDesktopResults(true, false);'), 'Desktop live ads are still conditional');
@@ -41,12 +46,17 @@ function instrumentSource(source) {
     normalizeAd,
     dynamicDetailHtml,
     loadAds,
-    loadAdForCurrentRoute
+    loadAdForCurrentRoute,
+    cachePublicDetailAd,
+    readPublicDetailAd,
+    beginDynamicDetailPending,
+    finishDynamicDetailPending
   };
 ` + source.slice(end);
 }
 
-function makeContext(pathname, supabaseClient) {
+function makeContext(pathname, supabaseClient, sharedSessionStorage = null) {
+  const sessionMap = sharedSessionStorage || new Map();
   const context = {
     console,
     setTimeout,
@@ -64,6 +74,11 @@ function makeContext(pathname, supabaseClient) {
     location: { pathname, search: '', hash: '' },
     history: { pushState() {}, replaceState() {}, scrollRestoration: 'auto' },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
+    sessionStorage: {
+      getItem(key) { return sessionMap.has(key) ? sessionMap.get(key) : null; },
+      setItem(key, value) { sessionMap.set(key, String(value)); },
+      removeItem(key) { sessionMap.delete(key); }
+    },
     document: {
       readyState: 'loading',
       addEventListener() {},
@@ -72,7 +87,7 @@ function makeContext(pathname, supabaseClient) {
       querySelectorAll() { return []; },
       head: { appendChild() {} },
       body: { classList: { add() {}, remove() {} } },
-      documentElement: { scrollTop: 0 },
+      documentElement: { scrollTop: 0, classList: { add() {}, remove() {} } },
       createElement() { return { id: '', className: '', style: {}, classList: { add() {}, remove() {}, toggle() {} }, appendChild() {}, setAttribute() {} }; }
     },
     MutationObserver: class { observe() {} disconnect() {} },
@@ -174,6 +189,17 @@ function queryClient({ relationshipError = false } = {}) {
 
   const routed = await api.loadAdForCurrentRoute();
   assert(routed && routed.id === DB_AD.id, 'Direct /ad/:id database lookup failed');
+
+  // A listing clicked from the home grid must be available synchronously on
+  // the next /ad/:id page, so the temporary React not-found branch never appears.
+  const sharedSession = new Map();
+  const cacheWriter = makeContext('/', null, sharedSession);
+  const cachedNormalized = cacheWriter.__ehmPublicAdsTest.normalizeAd(DB_AD, 'supabase');
+  assert.strictEqual(cacheWriter.__ehmPublicAdsTest.cachePublicDetailAd(cachedNormalized), true);
+  const cacheReader = makeContext(`/ad/${DB_AD.id}`, null, sharedSession);
+  const instant = await cacheReader.__ehmPublicAdsTest.loadAdForCurrentRoute();
+  assert(instant && instant.id === DB_AD.id, 'Session-cached selected ad was not restored instantly');
+  assert.strictEqual(instant.title, DB_AD.title);
 
   // Functional relationship-query fallback test used by mobile and desktop lists.
   const fallbackClient = queryClient({ relationshipError: true });

@@ -1,0 +1,29 @@
+{
+  "fix": "public_ad_detail_instant_loading",
+  "root_causes": [
+    "bundled React ad lookup rendered temporary Ad not found for database UUID ads",
+    "full approved ads list was awaited before selected ad lookup",
+    "finance and promotion queries blocked first detail render",
+    "selected listing data was not preserved across navigation"
+  ],
+  "changes": [
+    "pre-navigation selected-ad cache",
+    "two-minute guarded session cache",
+    "direct selected ID query before full list query",
+    "non-critical background finance/promotion/list loading",
+    "pre-paint controlled loading state",
+    "temporary React not-found main hidden until lookup completion",
+    "Base64 cache size guard"
+  ],
+  "preserved": [
+    "public mobile listings",
+    "public desktop listings",
+    "authentication and SMS OTP",
+    "Post Ad and publishing",
+    "Dashboard My Ads",
+    "admin functions",
+    "category-specific fields",
+    "District and City"
+  ],
+  "production_tested": false
+}

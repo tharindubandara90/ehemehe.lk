@@ -134,6 +134,9 @@
   let adsLoadPromise = null;
   let supabaseAds = [];
   const detailAdCache = new Map();
+  const DETAIL_ROUTE_CACHE_PREFIX = 'ehemehe:publicAdDetail:v2:';
+  const DETAIL_ROUTE_CACHE_TTL_MS = 2 * 60 * 1000;
+  let detailPendingRoute = '';
   let adPromotions = [];
   let bannerAds = [];
   let promotionsLoaded = false;
@@ -172,6 +175,114 @@
 
   function isAdRoute() {
     return /^\/ad\//.test(window.location.pathname);
+  }
+
+  function isDatabaseAdRoute() {
+    if (!isAdRoute()) return false;
+    const id = currentRouteAdId().replace(/^static-/, '');
+    return !!id && !/^\d+$/.test(id);
+  }
+
+  function detailRouteCacheKey(id) {
+    return `${DETAIL_ROUTE_CACHE_PREFIX}${encodeURIComponent(String(id || '').replace(/^static-/, ''))}`;
+  }
+
+  function cachePublicDetailAd(ad) {
+    if (!ad || ad.source !== 'supabase' || !ad.id) return false;
+    const id = String(ad.id).replace(/^static-/, '');
+    detailAdCache.set(id, ad);
+    window.__ehmSelectedPublicAd = ad;
+
+    try {
+      if (!window.sessionStorage) return true;
+      let cachedAd = ad;
+      let json = JSON.stringify({ savedAt: Date.now(), ad: cachedAd });
+      // Avoid exceeding mobile-browser sessionStorage when a legacy listing
+      // contains large Base64 photos. The first image is enough for an instant
+      // first render; the normal Supabase request refreshes the complete ad.
+      if (json.length > 700000) {
+        cachedAd = { ...ad, images: (ad.images || []).slice(0, 1), image: ad.image || ad.images?.[0] || '' };
+        json = JSON.stringify({ savedAt: Date.now(), ad: cachedAd });
+      }
+      window.sessionStorage.setItem(detailRouteCacheKey(id), json);
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  function readPublicDetailAd(id) {
+    const cleanId = String(id || '').replace(/^static-/, '');
+    if (!cleanId) return null;
+
+    const inMemory = detailAdCache.get(cleanId);
+    if (inMemory) return inMemory;
+
+    const selected = window.__ehmSelectedPublicAd;
+    if (selected && String(selected.id).replace(/^static-/, '') === cleanId) {
+      detailAdCache.set(cleanId, selected);
+      return selected;
+    }
+
+    try {
+      if (!window.sessionStorage) return null;
+      const raw = window.sessionStorage.getItem(detailRouteCacheKey(cleanId));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.ad || Date.now() - Number(parsed.savedAt || 0) > DETAIL_ROUTE_CACHE_TTL_MS) {
+        window.sessionStorage.removeItem(detailRouteCacheKey(cleanId));
+        return null;
+      }
+      const normalized = parsed.ad.source === 'supabase' ? parsed.ad : normalizeAd(parsed.ad, 'supabase');
+      if (String(normalized.id).replace(/^static-/, '') !== cleanId) return null;
+      detailAdCache.set(cleanId, normalized);
+      return normalized;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function installAdDetailPendingStyles() {
+    if (document.getElementById('ehmAdDetailPendingStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'ehmAdDetailPendingStyles';
+    style.textContent = `
+      body.ehm-ad-detail-pending #root main{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+      #ehmAdDetailPendingShell{display:none;position:fixed;z-index:25;left:50%;top:52%;transform:translate(-50%,-50%);width:min(520px,calc(100vw - 40px));padding:28px 24px;border:1px solid #e6edf2;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(15,23,42,.10);text-align:center;color:#64748b}
+      body.ehm-ad-detail-pending #ehmAdDetailPendingShell{display:block}
+      #ehmAdDetailPendingShell .ehm-pending-spinner{width:42px;height:42px;margin:0 auto 15px;border:4px solid #dff6ee;border-top-color:#22b98b;border-radius:50%;animation:ehm-detail-spin .7s linear infinite}
+      #ehmAdDetailPendingShell strong{display:block;font-size:18px;color:#0f172a;margin-bottom:5px}
+      #ehmAdDetailPendingShell span{font-size:14px}
+      @keyframes ehm-detail-spin{to{transform:rotate(360deg)}}
+      @media(max-width:767px){#ehmAdDetailPendingShell{top:48%;width:calc(100vw - 32px);padding:24px 18px;border-radius:16px}}
+    `;
+    document.head?.appendChild?.(style);
+  }
+
+  function beginDynamicDetailPending() {
+    if (!isDatabaseAdRoute()) return false;
+    const route = `${window.location.pathname}${window.location.search || ''}`;
+    detailPendingRoute = route;
+    installAdDetailPendingStyles();
+    document.documentElement?.classList?.add('ehm-ad-detail-pending');
+    document.body?.classList?.add('ehm-ad-detail-pending');
+
+    if (!document.getElementById('ehmAdDetailPendingShell') && document.body?.appendChild) {
+      const shell = document.createElement('div');
+      shell.id = 'ehmAdDetailPendingShell';
+      shell.setAttribute?.('role', 'status');
+      shell.setAttribute?.('aria-live', 'polite');
+      shell.innerHTML = '<div class="ehm-pending-spinner"></div><strong>Loading ad</strong><span>Please wait a moment…</span>';
+      document.body.appendChild(shell);
+    }
+    return true;
+  }
+
+  function finishDynamicDetailPending() {
+    detailPendingRoute = '';
+    document.documentElement?.classList?.remove('ehm-ad-detail-pending');
+    document.body?.classList?.remove('ehm-ad-detail-pending');
+    document.getElementById('ehmAdDetailPendingShell')?.remove?.();
   }
 
   function isSameId(a, b) {
@@ -947,7 +1058,7 @@
     const location = ad.location || ad.cityName || '';
     const price = formatPrice(ad.price, ad.currency);
     return `
-      <a class="ehm-ad-card" href="${esc(href)}">
+      <a class="ehm-ad-card" href="${esc(href)}" data-ehm-ad-id="${esc(ad.id)}">
         <div class="ehm-ad-img-wrap">
           ${ad.image ? `<img class="ehm-ad-img" src="${esc(ad.image)}" alt="${esc(ad.title)}" loading="lazy">` : ''}
           <div class="ehm-badges">${topPromotionForAd(ad) ? '<span class="ehm-badge top">Top Ad</span>' : (ad.isFeatured ? '<span class="ehm-badge featured">Featured</span>' : '<span></span>')}${ad.isPromoted ? '<span class="ehm-badge promoted">Promoted</span>' : ''}</div>
@@ -1833,12 +1944,18 @@
     const existing = allAds().find((ad) => String(ad.id) === rawId || String(ad.id) === cleanId);
     if (existing) return existing;
 
-    const cached = detailAdCache.get(rawId) || detailAdCache.get(cleanId);
+    const cached = readPublicDetailAd(cleanId);
     if (cached) return cached;
-    if (!window.supabaseClient || /^\d+$/.test(cleanId)) return null;
+    if (/^\d+$/.test(cleanId)) return null;
+
+    let client = window.supabaseClient;
+    if (!client && typeof window.waitForSupabaseClient === 'function') {
+      try { client = await window.waitForSupabaseClient(2500); } catch (_) { client = null; }
+    }
+    if (!client) return null;
 
     try {
-      const { data, error } = await window.supabaseClient
+      const { data, error } = await client
         .from('ads')
         .select('*')
         .eq('id', cleanId)
@@ -1846,7 +1963,7 @@
         .limit(1);
       if (error || !Array.isArray(data) || !data[0]) return null;
       const normalized = normalizeAd(data[0], 'supabase');
-      detailAdCache.set(String(normalized.id), normalized);
+      cachePublicDetailAd(normalized);
       if (!supabaseAds.some((ad) => String(ad.id) === String(normalized.id))) {
         supabaseAds = [normalized, ...supabaseAds];
       }
@@ -1970,9 +2087,15 @@
   function renderDynamicAdDetail(ad) {
     if (!isAdRoute() || !ad || ad.source !== 'supabase') return false;
     installDynamicDetailStyles();
-    const signature = JSON.stringify([ad.id, ad.title, ad.price, ad.description, ad.images, ad.customFields, ad.contactPhones]);
+    const signature = JSON.stringify([
+      ad.id, ad.title, ad.price, ad.description, ad.images, ad.customFields, ad.contactPhones,
+      financeSettings.downPaymentPercent, financeSettings.annualRatePercent, financeSettings.months, financeSettings.companyPhone
+    ]);
     let host = document.getElementById('ehmDynamicAdDetail');
-    if (host && host.__ehmSignature === signature) return true;
+    if (host && host.__ehmSignature === signature) {
+      finishDynamicDetailPending();
+      return true;
+    }
 
     if (!host) {
       const notFoundHeading = Array.from(document.querySelectorAll('#root h1,#root h2,#root h3')).find((node) => String(node.textContent || '').trim() === 'Ad not found');
@@ -1991,6 +2114,8 @@
       bindDynamicDetailGallery(host);
     }
     document.body.classList.add('ehm-dynamic-detail-active');
+    cachePublicDetailAd(ad);
+    finishDynamicDetailPending();
     return true;
   }
 
@@ -2085,11 +2210,36 @@
       if (isAdRoute()) {
         openAdPageAtTop();
         removeManagedHome();
-        await loadFinanceSettings();
-        await loadAds();
-        const routeAd = await loadAdForCurrentRoute();
-        renderDynamicAdDetail(routeAd);
-        await loadPromotions();
+        beginDynamicDetailPending();
+
+        // The old flow waited for the complete ads list and finance/settings
+        // queries before looking up the selected ad. Fetch the route ad first,
+        // and use the click/session cache immediately when available.
+        const instantAd = readPublicDetailAd(currentRouteAdId());
+        if (instantAd) renderDynamicAdDetail(instantAd);
+
+        const routeAdPromise = loadAdForCurrentRoute();
+        const routeAd = await routeAdPromise;
+        if (routeAd) {
+          renderDynamicAdDetail(routeAd);
+        } else if (isDatabaseAdRoute()) {
+          // Only reveal React's real not-found state after the approved-ad
+          // lookup has actually completed. It is never shown as a loading UI.
+          finishDynamicDetailPending();
+        }
+
+        // Non-critical page enhancements refresh in the background and no
+        // longer delay the first ad-detail render.
+        Promise.allSettled([loadFinanceSettings(), loadPromotions(), loadAds()]).then(() => {
+          if (!isAdRoute()) return;
+          const latest = readPublicDetailAd(currentRouteAdId()) || currentAdForDetail();
+          if (latest?.source === 'supabase') renderDynamicAdDetail(latest);
+          injectAdDetailBanner();
+          injectAdDetailFinance();
+          injectSellerPhoneAboveCall();
+          hideAdDetailLocation();
+        });
+
         injectAdDetailBanner();
         injectAdDetailFinance();
         injectSellerPhoneAboveCall();
@@ -2182,9 +2332,11 @@
     refreshRouteObserver();
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
+      beginDynamicDetailPending();
       openAdPageAtTop(true);
       scheduleAdDetailStabilization(true);
     } else {
+      finishDynamicDetailPending();
       scheduleAdDetailStabilization(true);
     }
     scheduleSync(30);
@@ -2193,6 +2345,17 @@
   function installRouteWatchers() {
     if (window.__ehmFinalWatchers) return;
     window.__ehmFinalWatchers = true;
+
+    document.addEventListener('click', (event) => {
+      const link = event.target?.closest?.('a[data-ehm-ad-id],a[href^="/ad/"]');
+      if (!link) return;
+      const href = String(link.getAttribute('href') || '');
+      const rawId = link.getAttribute('data-ehm-ad-id') || href.replace(/^\/ad\//, '').split(/[?#]/)[0];
+      const cleanId = decodeURIComponent(String(rawId || '')).replace(/^static-/, '');
+      const selected = allAds().find((ad) => String(ad.id).replace(/^static-/, '') === cleanId);
+      if (selected?.source === 'supabase') cachePublicDetailAd(selected);
+      if (cleanId && !/^\d+$/.test(cleanId)) beginDynamicDetailPending();
+    }, true);
 
     const originalPush = history.pushState;
     const originalReplace = history.replaceState;
@@ -2246,6 +2409,11 @@
     setTimeout(sync, 300);
     setTimeout(sync, 900);
   }
+
+  // This script is loaded before the deferred React bundle finishes its first
+  // render. Hide the database-detail main area immediately so the bundled
+  // temporary "Ad not found" branch can never flash on screen.
+  beginDynamicDetailPending();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
