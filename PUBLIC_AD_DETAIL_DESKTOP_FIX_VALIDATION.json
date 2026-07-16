@@ -1,0 +1,16 @@
+{
+  "rootCause": {
+    "mobileListSource": "Supabase ads via index-filters.js",
+    "oldDetailSource": "Bundled React sample ads array only",
+    "desktopVisibilityBug": "Live grid was gated by active banner presence"
+  },
+  "fixes": [
+    "direct approved ad fetch by route id",
+    "dynamic database-backed public ad detail",
+    "relationship-query plain table fallback",
+    "unconditional desktop latest live ads",
+    "category details and multiple image gallery",
+    "no permanent polling"
+  ],
+  "regressionTest": "public_ads_detail_desktop_regression_test.js"
+}

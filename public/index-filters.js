@@ -131,7 +131,9 @@
   };
   let lookupsLoaded = false;
   let adsLoaded = false;
+  let adsLoadPromise = null;
   let supabaseAds = [];
+  const detailAdCache = new Map();
   let adPromotions = [];
   let bannerAds = [];
   let promotionsLoaded = false;
@@ -255,7 +257,7 @@
       districtId,
       image,
       images: Array.isArray(raw.images) ? raw.images : (image ? [image] : []),
-      condition: raw.condition || 'new',
+      condition: raw.condition || '',
       postedAt: raw.created_at || raw.postedAt || raw.updated_at || '',
       isFeatured: !!raw.isFeatured || !!raw.featured,
       isPromoted: !!raw.isPromoted || !!raw.promoted,
@@ -367,20 +369,44 @@
 
   async function loadAds() {
     if (adsLoaded) return supabaseAds;
-    adsLoaded = true;
-    try {
-      if (!window.supabaseClient) throw new Error('No Supabase client');
-      const { data, error } = await window.supabaseClient
-        .from('ads')
-        .select('*, categories(name,slug), cities(id,name,district_id)')
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      supabaseAds = (data || []).map((ad) => normalizeAd(ad, 'supabase'));
-    } catch (e) {
-      supabaseAds = [];
-    }
-    return supabaseAds;
+    if (adsLoadPromise) return adsLoadPromise;
+    if (!window.supabaseClient) return supabaseAds;
+
+    adsLoadPromise = (async () => {
+      try {
+        let result = await window.supabaseClient
+          .from('ads')
+          .select('*, categories(name,slug), cities(id,name,district_id)')
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false });
+
+        // Some existing projects do not yet have relationship metadata in the
+        // PostgREST schema cache. The ads themselves are still public, so fall
+        // back to a plain table query instead of hiding every live listing.
+        if (result.error) {
+          result = await window.supabaseClient
+            .from('ads')
+            .select('*')
+            .eq('status', 'approved')
+            .order('created_at', { ascending: false });
+        }
+
+        if (result.error) throw result.error;
+        supabaseAds = (result.data || []).map((ad) => normalizeAd(ad, 'supabase'));
+        supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
+        adsLoaded = true;
+      } catch (e) {
+        supabaseAds = [];
+        // Mark this pass complete to avoid a network-error retry loop from the
+        // route observer. A normal page reload can attempt the query again.
+        adsLoaded = true;
+      } finally {
+        adsLoadPromise = null;
+      }
+      return supabaseAds;
+    })();
+
+    return adsLoadPromise;
   }
 
   async function loadPromotions() {
@@ -932,7 +958,7 @@
           ${price ? `<div class="ehm-ad-price">${esc(price)}</div>` : ''}
           ${financeCardHtml(ad)}
           <div class="ehm-ad-meta"><span>⌖ ${esc(location)}</span><span>◷ ${esc(relativeDate(ad.postedAt))}</span></div>
-          <span class="ehm-condition">${esc(ad.condition === 'used' ? 'Used' : 'New')}</span>
+          ${ad.condition ? `<span class="ehm-condition">${esc(String(ad.condition).toLowerCase() === 'used' ? 'Used' : 'New')}</span>` : ''}
         </div>
       </a>
     `;
@@ -1445,7 +1471,7 @@
     return host;
   }
 
-  function renderDesktopResults(forceShow = false) {
+  function renderDesktopResults(forceShow = false, shouldScroll = true) {
     if (isMobile() || !isHomeRoute()) return;
     const active = hasActiveFilters();
     const host = createDesktopResultsHost();
@@ -1466,7 +1492,7 @@
       </div>
       ${rows.length ? `<div class="ehm-desktop-grid">${rows.map(renderAdCard).join('')}</div>` : '<div class="ehm-desktop-empty">No matching ads found.</div>'}
     `;
-    host.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (shouldScroll) host.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async function ensureDesktopHome() {
@@ -1481,7 +1507,10 @@
     syncDesktopCategorySelects();
     syncDesktopLocationSelects();
     balanceDesktopHeroStats();
-    if (bannerAds.length) renderDesktopResults(true);
+    // Desktop previously rendered database ads only when a banner happened to
+    // be active. Always show the live latest-ad grid; do not auto-scroll during
+    // the initial page load.
+    renderDesktopResults(true, false);
   }
 
   async function ensureHomeMobile() {
@@ -1524,6 +1553,10 @@
 
   function injectAdDetailFinance() {
     if (!isAdRoute()) return;
+    if (document.getElementById('ehmDynamicAdDetail')) {
+      document.getElementById('ehmAdDetailFinance')?.remove();
+      return;
+    }
 
     const rawId = decodeURIComponent(
       window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '')
@@ -1655,6 +1688,12 @@
     if (!isAdRoute()) return;
     document.body.classList.add('ehm-ad-detail-route');
     removeManagedHome();
+    if (document.getElementById('ehmDynamicAdDetail')) {
+      document.getElementById('ehmAdDetailFinance')?.remove();
+      document.getElementById('ehmSellerPhone')?.remove();
+      injectAdDetailBanner();
+      return;
+    }
     injectAdDetailBanner();
     injectAdDetailFinance();
     injectSellerPhoneAboveCall();
@@ -1777,6 +1816,184 @@
   }
 
 
+  function currentRouteAdId() {
+    if (!isAdRoute()) return '';
+    try {
+      return decodeURIComponent(window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, ''));
+    } catch (_) {
+      return window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '');
+    }
+  }
+
+  async function loadAdForCurrentRoute() {
+    const rawId = currentRouteAdId();
+    if (!rawId) return null;
+    const cleanId = String(rawId).replace(/^static-/, '');
+
+    const existing = allAds().find((ad) => String(ad.id) === rawId || String(ad.id) === cleanId);
+    if (existing) return existing;
+
+    const cached = detailAdCache.get(rawId) || detailAdCache.get(cleanId);
+    if (cached) return cached;
+    if (!window.supabaseClient || /^\d+$/.test(cleanId)) return null;
+
+    try {
+      const { data, error } = await window.supabaseClient
+        .from('ads')
+        .select('*')
+        .eq('id', cleanId)
+        .eq('status', 'approved')
+        .limit(1);
+      if (error || !Array.isArray(data) || !data[0]) return null;
+      const normalized = normalizeAd(data[0], 'supabase');
+      detailAdCache.set(String(normalized.id), normalized);
+      if (!supabaseAds.some((ad) => String(ad.id) === String(normalized.id))) {
+        supabaseAds = [normalized, ...supabaseAds];
+      }
+      return normalized;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function detailFieldLabel(key) {
+    const labels = {
+      brand: 'Brand / Make', make: 'Brand / Make', model: 'Model', mileage: 'Mileage (km)',
+      fuel_type: 'Fuel Type', fueltype: 'Fuel Type', transmission: 'Gear / Transmission',
+      gear_transmission: 'Gear / Transmission', body_type: 'Body Type', car_body_type: 'Car Body Type',
+      ownership: 'Ownership', manufacture_year: 'Manufacture Year', registration_year: 'Registration Year',
+      engine_capacity: 'Engine Capacity', engine_cc: 'Engine Capacity (cc)', bedrooms: 'Bedrooms',
+      bathrooms: 'Bathrooms', land_size: 'Land Size', property_type: 'Property Type'
+    };
+    const normalized = String(key || '').toLowerCase();
+    if (labels[normalized]) return labels[normalized];
+    return String(key || '').replace(/[_-]+/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+  }
+
+  function publicCustomFields(ad) {
+    const custom = ad?.customFields && typeof ad.customFields === 'object' ? ad.customFields : {};
+    const hidden = new Set([
+      'owner_user_id','owner_name','owner_contact_email','category_slug','category_name',
+      'subcategory_slug','subcategory_name','district','city','contact_phones',
+      'verified_contact_phones','phone_verification_proof','submitted_at'
+    ]);
+    return Object.entries(custom).filter(([key, value]) => {
+      if (hidden.has(key) || value === null || value === undefined || value === '') return false;
+      if (Array.isArray(value)) return value.length > 0 && !value.some((item) => typeof item === 'object');
+      return typeof value !== 'object';
+    });
+  }
+
+  function detailLocation(ad) {
+    const custom = ad?.customFields || {};
+    const city = ad.cityName || custom.city || ad.location || '';
+    const district = custom.district || ad.districtId || '';
+    if (city && district && slugify(city) !== slugify(district)) return `${city}, ${district}`;
+    return city || district || 'Sri Lanka';
+  }
+
+  function dynamicDetailHtml(ad) {
+    const images = Array.from(new Set((Array.isArray(ad.images) ? ad.images : [ad.image]).filter(Boolean)));
+    const mainImage = images[0] || '';
+    const location = detailLocation(ad);
+    const phones = Array.from(new Set([
+      ...(Array.isArray(ad.contactPhones) ? ad.contactPhones : []), ad.contactPhone, ad.seller?.phone
+    ].map((v) => String(v || '').trim()).filter(Boolean)));
+    const primaryDial = (phones[0] || '').replace(/[^+\d]/g, '');
+    const sellerName = ad.seller?.name || ad.customFields?.owner_name || 'Seller';
+    const sellerEmail = ad.seller?.email || ad.customFields?.owner_contact_email || '';
+    const customRows = publicCustomFields(ad);
+    const finance = isVehicleAd(ad) ? calcVehicleFinance(ad.price) : null;
+
+    return `
+      <div class="ehm-dynamic-breadcrumb"><a href="/">Home</a><span>›</span><span>${esc(ad.categoryName || ad.customFields?.category_name || 'Marketplace')}</span><span>›</span><strong>${esc(ad.title)}</strong></div>
+      <div class="ehm-dynamic-layout">
+        <div class="ehm-dynamic-main">
+          <section class="ehm-dynamic-gallery">
+            <div class="ehm-dynamic-main-image">${mainImage ? `<img id="ehmDynamicMainImage" src="${esc(mainImage)}" alt="${esc(ad.title)}">` : '<div class="ehm-dynamic-no-image">No photo available</div>'}</div>
+            ${images.length > 1 ? `<div class="ehm-dynamic-thumbs">${images.map((src, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-ehm-detail-image="${esc(src)}"><img src="${esc(src)}" alt=""></button>`).join('')}</div>` : ''}
+          </section>
+          <section class="ehm-dynamic-card ehm-dynamic-summary">
+            <div class="ehm-dynamic-title-row"><h1>${esc(ad.title)}</h1><button type="button" class="ehm-dynamic-heart" aria-label="Save ad">♡</button></div>
+            <div class="ehm-dynamic-price">${esc(formatPrice(ad.price, ad.currency || 'LKR'))}</div>
+            ${finance ? `<div class="ehm-dynamic-finance"><div><span>Down Payment</span><strong>${esc(formatPrice(finance.downPayment, ad.currency || 'LKR'))}</strong></div><div><span>Monthly Payment</span><strong>${esc(formatPrice(finance.monthlyPayment, ad.currency || 'LKR'))}</strong></div><div><span>Finance Company</span><strong>${esc(finance.companyPhone || '')}</strong></div></div>` : ''}
+            <div class="ehm-dynamic-meta">${ad.condition ? `<span>${esc(String(ad.condition).toLowerCase() === 'used' ? 'Used' : 'New')}</span>` : ''}<span>⌖ ${esc(location)}</span><span>◷ ${esc(relativeDate(ad.postedAt))}</span></div>
+            <div class="ehm-dynamic-description"><h2>Description</h2><p>${esc(ad.description || 'No description provided.').replace(/\n/g, '<br>')}</p></div>
+          </section>
+          ${customRows.length ? `<section class="ehm-dynamic-card"><h2>Category Details</h2><div class="ehm-dynamic-specs">${customRows.map(([key, value]) => `<div><span>${esc(detailFieldLabel(key))}</span><strong>${esc(Array.isArray(value) ? value.join(', ') : value)}</strong></div>`).join('')}</div></section>` : ''}
+        </div>
+        <aside class="ehm-dynamic-side">
+          <section class="ehm-dynamic-card ehm-dynamic-contact">
+            <h2>Contact Seller</h2>
+            <div class="ehm-dynamic-seller-name"><strong>${esc(sellerName)}</strong>${sellerEmail ? `<span>${esc(sellerEmail)}</span>` : ''}</div>
+            ${phones.length ? `<div class="ehm-dynamic-phones">${phones.map((phone, index) => `<a href="tel:${esc(phone.replace(/[^+\d]/g, ''))}"><span>${index === 0 ? 'Primary' : `Contact ${index + 1}`}</span><strong>${esc(formatPublicPhone(phone))}</strong></a>`).join('')}</div>` : '<p>No contact number available.</p>'}
+            ${primaryDial ? `<a class="ehm-dynamic-call" href="tel:${esc(primaryDial)}">Call Now</a><a class="ehm-dynamic-message" href="sms:${esc(primaryDial)}">Send Message</a>` : ''}
+          </section>
+          <section class="ehm-dynamic-card ehm-dynamic-safety"><h2>Stay Safe</h2><p>Inspect the item before paying and meet the seller in a safe public place.</p></section>
+        </aside>
+      </div>`;
+  }
+
+  function installDynamicDetailStyles() {
+    if (document.getElementById('ehmDynamicDetailStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'ehmDynamicDetailStyles';
+    style.textContent = `
+      .ehm-dynamic-detail{max-width:1180px!important;margin:0 auto!important;padding:18px 20px 110px!important;text-align:left!important;color:#0f172a!important}
+      .ehm-dynamic-breadcrumb{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:13px;color:#64748b;margin:0 0 18px}.ehm-dynamic-breadcrumb a{color:#0891b2;text-decoration:none}.ehm-dynamic-breadcrumb strong{max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .ehm-dynamic-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}.ehm-dynamic-main{min-width:0;display:grid;gap:18px}.ehm-dynamic-side{display:grid;gap:18px;position:sticky;top:92px}
+      .ehm-dynamic-card,.ehm-dynamic-gallery{background:#fff;border:1px solid #e6edf2;border-radius:18px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,.06)}.ehm-dynamic-card{padding:22px}.ehm-dynamic-card h2{margin:0 0 16px;font-size:18px;color:#0f172a}
+      .ehm-dynamic-main-image{height:min(56vw,520px);min-height:300px;background:#edf3f6;display:flex;align-items:center;justify-content:center}.ehm-dynamic-main-image img{width:100%;height:100%;object-fit:contain;display:block}.ehm-dynamic-no-image{color:#94a3b8;font-weight:700}
+      .ehm-dynamic-thumbs{display:flex;gap:10px;padding:12px;overflow:auto}.ehm-dynamic-thumbs button{width:76px;height:58px;min-width:76px;padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:#eef2f5}.ehm-dynamic-thumbs button.active{border-color:#22b98b}.ehm-dynamic-thumbs img{width:100%;height:100%;object-fit:cover}
+      .ehm-dynamic-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.ehm-dynamic-title-row h1{font-size:28px;line-height:1.25;margin:0;color:#0f172a}.ehm-dynamic-heart{width:44px;height:44px;min-width:44px;border:1px solid #dce5eb;border-radius:12px;background:#fff;font-size:26px;color:#94a3b8}.ehm-dynamic-price{font-size:30px;font-weight:900;color:#0f9f76;margin:15px 0}
+      .ehm-dynamic-meta{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:20px}.ehm-dynamic-meta span{padding:7px 10px;border-radius:9px;background:#f1f5f9;color:#475569;font-size:13px;font-weight:700}.ehm-dynamic-meta span:first-child{background:#dcfce7;color:#15803d}
+      .ehm-dynamic-description{border-top:1px solid #edf1f4;padding-top:20px}.ehm-dynamic-description h2{margin-bottom:10px}.ehm-dynamic-description p{margin:0;color:#475569;line-height:1.7;overflow-wrap:anywhere}
+      .ehm-dynamic-finance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 16px}.ehm-dynamic-finance div{padding:11px;border:1px solid #bae6fd;background:#ecfeff;border-radius:11px}.ehm-dynamic-finance span{display:block;font-size:11px;color:#0e7490}.ehm-dynamic-finance strong{display:block;margin-top:3px;font-size:13px;color:#0f172a;overflow-wrap:anywhere}
+      .ehm-dynamic-specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 22px}.ehm-dynamic-specs div{padding:13px 0;border-bottom:1px solid #edf1f4}.ehm-dynamic-specs span{display:block;color:#64748b;font-size:13px;margin-bottom:4px}.ehm-dynamic-specs strong{font-size:15px;color:#0f172a;overflow-wrap:anywhere}
+      .ehm-dynamic-contact h2{font-size:20px}.ehm-dynamic-seller-name{display:grid;gap:3px;padding:0 0 14px}.ehm-dynamic-seller-name strong{font-size:16px}.ehm-dynamic-seller-name span{font-size:12px;color:#64748b;overflow-wrap:anywhere}.ehm-dynamic-phones{display:grid;gap:8px;margin-bottom:14px}.ehm-dynamic-phones a{display:flex;justify-content:space-between;gap:10px;padding:11px;border:1px solid #dfe8ed;border-radius:11px;text-decoration:none}.ehm-dynamic-phones span{font-size:12px;color:#64748b}.ehm-dynamic-phones strong{color:#0f172a}.ehm-dynamic-call,.ehm-dynamic-message{display:flex;height:50px;align-items:center;justify-content:center;border-radius:12px;text-decoration:none;font-weight:900;margin-top:10px}.ehm-dynamic-call{background:#22b98b;color:#fff}.ehm-dynamic-message{border:2px solid #22b98b;color:#0f9f76;background:#fff}.ehm-dynamic-safety p{margin:0;color:#64748b;line-height:1.55}
+      @media(max-width:900px){.ehm-dynamic-layout{grid-template-columns:1fr}.ehm-dynamic-side{position:static}.ehm-dynamic-main-image{height:52vw;min-height:260px}}
+      @media(max-width:767px){.ehm-dynamic-detail{padding:12px 12px 100px!important}.ehm-dynamic-breadcrumb{margin-bottom:12px}.ehm-dynamic-card{padding:16px;border-radius:15px}.ehm-dynamic-gallery{border-radius:15px}.ehm-dynamic-main-image{height:72vw;min-height:220px}.ehm-dynamic-title-row h1{font-size:21px}.ehm-dynamic-price{font-size:24px}.ehm-dynamic-finance{grid-template-columns:1fr}.ehm-dynamic-specs{grid-template-columns:1fr}.ehm-dynamic-side{gap:14px}.ehm-dynamic-layout,.ehm-dynamic-main{gap:14px}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function bindDynamicDetailGallery(host) {
+    host.querySelectorAll('[data-ehm-detail-image]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const image = host.querySelector('#ehmDynamicMainImage');
+        if (image) image.src = button.getAttribute('data-ehm-detail-image') || '';
+        host.querySelectorAll('[data-ehm-detail-image]').forEach((item) => item.classList.toggle('active', item === button));
+      });
+    });
+  }
+
+  function renderDynamicAdDetail(ad) {
+    if (!isAdRoute() || !ad || ad.source !== 'supabase') return false;
+    installDynamicDetailStyles();
+    const signature = JSON.stringify([ad.id, ad.title, ad.price, ad.description, ad.images, ad.customFields, ad.contactPhones]);
+    let host = document.getElementById('ehmDynamicAdDetail');
+    if (host && host.__ehmSignature === signature) return true;
+
+    if (!host) {
+      const notFoundHeading = Array.from(document.querySelectorAll('#root h1,#root h2,#root h3')).find((node) => String(node.textContent || '').trim() === 'Ad not found');
+      const target = notFoundHeading?.closest('.section-container') || notFoundHeading?.parentElement;
+      if (!target) return false;
+      target.id = 'ehmDynamicAdDetail';
+      target.className = 'ehm-dynamic-detail';
+      host = target;
+    }
+
+    host.__ehmSignature = signature;
+    const html = dynamicDetailHtml(ad);
+    if (host.__ehmHtml !== html) {
+      host.__ehmHtml = html;
+      host.innerHTML = html;
+      bindDynamicDetailGallery(host);
+    }
+    document.body.classList.add('ehm-dynamic-detail-active');
+    return true;
+  }
+
   function currentAdForDetail() {
     const rawId = decodeURIComponent(
       window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '')
@@ -1802,6 +2019,10 @@
 
   function injectSellerPhoneAboveCall() {
     if (!isAdRoute()) return false;
+    if (document.getElementById('ehmDynamicAdDetail')) {
+      document.getElementById('ehmSellerPhone')?.remove();
+      return false;
+    }
 
     const callButton = Array.from(document.querySelectorAll('a[href^="tel:"], a, button')).find((node) => {
       if(node.closest?.('#ehmSellerPhone'))return false;
@@ -1866,6 +2087,8 @@
         removeManagedHome();
         await loadFinanceSettings();
         await loadAds();
+        const routeAd = await loadAdForCurrentRoute();
+        renderDynamicAdDetail(routeAd);
         await loadPromotions();
         injectAdDetailBanner();
         injectAdDetailFinance();
@@ -1874,6 +2097,8 @@
         hideAdDetailLocation();
         return;
       }
+
+      document.body.classList.remove('ehm-dynamic-detail-active');
 
       if (!isMobile()) {
         removeManagedHome();
