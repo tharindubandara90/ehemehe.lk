@@ -1,1 +1,8 @@
-public/ad/**
+node_modules/
+.git/
+.env
+.env.local
+*.zip
+*.log
+*_VALIDATION.json
+README_*.md

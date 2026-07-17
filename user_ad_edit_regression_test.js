@@ -15,8 +15,8 @@ assert(runtimeCss.includes('.ehm-edit-ad-modal'), 'Edit modal styling is missing
 assert(runtimeCss.includes('.ehm-dashboard-edit'), 'Edit button styling is missing.');
 assert(brandCss.includes('c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTQ6MTQ'), 'Mobile logged-in avatar block is not targeted.');
 assert(/ehm-physical-mobile[\s\S]{0,240}display\s*:\s*none\s*!important/.test(brandCss), 'Mobile avatar/dropdown is not hidden.');
-assert(server.includes("const updateMyAd = require('./api/update-my-ad')"), 'Local/Vercel server does not load the update endpoint.');
-assert(server.includes("'/api/update-my-ad': updateMyAd"), 'Local/Vercel server route is missing.');
+assert(server.includes("() => require('./api/update-my-ad')") || server.includes("const updateMyAd = require('./api/update-my-ad')"), 'Local/Vercel server does not load the update endpoint.');
+assert(server.includes("'/api/update-my-ad': () => require('./api/update-my-ad')") || server.includes("'/api/update-my-ad': updateMyAd"), 'Local/Vercel server route is missing.');
 assert(endpointSource.includes("status: 'pending'"), 'User edits do not force pending status.');
 assert(endpointSource.includes('requires_admin_review: true'), 'Review requirement metadata is missing.');
 assert(endpointSource.includes('ownsAd(existing, user.id)'), 'Ownership protection is missing.');
