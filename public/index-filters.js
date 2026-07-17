@@ -150,6 +150,8 @@
   function readLocalArray(key) { try { return JSON.parse(localStorage.getItem(key) || '[]') || []; } catch (e) { return []; } }
   function isActivePromo(row) { if (!row) return false; if (row.is_active === false || row.is_enabled === false || String(row.status || 'active').toLowerCase() === 'disabled') return false; const end = row.end_at || row.expires_at; if (!end) return true; const t = new Date(end).getTime(); return !Number.isFinite(t) || t >= Date.now(); }
   let syncing = false;
+  let desktopShellMutating = false;
+  let desktopDataPromise = null;
   let lastPath = window.location.pathname;
 
   function slugify(value) {
@@ -1814,7 +1816,9 @@
       if (section.id === 'ehmDesktopResults') return;
       const heading = String(section.querySelector('h2')?.textContent || '').trim();
       if (heading === 'Featured Ads' || heading === 'Latest Ads') {
-        section.style.setProperty('display', 'none', 'important');
+        if (section.style.getPropertyValue('display') !== 'none' || section.style.getPropertyPriority('display') !== 'important') {
+          section.style.setProperty('display', 'none', 'important');
+        }
       }
     });
     return browse;
@@ -1862,22 +1866,45 @@
     if (shouldScroll) host.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  function stabilizeDesktopHomeShell() {
+    if (isMobile() || !isHomeRoute() || desktopShellMutating) return false;
+    desktopShellMutating = true;
+    try {
+      document.documentElement.classList.add('ehm-desktop-home-prepaint');
+      document.body?.classList?.remove('ehm-ad-detail-route');
+      enhanceDesktopTopSearch();
+      enhanceDesktopHeroControls();
+      syncDesktopCategorySelects();
+      syncDesktopLocationSelects();
+      balanceDesktopHeroStats();
+      arrangeDesktopHomeSections();
+      return !!document.getElementById('ehmDesktopHeroFilterbar');
+    } finally {
+      Promise.resolve().then(() => { desktopShellMutating = false; });
+    }
+  }
+
   async function ensureDesktopHome() {
     if (isMobile() || !isHomeRoute()) return;
-    document.body.classList.remove('ehm-ad-detail-route');
-    await loadLookups();
-    await loadFinanceSettings();
-    await loadAds();
-    await loadPromotions();
-    enhanceDesktopTopSearch();
-    enhanceDesktopHeroControls();
-    syncDesktopCategorySelects();
-    syncDesktopLocationSelects();
-    balanceDesktopHeroStats();
-    arrangeDesktopHomeSections();
-    // Desktop previously rendered database ads only when a banner happened to
-    // be active. Always show the live latest-ad grid; do not auto-scroll during
-    // the initial page load.
+
+    // Render the final desktop shell immediately from bundled fallback data.
+    // Network lookups must never control the first paint or swap the hero UI
+    // several seconds after the page has already become visible.
+    stabilizeDesktopHomeShell();
+    renderDesktopResults(true, false);
+
+    if (!desktopDataPromise) {
+      desktopDataPromise = Promise.allSettled([
+        loadLookups(),
+        loadFinanceSettings(),
+        loadAds(),
+        loadPromotions()
+      ]).finally(() => { desktopDataPromise = null; });
+    }
+    await desktopDataPromise;
+
+    if (isMobile() || !isHomeRoute()) return;
+    stabilizeDesktopHomeShell();
     renderDesktopResults(true, false);
   }
 
@@ -2546,7 +2573,7 @@
   let adStabilizeTimers = [];
 
   function needsRouteObserver() {
-    return (isMobile() && isHomeRoute()) || isAdRoute();
+    return isHomeRoute() || isAdRoute();
   }
 
   function refreshRouteObserver() {
@@ -2559,9 +2586,16 @@
           handleRouteChange();
           return;
         }
-        if (isMobile() && isHomeRoute()) {
-          hideOriginalHomeContent();
-          scheduleSync(80);
+        if (isHomeRoute()) {
+          if (isMobile()) {
+            hideOriginalHomeContent();
+            scheduleSync(80);
+          } else {
+            // React may re-render the native hero after auth/data hydration.
+            // Re-apply only the lightweight shell synchronously so the page
+            // never falls back to the competing old desktop layout.
+            stabilizeDesktopHomeShell();
+          }
         } else if (isAdRoute()) {
           scheduleSync(80);
         }
@@ -2597,6 +2631,8 @@
   }
 
   function handleRouteChange() {
+    if (!isHomeRoute() || isMobile()) document.documentElement.classList.remove('ehm-desktop-home-prepaint');
+    else document.documentElement.classList.add('ehm-desktop-home-prepaint');
     refreshRouteObserver();
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
@@ -2693,15 +2729,33 @@
     });
 
     refreshRouteObserver();
+
+    // The main route observer is now active, so the early pre-paint watcher can
+    // be retired without leaving a gap where React could restore the old hero.
+    window.__ehmDesktopPrepaintObserver?.disconnect?.();
+    window.__ehmDesktopPrepaintObserver = null;
+  }
+
+  function installDesktopHomePrepaintWatcher() {
+    if (window.__ehmDesktopPrepaintObserver || isMobile() || !isHomeRoute()) return;
+    document.documentElement.classList.add('ehm-desktop-home-prepaint');
+
+    const observer = new MutationObserver(() => {
+      if (window.__ehmMutating || desktopShellMutating) return;
+      stabilizeDesktopHomeShell();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    window.__ehmDesktopPrepaintObserver = observer;
+
+    // Works both when React has already mounted and when it mounts in the next
+    // microtask. MutationObserver callbacks run before the browser paints.
+    stabilizeDesktopHomeShell();
   }
 
   async function init() {
     installStyles();
     installRouteWatchers();
-    if (!isMobile() && isHomeRoute()) {
-      setTimeout(ensureDesktopHome, 500);
-      setTimeout(ensureDesktopHome, 1400);
-    }
+    stabilizeDesktopHomeShell();
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
       openAdPageAtTop(true);
@@ -2713,8 +2767,11 @@
   }
 
   // This script is loaded before the deferred React bundle finishes its first
-  // render. Hide the database-detail main area immediately so the bundled
-  // temporary "Ad not found" branch can never flash on screen.
+  // render. Stabilize the desktop home during React's first mount, and hide the
+  // database-detail main area so the bundled temporary not-found branch cannot
+  // flash on screen.
+  installStyles();
+  installDesktopHomePrepaintWatcher();
   beginDynamicDetailPending();
 
   if (document.readyState === 'loading') {

@@ -18,6 +18,7 @@ const tests = [
   ['post_ad_route_cache_regression_test.js', []],
   ['unified_sms_service_test.js', []],
   ['performance_stability_regression_test.js', []],
+  ['desktop_home_first_paint_regression_test.js', []],
   ['public_ads_detail_desktop_regression_test.js', []],
   ['public_home_interactions_regression_test.js', []],
   ['supabase_marketplace_schema_regression_test.js', []],

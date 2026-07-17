@@ -1,0 +1,22 @@
+{
+  "issue": "Desktop home displayed the native React hero first and swapped to the enhanced category/location layout after delayed network work or hydration.",
+  "root_causes": [
+    "ensureDesktopHome awaited Supabase lookups, finance settings, ads and promotions before applying the desktop hero controls.",
+    "Two delayed ensureDesktopHome calls at 500ms and 1400ms caused visible layout rewrites.",
+    "Desktop home was excluded from the route MutationObserver, so React hydration could restore the competing native hero.",
+    "Hero entrance animations exposed a partially transparent intermediate first paint."
+  ],
+  "fixes": [
+    "Installed a desktop pre-paint watcher before the deferred React bundle mounts.",
+    "Rendered the final category/location shell immediately from fallback data.",
+    "Loaded lookups, finance, ads and promotions in parallel in the background.",
+    "Included desktop home in the route observer lifecycle.",
+    "Removed the delayed 500ms and 1400ms desktop rewrites.",
+    "Disabled the desktop hero's temporary opacity/slide entrance state.",
+    "Guarded repeated section style writes to avoid observer feedback loops."
+  ],
+  "regression_runs": 3,
+  "tests_per_run": 18,
+  "result": "PASS",
+  "production_browser_tested": false
+}
