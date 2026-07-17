@@ -15,9 +15,9 @@ function expect(condition, message) {
 
 expect(index.includes('/dashboard-profile.js'), 'Dashboard profile script is not loaded by index.html.');
 expect(profile.includes("fetch('/api/upload-profile-photo'"), 'Profile photo is not uploaded through the protected API.');
-expect(profile.includes("client.auth.updateUser({ data: metadata })"), 'Profile photo URL is not saved to Supabase auth metadata.');
+expect(handler.includes('saveAvatarMetadata'), 'Profile photo URL is not saved to Supabase auth metadata on the server.');
 expect(profile.includes('compressAvatar(file)'), 'Profile photo compression is missing.');
-expect(profile.includes("avatar_url: payload.avatarUrl"), 'Uploaded avatar URL is not saved in user metadata.');
+expect(handler.includes('avatar_url: avatarUrl'), 'Uploaded avatar URL is not saved in user metadata.');
 expect(!profile.includes('avatar_url: imageData'), 'Base64 image data must not be stored in the auth token.');
 expect(profile.includes("'Change photo' : 'Add photo'"), 'Add/change profile photo UI state is missing.');
 expect(css.includes('body.ehm-route-dashboard [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEA1ODoxNA"]'), 'Dashboard-only district control hide rule is missing.');

@@ -45,6 +45,35 @@ function readJsonBody(req) {
   });
 }
 
+async function responsePayload(response) {
+  const raw = await response.text().catch(() => '');
+  if (!raw) return {};
+  try { return JSON.parse(raw); }
+  catch (_) { return { message: raw }; }
+}
+
+function storageMessage(payload) {
+  return String(
+    payload?.message ||
+    payload?.error ||
+    payload?.error_description ||
+    payload?.code ||
+    ''
+  ).trim();
+}
+
+function isBucketMissing(response, payload) {
+  const code = String(payload?.statusCode || payload?.status || payload?.code || '');
+  const message = storageMessage(payload);
+  return response?.status === 404 || code === '404' || /bucket\s+not\s+found/i.test(message);
+}
+
+function isBucketAlreadyPresent(response, payload) {
+  const code = String(payload?.statusCode || payload?.status || payload?.code || '');
+  const message = storageMessage(payload);
+  return response?.status === 409 || code === '409' || /already exists|duplicate/i.test(message);
+}
+
 async function authenticatedUser(req) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
   if (!token) throw new Error('AUTH_REQUIRED');
@@ -79,53 +108,72 @@ function adminHeaders(key, extra = {}) {
   };
 }
 
-async function ensurePublicBucket(url, key) {
-  const existing = await fetch(`${url}/storage/v1/bucket/${BUCKET}`, {
+function bucketOptions() {
+  return {
+    public: true,
+    file_size_limit: 524288,
+    allowed_mime_types: ['image/webp', 'image/jpeg', 'image/png']
+  };
+}
+
+async function readBucket(url, key) {
+  const response = await fetch(`${url}/storage/v1/bucket/${encodeURIComponent(BUCKET)}`, {
     headers: adminHeaders(key, { Accept: 'application/json' })
   });
-  if (existing.ok) {
-    const bucket = await existing.json().catch(() => ({}));
-    if (bucket.public === true) return;
+  const payload = await responsePayload(response);
+  return { response, payload };
+}
 
-    const updated = await fetch(`${url}/storage/v1/bucket/${BUCKET}`, {
+async function waitForBucket(url, key) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const result = await readBucket(url, key);
+    if (result.response.ok) return result.payload;
+    if (!isBucketMissing(result.response, result.payload)) {
+      throw new Error(storageMessage(result.payload) || 'Could not access profile image storage.');
+    }
+    if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, 120 * (attempt + 1)));
+  }
+  throw new Error('Profile image storage could not be initialized.');
+}
+
+async function ensurePublicBucket(url, key) {
+  const existing = await readBucket(url, key);
+  if (existing.response.ok) {
+    if (existing.payload.public === true) return;
+
+    const updated = await fetch(`${url}/storage/v1/bucket/${encodeURIComponent(BUCKET)}`, {
       method: 'PUT',
       headers: adminHeaders(key, { 'Content-Type': 'application/json' }),
-      body: JSON.stringify({
-        public: true,
-        file_size_limit: 524288,
-        allowed_mime_types: ['image/webp', 'image/jpeg', 'image/png']
-      })
+      body: JSON.stringify(bucketOptions())
     });
+    const updatePayload = await responsePayload(updated);
     if (!updated.ok) {
-      const details = await updated.json().catch(() => ({}));
-      throw new Error(details.message || details.error || 'Could not configure profile image storage.');
+      throw new Error(storageMessage(updatePayload) || 'Could not configure profile image storage.');
     }
     return;
   }
 
-  if (existing.status !== 404) {
-    const details = await existing.json().catch(() => ({}));
-    throw new Error(details.message || details.error || 'Could not access profile image storage.');
+  // Supabase Storage may report a missing bucket as HTTP 400 while the JSON
+  // body contains statusCode/code 404 and "Bucket not found". Treat all of
+  // those forms as the same missing-bucket condition and create it.
+  if (!isBucketMissing(existing.response, existing.payload)) {
+    throw new Error(storageMessage(existing.payload) || 'Could not access profile image storage.');
   }
 
   const created = await fetch(`${url}/storage/v1/bucket`, {
     method: 'POST',
     headers: adminHeaders(key, { 'Content-Type': 'application/json' }),
-    body: JSON.stringify({
-      id: BUCKET,
-      name: BUCKET,
-      public: true,
-      file_size_limit: 524288,
-      allowed_mime_types: ['image/webp', 'image/jpeg', 'image/png']
-    })
+    body: JSON.stringify({ id: BUCKET, name: BUCKET, ...bucketOptions() })
   });
-  if (!created.ok && created.status !== 409) {
-    const details = await created.json().catch(() => ({}));
-    throw new Error(details.message || details.error || 'Could not create profile image storage.');
+  const createPayload = await responsePayload(created);
+  if (!created.ok && !isBucketAlreadyPresent(created, createPayload)) {
+    throw new Error(storageMessage(createPayload) || 'Could not create profile image storage.');
   }
+
+  await waitForBucket(url, key);
 }
 
-async function uploadAvatar(url, key, userId, image) {
+async function uploadAvatarOnce(url, key, userId, image) {
   const objectPath = `${encodeURIComponent(userId)}/avatar.${image.extension}`;
   const response = await fetch(`${url}/storage/v1/object/${BUCKET}/${objectPath}`, {
     method: 'POST',
@@ -136,12 +184,40 @@ async function uploadAvatar(url, key, userId, image) {
     }),
     body: image.bytes
   });
-  if (!response.ok) {
-    const details = await response.json().catch(() => ({}));
-    throw new Error(details.message || details.error || 'Could not upload profile picture.');
+  const payload = await responsePayload(response);
+  return { response, payload, objectPath };
+}
+
+async function uploadAvatar(url, key, userId, image) {
+  let result = await uploadAvatarOnce(url, key, userId, image);
+  if (!result.response.ok && isBucketMissing(result.response, result.payload)) {
+    await ensurePublicBucket(url, key);
+    result = await uploadAvatarOnce(url, key, userId, image);
+  }
+  if (!result.response.ok) {
+    throw new Error(storageMessage(result.payload) || 'Could not upload profile picture.');
   }
 
-  return `${url}/storage/v1/object/public/${BUCKET}/${objectPath}?v=${Date.now()}`;
+  return `${url}/storage/v1/object/public/${BUCKET}/${result.objectPath}?v=${Date.now()}`;
+}
+
+async function saveAvatarMetadata(url, key, user, avatarUrl) {
+  const userMetadata = {
+    ...(user.user_metadata || {}),
+    avatar_url: avatarUrl,
+    avatar_updated_at: new Date().toISOString()
+  };
+
+  const response = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(user.id)}`, {
+    method: 'PUT',
+    headers: adminHeaders(key, { 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ user_metadata: userMetadata })
+  });
+  const payload = await responsePayload(response);
+  if (!response.ok) {
+    throw new Error(storageMessage(payload) || 'The profile photo was uploaded but could not be saved to the account.');
+  }
+  return payload?.user_metadata || userMetadata;
 }
 
 module.exports = async function handler(req, res) {
@@ -155,9 +231,11 @@ module.exports = async function handler(req, res) {
 
     await ensurePublicBucket(url, key);
     const avatarUrl = await uploadAvatar(url, key, user.id, image);
-    return json(res, 200, { ok: true, avatarUrl });
+    const userMetadata = await saveAvatarMetadata(url, key, user, avatarUrl);
+    return json(res, 200, { ok: true, avatarUrl, userMetadata });
   } catch (error) {
     const auth = error.message === 'AUTH_REQUIRED';
+    console.error('Profile photo API failed:', error);
     return json(res, auth ? 401 : 400, {
       ok: false,
       message: auth ? 'Log in to change your profile picture.' : (error.message || 'Could not update profile picture.')

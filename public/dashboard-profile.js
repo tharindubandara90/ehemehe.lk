@@ -232,17 +232,24 @@
       }
 
       setStatus('Saving profile...');
-      const metadata = {
+      const metadata = payload.userMetadata || {
         ...(user.user_metadata || {}),
         avatar_url: payload.avatarUrl,
         avatar_updated_at: new Date().toISOString()
       };
-      const updateResult = await client.auth.updateUser({ data: metadata });
-      if (updateResult.error) throw updateResult.error;
 
-      currentUser = updateResult.data?.user || user;
-      currentAvatarUrl = currentUser.user_metadata?.avatar_url || payload.avatarUrl;
+      // The API saves metadata with the service role, so the photo persists
+      // across browsers/devices even if the current client session is stale.
+      currentUser = { ...user, user_metadata: metadata };
+      currentAvatarUrl = payload.avatarUrl;
       try { localStorage.setItem(`ehemehe-avatar-${user.id}`, currentAvatarUrl); } catch (_) {}
+
+      // Refresh the local Supabase session in the background. Do not turn a
+      // successful upload into an error merely because token refresh is slow.
+      try {
+        const refreshed = await client.auth.refreshSession();
+        if (refreshed?.data?.user) currentUser = refreshed.data.user;
+      } catch (_) {}
 
       paintAvatar(document.querySelector(DASHBOARD_AVATAR), currentAvatarUrl, 'ehm-dashboard-profile-image');
       applyAvatarToHeader();
@@ -277,7 +284,9 @@
 
       client.auth.onAuthStateChange((_event, session) => {
         currentUser = session?.user || null;
-        currentAvatarUrl = currentUser?.user_metadata?.avatar_url || '';
+        let cachedUrl = '';
+        try { cachedUrl = currentUser?.id ? (localStorage.getItem(`ehemehe-avatar-${currentUser.id}`) || '') : ''; } catch (_) {}
+        currentAvatarUrl = currentUser?.user_metadata?.avatar_url || cachedUrl;
         queueRefresh();
       });
     } catch (error) {
