@@ -45,7 +45,7 @@ function waitForServer(child) {
 }
 
 (async () => {
-  const child = spawn(process.execPath, ['server.js'], {
+  const child = spawn(process.execPath, ['local-server.js'], {
     cwd: root,
     env: { ...process.env, PORT: String(port) },
     stdio: ['ignore', 'pipe', 'pipe']

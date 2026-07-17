@@ -4,7 +4,7 @@ const {
   findAuthUserByIdentifier,
   signInAuthUserWithPassword,
   publicUserProfile
-} = require('./_otp-utils');
+} = require('../lib/otp-utils');
 
 function sessionPayload(data) {
   return {

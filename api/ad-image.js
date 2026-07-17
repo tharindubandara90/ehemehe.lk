@@ -1,4 +1,4 @@
-const { config, rest, parseJson } = require('./_public-ads-utils');
+const { config, rest, parseJson } = require('../lib/public-ads-utils');
 
 function sendJson(res, status, body) {
   res.statusCode = status;

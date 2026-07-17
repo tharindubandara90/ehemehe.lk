@@ -1,20 +1,43 @@
 const {
   json, normalizePhone, isSriLankaMobile, readToken,
   supabasePublicKey, supabaseAdminConfig
-} = require('./_otp-utils');
+} = require('../lib/otp-utils');
 
 function readLargeBody(req, maxBytes = 5 * 1024 * 1024) {
+  const parseValue = (value) => {
+    if (value === undefined || value === null || value === '') return {};
+    if (Buffer.isBuffer(value)) value = value.toString('utf8');
+    if (typeof value === 'string') {
+      if (Buffer.byteLength(value, 'utf8') > maxBytes) throw new Error('The selected photos are too large. Remove a photo or choose smaller images.');
+      try { return value ? JSON.parse(value) : {}; }
+      catch (_) { throw new Error('Invalid JSON body.'); }
+    }
+    if (typeof value === 'object') {
+      if (Buffer.byteLength(JSON.stringify(value), 'utf8') > maxBytes) throw new Error('The selected photos are too large. Remove a photo or choose smaller images.');
+      return value;
+    }
+    throw new Error('Invalid JSON body.');
+  };
+
+  if (req.body !== undefined && req.body !== null) {
+    return Promise.resolve().then(() => parseValue(req.body));
+  }
+
   return new Promise((resolve, reject) => {
     let body = '';
+    let settled = false;
     req.on('data', (chunk) => {
+      if (settled) return;
       body += chunk;
       if (Buffer.byteLength(body, 'utf8') > maxBytes) {
+        settled = true;
         reject(new Error('The selected photos are too large. Remove a photo or choose smaller images.'));
       }
     });
     req.on('end', () => {
-      try { resolve(body ? JSON.parse(body) : {}); }
-      catch (_) { reject(new Error('Invalid JSON body.')); }
+      if (settled) return;
+      try { resolve(parseValue(body)); }
+      catch (error) { reject(error); }
     });
     req.on('error', reject);
   });

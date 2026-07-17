@@ -1,5 +1,5 @@
-const { json } = require('./_otp-utils');
-const { queryAds, normalizeAd } = require('./_public-ads-utils');
+const { json } = require('../lib/otp-utils');
+const { queryAds, normalizeAd } = require('../lib/public-ads-utils');
 
 let cache = { expiresAt: 0, rows: [] };
 

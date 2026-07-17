@@ -5,7 +5,7 @@ const { EventEmitter } = require('events');
 const runtime = fs.readFileSync('public/post-ad-runtime.js', 'utf8');
 const runtimeCss = fs.readFileSync('public/post-ad-runtime.css', 'utf8');
 const brandCss = fs.readFileSync('public/brand-theme.css', 'utf8');
-const server = fs.readFileSync('server.js', 'utf8');
+const server = fs.readFileSync('local-server.js', 'utf8');
 const endpointSource = fs.readFileSync('api/update-my-ad.js', 'utf8');
 
 assert(runtime.includes('data-ehm-edit-ad'), 'My Ads cards are missing the Edit Ad action.');

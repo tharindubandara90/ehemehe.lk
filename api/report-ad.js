@@ -1,4 +1,4 @@
-const { json, supabaseAdminConfig } = require('./_otp-utils');
+const { json, supabaseAdminConfig } = require('../lib/otp-utils');
 
 const attemptsByIp = new Map();
 const LIMIT_WINDOW_MS = 60 * 60 * 1000;
@@ -6,15 +6,40 @@ const LIMIT_COUNT = 8;
 const ALLOWED_REASONS = new Set(['scam', 'spam', 'duplicate', 'sold', 'category', 'inappropriate', 'other']);
 
 function readBody(req, maxBytes = 32 * 1024) {
+  const parseValue = (value) => {
+    if (value === undefined || value === null || value === '') return {};
+    if (Buffer.isBuffer(value)) value = value.toString('utf8');
+    if (typeof value === 'string') {
+      if (Buffer.byteLength(value, 'utf8') > maxBytes) throw new Error('Report is too large.');
+      try { return value ? JSON.parse(value) : {}; }
+      catch (_) { throw new Error('Invalid report request.'); }
+    }
+    if (typeof value === 'object') {
+      if (Buffer.byteLength(JSON.stringify(value), 'utf8') > maxBytes) throw new Error('Report is too large.');
+      return value;
+    }
+    throw new Error('Invalid report request.');
+  };
+
+  if (req.body !== undefined && req.body !== null) {
+    return Promise.resolve().then(() => parseValue(req.body));
+  }
+
   return new Promise((resolve, reject) => {
     let raw = '';
+    let settled = false;
     req.on('data', (chunk) => {
+      if (settled) return;
       raw += chunk;
-      if (Buffer.byteLength(raw, 'utf8') > maxBytes) reject(new Error('Report is too large.'));
+      if (Buffer.byteLength(raw, 'utf8') > maxBytes) {
+        settled = true;
+        reject(new Error('Report is too large.'));
+      }
     });
     req.on('end', () => {
-      try { resolve(raw ? JSON.parse(raw) : {}); }
-      catch (_) { reject(new Error('Invalid report request.')); }
+      if (settled) return;
+      try { resolve(parseValue(raw)); }
+      catch (error) { reject(error); }
     });
     req.on('error', reject);
   });

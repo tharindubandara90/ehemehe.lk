@@ -1,4 +1,4 @@
-const { json, readSiteSettings } = require('./_otp-utils');
+const { json, readSiteSettings } = require('../lib/otp-utils');
 
 module.exports = async function handler(req,res){
   if(req.method !== 'GET') return json(res,405,{ok:false,message:'Method not allowed'});

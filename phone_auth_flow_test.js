@@ -9,7 +9,7 @@ function res(){return {statusCode:200,headers:{},setHeader(k,v){this.headers[k]=
 async function invoke(handler,body){const rq=req(body),rs=res();const done=new Promise(x=>rs.done=x);handler(rq,rs);await done;return {status:rs.statusCode,body:JSON.parse(rs.body)}}
 
 (async()=>{
-  const utils=require('./api/_otp-utils');
+  const utils=require('./lib/otp-utils');
   const phone='94772866867', code='123456', nonce='n';
   const challenge=utils.makeToken({kind:'registration_sms_otp',phone,email:'',nonce,codeHash:utils.otpHash(phone,'register_account',code,nonce),expiresAt:Date.now()+60000});
   let users=[]; let createPayload=null; let tokenPayload=null;

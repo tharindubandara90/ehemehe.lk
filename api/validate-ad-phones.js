@@ -1,7 +1,7 @@
 const {
   json, readBody, normalizePhone, isSriLankaMobile,
   assertVerifiedToken, makeToken
-} = require('./_otp-utils');
+} = require('../lib/otp-utils');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { ok:false, message:'Method not allowed' });

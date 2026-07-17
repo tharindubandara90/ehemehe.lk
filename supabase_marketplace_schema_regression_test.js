@@ -8,7 +8,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
 process.env.SUPABASE_ANON_KEY = 'test-anon-key';
 process.env.OTP_SECRET = 'test-otp-secret-for-marketplace-schema';
 
-const { makeToken } = require('./api/_otp-utils');
+const { makeToken } = require('./lib/otp-utils');
 const publishAd = require('./api/publish-ad');
 
 const root = __dirname;

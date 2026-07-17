@@ -1,5 +1,5 @@
-const { json } = require('./_otp-utils');
-const { queryAds, normalizeAd } = require('./_public-ads-utils');
+const { json } = require('../lib/otp-utils');
+const { queryAds, normalizeAd } = require('../lib/public-ads-utils');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { ok: false, message: 'Method not allowed' });

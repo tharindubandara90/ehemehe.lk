@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
-    "serve": "node server.js",
+    "dev": "node local-server.js",
+    "start": "node local-server.js",
+    "serve": "node local-server.js",
     "deploy": "npm run prepare-assets && vercel --prod",
     "sync-ad-shells": "node scripts/sync-ad-route-shells.js",
     "validate-supabase": "node scripts/validate-supabase-config.js",
@@ -16,7 +16,9 @@
     "test:http": "node scripts/http-regression-test.js"
   },
   "devDependencies": {
-    "vercel": "latest",
-    "serve": "^14.2.4"
+    "vercel": "latest"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

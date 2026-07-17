@@ -6,7 +6,7 @@ const {
   assertVerifiedToken,
   findAuthUserByPhone,
   updateAuthUser
-} = require('./_otp-utils');
+} = require('../lib/otp-utils');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {

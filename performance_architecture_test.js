@@ -80,7 +80,7 @@ function response(status, data, extraHeaders = {}) {
   result = await invoke(adImage, 'GET', '/api/ad-image?id=88&index=0');
   if (result.statusCode !== 200 || String(result.body) !== 'tiny-image' || result.headers['content-type'] !== 'image/png') throw new Error('Legacy Base64 image proxy test failed.');
 
-  const { makeToken } = require('./api/_otp-utils');
+  const { makeToken } = require('./lib/otp-utils');
   const phoneProof = makeToken({
     kind:'ad_contact_phones_verified', verified:true, phones:['94771234567'], expiresAt:Date.now()+60000
   });

@@ -1,7 +1,7 @@
 const {
   json, readBody, normalizePhone, isSriLankaMobile, assertVerifiedToken,
   createAuthUser, internalAuthEmail, signInAuthUserWithPassword, publicUserProfile
-}=require('./_otp-utils');
+}=require('../lib/otp-utils');
 
 module.exports=async function(req,res){
   if(req.method!=='POST') return json(res,405,{ok:false,message:'Method not allowed'});

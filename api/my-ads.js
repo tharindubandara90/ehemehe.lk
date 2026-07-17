@@ -1,6 +1,6 @@
 const {
   json, supabasePublicKey, supabaseAdminConfig
-} = require('./_otp-utils');
+} = require('../lib/otp-utils');
 
 async function authenticatedUser(req) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();

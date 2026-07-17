@@ -1,61 +1,56 @@
 const assert = require('assert');
 const fs = require('fs');
-const http = require('http');
 const path = require('path');
+const { EventEmitter } = require('events');
 
 const root = __dirname;
-const serverSource = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
-const vercelConfig = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
-assert(serverSource.includes("'/api/update-my-ad': () => require('./api/update-my-ad')"), 'Update API must be lazy-loaded.');
-assert(!serverSource.includes("const updateMyAd = require('./api/update-my-ad')"), 'Update API must not be loaded during function startup.');
+assert.strictEqual(config.outputDirectory, 'public', 'Vercel must serve the frontend from the public directory.');
+assert(!config.builds, 'Legacy builds configuration must not be used.');
+assert(!config.routes, 'The frontend must not be routed through a catch-all serverless function.');
+assert(Array.isArray(config.rewrites) && config.rewrites.some((rule) => rule.destination === '/index.html'), 'SPA fallback rewrite is missing.');
+assert(!fs.existsSync(path.join(root, 'server.js')), 'A root server.js would make Vercel run every page through a function again.');
+assert(fs.existsSync(path.join(root, 'local-server.js')), 'Local development server is missing.');
+assert.strictEqual(packageJson.scripts.start, 'node local-server.js', 'Local start script is incorrect.');
 
-const includeFiles = vercelConfig.builds?.[0]?.config?.includeFiles || [];
-assert(includeFiles.includes('public/**'), 'Vercel function must include the public directory.');
-assert(includeFiles.includes('api/**'), 'Vercel function must include API modules.');
+for (const file of ['request-otp.js', 'publish-ad.js', 'update-my-ad.js', 'report-ad.js']) {
+  assert(fs.existsSync(path.join(root, 'api', file)), `API function ${file} is missing.`);
+}
 
-const handler = require('./server');
-
-function request(port, pathname, method = 'GET') {
-  return new Promise((resolve, reject) => {
-    const req = http.request({ hostname: '127.0.0.1', port, path: pathname, method }, (res) => {
-      let body = '';
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
-    });
-    req.on('error', reject);
-    req.end();
-  });
+function responseRecorder() {
+  return {
+    statusCode: 200,
+    headers: {},
+    body: '',
+    writableEnded: false,
+    setHeader(name, value) { this.headers[String(name).toLowerCase()] = value; },
+    end(value = '') { this.body += String(value); this.writableEnded = true; }
+  };
 }
 
 (async () => {
-  const server = http.createServer((req, res) => Promise.resolve(handler(req, res)).catch((error) => {
-    res.statusCode = 500;
-    res.end(error.message);
-  }));
+  const updateHandler = require('./api/update-my-ad');
+  const updateReq = new EventEmitter();
+  updateReq.method = 'PATCH';
+  updateReq.headers = {};
+  updateReq.body = { id: 'example' };
+  const updateRes = responseRecorder();
+  await updateHandler(updateReq, updateRes);
+  assert.strictEqual(updateRes.statusCode, 401, 'Pre-parsed Vercel request bodies must be accepted by the update API.');
 
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const port = server.address().port;
+  const reportHandler = require('./api/report-ad');
+  const reportReq = new EventEmitter();
+  reportReq.method = 'POST';
+  reportReq.headers = {};
+  reportReq.socket = { remoteAddress: '127.0.0.1' };
+  reportReq.body = { adId: '', reason: 'spam' };
+  const reportRes = responseRecorder();
+  await reportHandler(reportReq, reportRes);
+  assert.strictEqual(reportRes.statusCode, 400, 'Pre-parsed Vercel request bodies must be accepted by the report API.');
 
-  try {
-    const home = await request(port, '/');
-    assert.strictEqual(home.status, 200, 'Home page must load without a function crash.');
-    assert(/EheMehe|ehemehe\.lk/i.test(home.body), 'Home page content is missing.');
-
-    const admin = await request(port, '/admin');
-    assert.strictEqual(admin.status, 200, 'Admin route must load.');
-
-    const updateApi = await request(port, '/api/update-my-ad');
-    assert.strictEqual(updateApi.status, 405, 'Update API must load and reject unsupported methods normally.');
-
-    const missingApi = await request(port, '/api/not-a-route');
-    assert.strictEqual(missingApi.status, 404, 'Unknown API routes must return JSON 404 instead of crashing.');
-
-    console.log('VERCEL_FUNCTION_STARTUP_REGRESSION_TEST_PASSED');
-  } finally {
-    await new Promise((resolve) => server.close(resolve));
-  }
+  console.log('VERCEL_STATIC_FRONTEND_AND_API_REGRESSION_TEST_PASSED');
 })().catch((error) => {
   console.error(error);
   process.exit(1);

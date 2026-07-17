@@ -7,7 +7,7 @@ const { EventEmitter } = require('events');
 const root = __dirname;
 const publicUi = fs.readFileSync(path.join(root, 'public/index-filters.js'), 'utf8');
 const mobileCss = fs.readFileSync(path.join(root, 'public/brand-theme.css'), 'utf8');
-const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
+const server = fs.readFileSync(path.join(root, 'local-server.js'), 'utf8');
 const reportSql = fs.readFileSync(path.join(root, 'supabase_public_interactions_schema.sql'), 'utf8');
 
 function extractFunction(source, name) {

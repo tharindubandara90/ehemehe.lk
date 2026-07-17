@@ -34,7 +34,7 @@ async function invoke(handler, body) {
 
 (async () => {
   // Text.lk HTTP 200 + status:error must be treated as failure.
-  const utils = require('./api/_otp-utils');
+  const utils = require('./lib/otp-utils');
   global.fetch = async () => ({
     ok: true,
     status: 200,
