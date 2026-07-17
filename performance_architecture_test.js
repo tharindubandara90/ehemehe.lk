@@ -57,15 +57,15 @@ function response(status, data, extraHeaders = {}) {
     if (String(url).includes('/rest/v1/ads?')) return response(200, [sampleRow]);
     throw new Error(`Unexpected fetch ${url}`);
   };
-  delete require.cache[require.resolve('./api/public-ads')];
-  const publicAds = require('./api/public-ads');
+  delete require.cache[require.resolve('./api-handlers/public-ads')];
+  const publicAds = require('./api-handlers/public-ads');
   let result = await invoke(publicAds, 'GET', '/api/public-ads?limit=20');
   let parsed = JSON.parse(result.body);
   if (result.statusCode !== 200 || parsed.ads[0].image_url !== '/api/ad-image?id=88&index=0') throw new Error('Public ads metadata/proxy test failed.');
   if (JSON.stringify(parsed).includes('data:image')) throw new Error('Public ads leaked Base64 image data.');
 
-  delete require.cache[require.resolve('./api/public-ad')];
-  const publicAd = require('./api/public-ad');
+  delete require.cache[require.resolve('./api-handlers/public-ad')];
+  const publicAd = require('./api-handlers/public-ad');
   result = await invoke(publicAd, 'GET', '/api/public-ad?id=88');
   parsed = JSON.parse(result.body);
   if (result.statusCode !== 200 || parsed.ad.images[0] !== '/api/ad-image?id=88&index=0') throw new Error('Public ad metadata/proxy test failed.');
@@ -75,8 +75,8 @@ function response(status, data, extraHeaders = {}) {
     if (String(url).includes('/rest/v1/ads?')) return response(200, [{ image_url:`data:image/png;base64,${tiny.toString('base64')}`, images:[] }]);
     throw new Error(`Unexpected image fetch ${url}`);
   };
-  delete require.cache[require.resolve('./api/ad-image')];
-  const adImage = require('./api/ad-image');
+  delete require.cache[require.resolve('./api-handlers/ad-image')];
+  const adImage = require('./api-handlers/ad-image');
   result = await invoke(adImage, 'GET', '/api/ad-image?id=88&index=0');
   if (result.statusCode !== 200 || String(result.body) !== 'tiny-image' || result.headers['content-type'] !== 'image/png') throw new Error('Legacy Base64 image proxy test failed.');
 
@@ -99,8 +99,8 @@ function response(status, data, extraHeaders = {}) {
     }
     throw new Error(`Unexpected publish fetch ${target}`);
   };
-  delete require.cache[require.resolve('./api/publish-ad')];
-  const publishAd = require('./api/publish-ad');
+  delete require.cache[require.resolve('./api-handlers/publish-ad')];
+  const publishAd = require('./api-handlers/publish-ad');
   const image = `data:image/png;base64,${tiny.toString('base64')}`;
   result = await invoke(publishAd, 'POST', '/api/publish-ad', {
     title:'Stored Image Ad', description:'A real description', price:'2500',

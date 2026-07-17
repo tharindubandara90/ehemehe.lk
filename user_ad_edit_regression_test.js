@@ -6,7 +6,8 @@ const runtime = fs.readFileSync('public/post-ad-runtime.js', 'utf8');
 const runtimeCss = fs.readFileSync('public/post-ad-runtime.css', 'utf8');
 const brandCss = fs.readFileSync('public/brand-theme.css', 'utf8');
 const server = fs.readFileSync('local-server.js', 'utf8');
-const endpointSource = fs.readFileSync('api/update-my-ad.js', 'utf8');
+const dispatcherSource = fs.readFileSync('lib/api-dispatcher.js', 'utf8');
+const endpointSource = fs.readFileSync('api-handlers/update-my-ad.js', 'utf8');
 
 assert(runtime.includes('data-ehm-edit-ad'), 'My Ads cards are missing the Edit Ad action.');
 assert(runtime.includes("fetch('/api/update-my-ad'"), 'Dashboard edit form is not connected to the update API.');
@@ -15,8 +16,8 @@ assert(runtimeCss.includes('.ehm-edit-ad-modal'), 'Edit modal styling is missing
 assert(runtimeCss.includes('.ehm-dashboard-edit'), 'Edit button styling is missing.');
 assert(brandCss.includes('c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTQ6MTQ'), 'Mobile logged-in avatar block is not targeted.');
 assert(/ehm-physical-mobile[\s\S]{0,240}display\s*:\s*none\s*!important/.test(brandCss), 'Mobile avatar/dropdown is not hidden.');
-assert(server.includes("() => require('./api/update-my-ad')") || server.includes("const updateMyAd = require('./api/update-my-ad')"), 'Local/Vercel server does not load the update endpoint.');
-assert(server.includes("'/api/update-my-ad': () => require('./api/update-my-ad')") || server.includes("'/api/update-my-ad': updateMyAd"), 'Local/Vercel server route is missing.');
+assert(dispatcherSource.includes("() => require('../api-handlers/update-my-ad')"), 'API dispatcher does not load the update endpoint.');
+assert(dispatcherSource.includes("'/api/update-my-ad': () => require('../api-handlers/update-my-ad')"), 'API dispatcher route is missing.');
 assert(endpointSource.includes("status: 'pending'"), 'User edits do not force pending status.');
 assert(endpointSource.includes('requires_admin_review: true'), 'Review requirement metadata is missing.');
 assert(endpointSource.includes('ownsAd(existing, user.id)'), 'Ownership protection is missing.');
@@ -99,7 +100,7 @@ function response() {
     throw new Error(`Unexpected fetch: ${url}`);
   };
 
-  const handler = require('./api/update-my-ad');
+  const handler = require('./api-handlers/update-my-ad');
   const req = request({
     id: 'ad-1',
     title: 'Updated title',

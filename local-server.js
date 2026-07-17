@@ -12,25 +12,8 @@ const publicDir = [
 loadEnvFile('.env.local');
 loadEnvFile('.env');
 
-// Load each API only when its route is called. A problem in one optional API
-// must never prevent the home page or the rest of the marketplace from loading.
-const apiRouteLoaders = Object.freeze({
-  '/api/request-otp': () => require('./api/request-otp'),
-  '/api/verify-otp': () => require('./api/verify-otp'),
-  '/api/auth-settings': () => require('./api/auth-settings'),
-  '/api/register-phone-user': () => require('./api/register-phone-user'),
-  '/api/reset-phone-password': () => require('./api/reset-phone-password'),
-  '/api/register-verified-user': () => require('./api/register-verified-user'),
-  '/api/request-registration-otp': () => require('./api/request-registration-otp'),
-  '/api/verify-registration-otp': () => require('./api/verify-registration-otp'),
-  '/api/login-user': () => require('./api/login-user'),
-  '/api/validate-ad-phones': () => require('./api/validate-ad-phones'),
-  '/api/publish-ad': () => require('./api/publish-ad'),
-  '/api/my-ads': () => require('./api/my-ads'),
-  '/api/update-my-ad': () => require('./api/update-my-ad'),
-  '/api/report-ad': () => require('./api/report-ad')
-});
-const apiHandlerCache = new Map();
+// Use the same lazy API dispatcher locally and on Vercel.
+const { apiRouteLoaders, apiHandlerFor } = require('./lib/api-dispatcher');
 
 function loadEnvFile(file) {
   const candidates = [
@@ -47,19 +30,9 @@ function loadEnvFile(file) {
     if (eq === -1) continue;
     const key = trimmed.slice(0, eq).trim();
     let value = trimmed.slice(eq + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
+    if ((value.startsWith('\"') && value.endsWith('\"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
     if (!process.env[key]) process.env[key] = value;
   }
-}
-
-function apiHandlerFor(pathname) {
-  if (apiHandlerCache.has(pathname)) return apiHandlerCache.get(pathname);
-  const loader = apiRouteLoaders[pathname];
-  if (!loader) return null;
-  const handler = loader();
-  if (typeof handler !== 'function') throw new Error(`Invalid API handler for ${pathname}`);
-  apiHandlerCache.set(pathname, handler);
-  return handler;
 }
 
 function endJson(res, status, body) {

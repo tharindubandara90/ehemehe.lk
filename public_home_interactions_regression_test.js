@@ -104,7 +104,7 @@ assert(publicUi.includes("showUiToast(wasActive ? 'Removed from favourites' : 'A
 
 assert(publicUi.includes('data-ehm-report-ad'), 'Report control missing');
 assert(publicUi.includes("fetch('/api/report-ad'"), 'Report submit API call missing');
-assert(server.includes("'/api/report-ad': () => require('./api/report-ad')") || server.includes("'/api/report-ad': reportAd"), 'Report API server route missing');
+assert(fs.readFileSync('lib/api-dispatcher.js', 'utf8').includes("'/api/report-ad': () => require('../api-handlers/report-ad')"), 'Report API dispatcher route missing');
 assert(/c3JjL3BhZ2VzL0FkRGV0YWlsUGFnZS50c3hAMTExOjEy[\s\S]{0,160}display:\s*block\s*!important/.test(mobileCss), 'Mobile Report this ad block is hidden');
 assert(/create table if not exists public\.ad_reports/i.test(reportSql), 'Report storage migration missing');
 
@@ -135,7 +135,7 @@ function mockResponse() {
 }
 
 (async () => {
-  const handler = require('./api/report-ad');
+  const handler = require('./api-handlers/report-ad');
 
   let req = mockRequest('GET', undefined, 'test-get');
   let res = mockResponse();

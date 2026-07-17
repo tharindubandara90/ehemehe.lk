@@ -11,32 +11,28 @@ assert(Array.isArray(config.builds), 'Vercel builds allowlist is missing.');
 
 const staticBuild = config.builds.find((item) => item.src === 'package.json');
 assert(staticBuild, 'Static frontend build is missing.');
-assert.strictEqual(staticBuild.use, '@vercel/static-build', 'Frontend must use @vercel/static-build, not the Node backend builder.');
-assert.strictEqual(staticBuild.config?.distDir, 'public', 'Static frontend output must come from public/.');
+assert.strictEqual(staticBuild.use, '@vercel/static-build');
+assert.strictEqual(staticBuild.config?.distDir, 'public');
 
-const apiBuild = config.builds.find((item) => item.src === 'api/*.js');
-assert(apiBuild, 'API function build is missing.');
-assert.strictEqual(apiBuild.use, '@vercel/node', 'API files must be built as isolated Vercel functions.');
-
-assert(!config.functions, 'The functions property cannot be combined with legacy builds.');
-assert(!config.framework, 'A framework preset must not force the project into the generic Node backend builder.');
-assert(!config.outputDirectory, 'outputDirectory is intentionally handled by the static-build distDir.');
-assert(!config.buildCommand, 'buildCommand is intentionally handled by @vercel/static-build.');
+const functionBuilds = config.builds.filter((item) => item.use === '@vercel/node');
+assert.strictEqual(functionBuilds.length, 1, 'Hobby deployment must create only one Vercel Function.');
+assert.strictEqual(functionBuilds[0].src, 'api/index.js', 'The single API dispatcher function is missing.');
 
 assert(Array.isArray(config.routes), 'Explicit Vercel routes are missing.');
-assert(config.routes.some((rule) => rule.src === '/api/(.*)' && rule.dest === '/api/$1.js'), 'API rewrite route is missing.');
-assert(config.routes.some((rule) => rule.handle === 'filesystem'), 'Filesystem routing must run before the SPA fallback.');
-assert(config.routes.some((rule) => rule.dest === '/index.html'), 'SPA fallback route is missing.');
-assert(!config.routes.some((rule) => String(rule.dest || '').includes('server.js')), 'The frontend must not be routed through a catch-all serverless function.');
+assert(config.routes.some((rule) => rule.src === '/api/(.*)' && rule.dest === '/api/index.js?__api_route=$1'), 'API dispatcher rewrite is missing.');
+assert(config.routes.some((rule) => rule.handle === 'filesystem'));
+assert(config.routes.some((rule) => rule.dest === '/index.html'));
+assert(!config.routes.some((rule) => String(rule.dest || '').includes('server.js')));
 
-assert(!fs.existsSync(path.join(root, 'server.js')), 'A root server.js is not required and must not be used by Vercel.');
-assert(fs.existsSync(path.join(root, 'local-server.js')), 'Local development server is missing.');
-assert.strictEqual(packageJson.scripts.start, 'node local-server.js', 'Local start script is incorrect.');
-assert(!packageJson.devDependencies?.vercel && !packageJson.dependencies?.vercel, 'The Vercel CLI must not be installed as an application dependency.');
+assert(fs.existsSync(path.join(root, 'api', 'index.js')), 'Single API function is missing.');
+assert(fs.existsSync(path.join(root, 'lib', 'api-dispatcher.js')), 'Shared API dispatcher is missing.');
+assert(!fs.existsSync(path.join(root, 'server.js')), 'Root server.js must not be used by Vercel.');
+assert.strictEqual(packageJson.scripts.start, 'node local-server.js');
+assert(!packageJson.devDependencies?.vercel && !packageJson.dependencies?.vercel);
 
-for (const file of ['request-otp.js', 'publish-ad.js', 'update-my-ad.js', 'report-ad.js']) {
-  assert(fs.existsSync(path.join(root, 'api', file)), `API function ${file} is missing.`);
-}
+const handlerFiles = fs.readdirSync(path.join(root, 'api-handlers')).filter((name) => name.endsWith('.js'));
+assert.strictEqual(handlerFiles.length, 18, 'All 18 API handlers must remain available behind the dispatcher.');
+assert(fs.readdirSync(path.join(root, 'api')).filter((name) => name.endsWith('.js')).length === 1, 'Only one file may be deployed from api/.');
 
 function responseRecorder() {
   return {
@@ -45,31 +41,41 @@ function responseRecorder() {
     body: '',
     writableEnded: false,
     setHeader(name, value) { this.headers[String(name).toLowerCase()] = value; },
-    end(value = '') { this.body += String(value); this.writableEnded = true; }
+    end(value = '') { this.body += Buffer.isBuffer(value) ? value.toString('utf8') : String(value); this.writableEnded = true; }
   };
 }
 
 (async () => {
-  const updateHandler = require('./api/update-my-ad');
+  const dispatcher = require('./api/index');
+
+  const authReq = new EventEmitter();
+  authReq.method = 'GET';
+  authReq.headers = {};
+  authReq.url = '/api/index.js?__api_route=auth-settings';
+  authReq.query = { __api_route: 'auth-settings' };
+  const authRes = responseRecorder();
+  await dispatcher(authReq, authRes);
+  assert.strictEqual(authRes.statusCode, 200, 'Dispatcher did not reach auth-settings.');
+
+  const updateHandler = require('./api-handlers/update-my-ad');
   const updateReq = new EventEmitter();
   updateReq.method = 'PATCH';
   updateReq.headers = {};
   updateReq.body = { id: 'example' };
   const updateRes = responseRecorder();
   await updateHandler(updateReq, updateRes);
-  assert.strictEqual(updateRes.statusCode, 401, 'Pre-parsed Vercel request bodies must be accepted by the update API.');
+  assert.strictEqual(updateRes.statusCode, 401, 'Pre-parsed Vercel request bodies must be accepted.');
 
-  const reportHandler = require('./api/report-ad');
-  const reportReq = new EventEmitter();
-  reportReq.method = 'POST';
-  reportReq.headers = {};
-  reportReq.socket = { remoteAddress: '127.0.0.1' };
-  reportReq.body = { adId: '', reason: 'spam' };
-  const reportRes = responseRecorder();
-  await reportHandler(reportReq, reportRes);
-  assert.strictEqual(reportRes.statusCode, 400, 'Pre-parsed Vercel request bodies must be accepted by the report API.');
+  const missingReq = new EventEmitter();
+  missingReq.method = 'GET';
+  missingReq.headers = {};
+  missingReq.url = '/api/index.js?__api_route=missing-route';
+  missingReq.query = { __api_route: 'missing-route' };
+  const missingRes = responseRecorder();
+  await dispatcher(missingReq, missingRes);
+  assert.strictEqual(missingRes.statusCode, 404, 'Unknown API routes must return 404.');
 
-  console.log('VERCEL_EXPLICIT_STATIC_AND_API_BUILD_REGRESSION_TEST_PASSED');
+  console.log('VERCEL_HOBBY_SINGLE_API_FUNCTION_REGRESSION_TEST_PASSED');
 })().catch((error) => {
   console.error(error);
   process.exit(1);

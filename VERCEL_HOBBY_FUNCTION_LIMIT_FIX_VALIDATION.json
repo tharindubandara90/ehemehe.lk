@@ -1,0 +1,11 @@
+{
+  "rootCause": "The previous vercel.json deployed all 18 api/*.js files as separate Vercel Functions. Vercel Hobby permits at most 12 functions per deployment, so the deployment failed before runtime.",
+  "fix": {
+    "deployedFunctionEntrypoint": "api/index.js",
+    "deployedFunctionCount": 1,
+    "handlerDirectory": "api-handlers/",
+    "handlerCount": 18,
+    "rewrite": "/api/(.*) -> /api/index.js?__api_route=$1",
+    "lazyLoading": true
+  }
+}

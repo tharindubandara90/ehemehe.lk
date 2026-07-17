@@ -24,7 +24,7 @@ async function invoke(handler,body){const rq=req(body),rs=res();const done=new P
     }
     throw new Error('Unexpected '+method+' '+url);
   };
-  const verify=require('./api/verify-registration-otp');
+  const verify=require('./api-handlers/verify-registration-otp');
   const created=await invoke(verify,{challenge,code,name:'Test User',email:'',phone,password:'secret12'});
   if(created.status!==200) throw new Error(JSON.stringify(created));
   if(createPayload.phone) throw new Error('New user still depends on Supabase phone identity.');
@@ -33,7 +33,7 @@ async function invoke(handler,body){const rq=req(body),rs=res();const done=new P
   if(!created.body.session?.access_token) throw new Error('Session missing.');
 
   // Login by phone must find metadata phone and exchange password using email.
-  const login=require('./api/login-user');
+  const login=require('./api-handlers/login-user');
   const logged=await invoke(login,{identifier:'0772866867',password:'secret12'});
   if(logged.status!==200||!logged.body.session?.refresh_token) throw new Error('Phone login failed '+JSON.stringify(logged));
 
