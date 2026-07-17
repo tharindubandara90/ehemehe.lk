@@ -958,7 +958,7 @@
       .ehm-desktop-category-select:focus,.ehm-desktop-district-select:focus,.ehm-desktop-city-select:focus{border-color:#06b6d4;box-shadow:0 0 0 3px rgba(6,182,212,.12);}
       .ehm-desktop-top-category{display:none!important;}
       .ehm-desktop-top-location-hidden,.ehm-desktop-native-location-hidden{display:none!important;}
-      .ehm-desktop-hero-filterbar{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center;justify-content:center;margin:14px auto 0;width:min(100%,680px);max-width:680px;padding:0 6px;}
+      .ehm-desktop-hero-filterbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:center;justify-content:center;margin:14px auto 0;width:min(100%,560px);max-width:560px;padding:0 4px;}
       .ehm-desktop-hero-filterbar select{width:100%;min-width:0;height:48px;border-radius:14px;font-size:15.5px;}
       .ehm-desktop-results{max-width:1180px;margin:34px auto 58px;padding:0 24px;}
       .ehm-desktop-hero-filterbar + .ehm-desktop-hero-filterbar{display:none!important;}

@@ -160,6 +160,26 @@
   }
 
 
+  function enhanceDesktopAccountButton() {
+    if (!window.matchMedia || !window.matchMedia('(min-width: 768px)').matches) return;
+
+    const accountWrap = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTQ6MTQ"]');
+    const accountButton = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTU6MTY"]');
+    const accountLabel = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjI6MTg"]');
+    const postLabel = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTA6MTQ"]');
+    const postButton = postLabel?.closest('a');
+
+    if (!accountWrap || !accountButton || !accountLabel) return;
+
+    accountWrap.classList.add('ehm-desktop-account-wrap');
+    accountButton.classList.add('ehm-desktop-account-button');
+    postButton?.classList.add('ehm-desktop-post-button');
+
+    if (accountLabel.textContent !== 'Account') accountLabel.textContent = 'Account';
+    accountLabel.classList.add('ehm-desktop-account-label');
+  }
+
+
   function enhanceDashboardMobile() {
     const path = location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
     if (!path.startsWith('/dashboard')) return;
@@ -201,6 +221,7 @@
   function tick() {
     applyMobileResponsiveMode();
     enhanceDashboardMobile();
+    enhanceDesktopAccountButton();
     ensureFavicon();
     replaceHeaderLogos();
     replaceInlineCyan();
