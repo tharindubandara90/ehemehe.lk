@@ -1125,7 +1125,9 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
 /* Desktop logged-in header: compact, balanced Post Ad and Account controls */
 @media (min-width: 768px) {
   .ehm-desktop-post-button,
-  .ehm-desktop-account-button {
+  .ehm-desktop-account-button,
+  .ehm-desktop-favorites-link,
+  .ehm-desktop-login-account {
     width: 126px !important;
     min-width: 126px !important;
     height: 44px !important;
@@ -1133,18 +1135,27 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
     box-sizing: border-box !important;
   }
 
-  .ehm-desktop-account-button {
+  .ehm-desktop-account-button,
+  .ehm-desktop-favorites-link,
+  .ehm-desktop-login-account {
     padding: 0 14px !important;
     background: #ffffff !important;
     border: 1px solid #dbe6ef !important;
     border-radius: 12px !important;
     box-shadow: 0 2px 8px rgba(15, 23, 42, .05) !important;
     color: #334155 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
   }
 
-  .ehm-desktop-account-button:hover {
+  .ehm-desktop-account-button:hover,
+  .ehm-desktop-favorites-link:hover,
+  .ehm-desktop-login-account:hover {
     background: #f8fafc !important;
-    border-color: #b9d8cc !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
   }
 
   .ehm-desktop-account-label {
@@ -1217,17 +1228,25 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    height: 46px !important;
-    padding: 0 5px !important;
+    width: 126px !important;
+    min-width: 126px !important;
+    height: 48px !important;
+    padding: 0 16px !important;
     color: #34444f !important;
     font-size: 15px !important;
     font-weight: 650 !important;
     text-decoration: none !important;
     white-space: nowrap !important;
+    background: #ffffff !important;
+    border: 1px solid #dbe6ef !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
   }
 
   body.ehm-desktop-olx-home .ehm-desktop-favorites-link:hover {
-    color: #22a879 !important;
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #34444f !important;
   }
 
   body.ehm-desktop-olx-home .ehm-desktop-post-button {
@@ -1243,7 +1262,7 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
     width: 126px !important;
     min-width: 126px !important;
     height: 48px !important;
-    border: 0 !important;
+    border: 1px solid #dbe6ef !important;
     background: #ffffff !important;
     box-shadow: none !important;
     color: #34444f !important;
