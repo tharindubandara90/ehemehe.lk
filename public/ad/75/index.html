@@ -54,15 +54,12 @@
 (function () {
   var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
   if (path === '/' && window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
-    document.documentElement.classList.add('ehm-desktop-home-prepaint');
+    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
   }
 })();
     </script>
     <style id="ehm-desktop-home-prepaint-style">
       @media (min-width: 768px) {
-        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"] {
-          display: none !important;
-        }
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDMxOjEw"],
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDM3OjEw"],
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQzOjEw"],
@@ -121,7 +118,7 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
   <script src="/auth-session-bridge.js?v=3fbc48c04dd76ce2"></script>
 
   <script src="./post-ad-category-fields.js?v=725edf8c7526490c"></script>
-  <script src="./index-filters.js?v=9c3af86f4f817518"></script>
+  <script src="./index-filters.js?v=3a0fa330f4e82a06"></script>
   <script src="/brand-theme.js?v=d9d6b46e76efa649"></script>
 <script src="/post-ad-runtime.js?v=2a5a5c562d1f42ef"></script>
 <script src="/auth-unified.js?v=7b32a64cd1e3497d"></script>

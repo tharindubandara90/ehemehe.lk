@@ -93,8 +93,9 @@ assert.strictEqual(searchContext.adMatchesSearchQuery(catAd, 'toyota'), false, '
 assert(publicUi.includes('Hero → Browse Categories → Latest Ads.'), 'Desktop section order guard missing');
 assert(publicUi.includes("heading === 'Featured Ads' || heading === 'Latest Ads'"), 'Bundled duplicate sections are not hidden');
 assert(publicUi.includes("anchor.insertAdjacentElement('afterend', host)"), 'Latest Ads host is not placed after Browse Categories');
-assert(publicUi.includes('ehm-desktop-native-location-hidden'), 'Dead native hero location wrapper is not removed');
-assert(publicUi.includes("sel.id?.startsWith('ehm') || sel.closest('#ehmDesktopHeroFilterbar')"), 'Replacement hero controls can be hidden by a later pass');
+assert(publicUi.includes("locationField.classList.remove('ehm-desktop-native-location-hidden', 'ehm-desktop-top-location-hidden')"), 'Native hero location wrapper is not restored for the stable search grid');
+assert(publicUi.includes("document.getElementById('ehmDesktopHeroFilterbar')?.remove()"), 'Legacy delayed hero overlay is not removed');
+assert(publicUi.includes("searchBar.insertBefore(categoryField, locationField)"), 'Stable category field is not placed before native location field');
 assert(publicUi.includes("location.dataset.ehmBound !== '1'"), 'Desktop location selector is not stably bound');
 assert(publicUi.includes('background-position:right 15px center'), 'Desktop selector arrow alignment missing');
 

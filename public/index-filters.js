@@ -960,13 +960,9 @@
       .ehm-desktop-top-location-hidden,.ehm-desktop-native-location-hidden,.ehm-desktop-native-category-hidden{display:none!important;}
       .ehm-desktop-hero-filterbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:center;justify-content:center;margin:14px auto 0;width:min(100%,560px);max-width:560px;padding:0 4px;}
       .ehm-desktop-hero-filterbar select{width:100%;min-width:0;height:48px;border-radius:14px;font-size:15.5px;}
-      .ehm-desktop-hero-search-anchor{position:relative!important;}
-      .ehm-desktop-hero-filterbar.ehm-inline{position:absolute;top:6px;bottom:6px;right:calc(var(--ehm-inline-search-button-width,170px) + 10px);width:clamp(430px,46%,560px);max-width:none;margin:0;padding:0;gap:0;background:#fff;border:1.5px solid #dbe6ef;border-radius:16px;overflow:hidden;z-index:3;box-shadow:0 8px 22px rgba(15,23,42,.04);}
-      .ehm-desktop-hero-filterbar.ehm-inline select{height:100%;border:none!important;border-radius:0!important;box-shadow:none!important;background-color:transparent;padding:0 42px 0 18px;font-size:15px;font-weight:600;color:#334155;}
-      .ehm-desktop-hero-filterbar.ehm-inline select:first-child{border-right:1px solid #e2e8f0!important;}
-      .ehm-desktop-hero-filterbar.ehm-inline select:focus{box-shadow:none!important;border-color:transparent!important;}
       .ehm-desktop-results{max-width:1180px;margin:34px auto 58px;padding:0 24px;}
       .ehm-desktop-hero-filterbar + .ehm-desktop-hero-filterbar{display:none!important;}
+      .ehm-olx-category-field .ehm-desktop-category-select,.ehm-olx-location-field .ehm-desktop-district-select{height:50px!important;min-width:0!important;width:100%!important;border:0!important;border-radius:0!important;box-shadow:none!important;background-color:transparent!important;padding:0 34px 0 0!important;font-size:15px!important;font-weight:600!important;color:#52606b!important;}
       @media(min-width:768px){
         #ehmDesktopHeroFilterbar{margin-top:18px!important;}
         #ehmDesktopHeroFilterbar.ehm-stats-balanced{margin-bottom:74px!important;}
@@ -1574,6 +1570,7 @@
 
     Array.from(document.querySelectorAll('select,button')).forEach((node) => {
       if (!isVisibleElement(node)) return;
+      if (node.closest?.('.ehm-olx-search-bar') || node.closest?.('.ehm-olx-category-field') || node.closest?.('.ehm-olx-location-field')) return;
 
       const rect = node.getBoundingClientRect();
       // Only hide small control elements, never page/header containers.
@@ -1612,7 +1609,7 @@
 
       // Hide only small original location controls. Never hide wrapper divs/sections.
       Array.from(wrapper.querySelectorAll('select,button')).forEach((node) => {
-        if (node === input || node.id?.startsWith('ehm')) return;
+        if (node === input || node.id?.startsWith('ehm') || node.closest?.('.ehm-olx-category-field') || node.closest?.('.ehm-olx-location-field')) return;
         const rect = node.getBoundingClientRect();
         if (rect.width > 280 || rect.height > 70) return;
         const txt = (node.textContent || node.value || '').replace(/\s+/g, ' ').trim();
@@ -1729,74 +1726,54 @@
     const heroInput = findDesktopInputs().find((input) => /search for anything/i.test(input.placeholder || ''));
     if (!heroInput) return;
 
-    const section = heroInput.closest('section') || heroInput.closest('div');
-    if (!section) return;
+    // Remove the older delayed overlay. It was injected after React/data hydration
+    // and caused the search filters to jump upward about a second after first paint.
+    document.getElementById('ehmDesktopHeroFilterbar')?.remove();
 
-    // Hide existing native/simple category and location controls near hero search.
-    // Never re-hide the EheMehe replacement controls on later stabilization passes.
-    Array.from(section.querySelectorAll('select')).forEach((sel) => {
-      if (sel.id?.startsWith('ehm') || sel.closest('#ehmDesktopHeroFilterbar')) return;
-      const txt = Array.from(sel.options || []).map((o) => o.textContent).join(' ');
-      if (/All Categories/i.test(txt)) {
-        sel.classList.add('ehm-desktop-native-category-hidden');
-        const nativeWrap = sel.parentElement;
-        if (nativeWrap && !nativeWrap.contains(heroInput)) nativeWrap.classList.add('ehm-desktop-native-category-hidden');
-      }
-      if (/All Locations|All of Sri Lanka|Colombo|Kandy|Galle|Gampaha|Matara/i.test(txt)) {
-        sel.classList.add('ehm-desktop-top-location-hidden');
-        // Hide the select's small icon/wrapper too. Hiding only the select left
-        // a dead location-pin control inside the search box.
-        const nativeWrap = sel.closest('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"]') || sel.parentElement;
-        if (nativeWrap && !nativeWrap.contains(heroInput)) nativeWrap.classList.add('ehm-desktop-native-location-hidden');
-      }
-    });
+    const heroForm = heroInput.closest('form');
+    const searchBar = heroInput.closest('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQ5OjEy"]')
+      || heroForm?.firstElementChild
+      || heroInput.parentElement?.parentElement;
+    if (!heroForm || !searchBar) return;
 
-    Array.from(section.querySelectorAll('button,div')).forEach((node) => {
-      if (node.id?.startsWith('ehm') || node.closest('#ehmDesktopHeroFilterbar')) return;
-      const rect = node.getBoundingClientRect();
-      if (rect.width > 360 || rect.height > 84 || rect.width < 28 || rect.height < 18) return;
-      const txt = (node.textContent || "").replace(/\s+/g, " " ).trim();
-      if (/^All Categories$/i.test(txt)) node.classList.add('ehm-desktop-native-category-hidden');
-      if (/^All of Sri Lanka$|^Location$/i.test(txt)) node.classList.add('ehm-desktop-native-location-hidden');
-    });
+    heroForm.classList.add('ehm-olx-search-form');
+    searchBar.classList.add('ehm-olx-search-bar');
+    heroInput.parentElement?.classList.add('ehm-olx-query-field');
 
-    let bar = document.getElementById('ehmDesktopHeroFilterbar');
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.id = 'ehmDesktopHeroFilterbar';
-      bar.className = 'ehm-desktop-hero-filterbar';
-      const searchWrap = heroInput.closest('form') || heroInput.parentElement;
-      const heroSearchParent = searchWrap?.parentElement || searchWrap || heroInput;
-      heroSearchParent.classList.add('ehm-desktop-hero-search-anchor');
-      const searchButton = Array.from(heroSearchParent.querySelectorAll('button')).find((btn) => /search/i.test((btn.textContent || btn.getAttribute('aria-label') || "").trim()));
-      if (searchButton) {
-        const btnRect = searchButton.getBoundingClientRect();
-        heroSearchParent.style.setProperty('--ehm-inline-search-button-width', `${Math.max(148, Math.round(btnRect.width || 0))}px`);
-      }
-      if (!heroSearchParent.contains(bar)) {
-        if (searchButton && searchButton.parentElement === heroSearchParent) {
-          heroSearchParent.insertBefore(bar, searchButton);
-        } else {
-          heroSearchParent.appendChild(bar);
-        }
-      }
-      bar.classList.add('ehm-inline');
+    let locationField = searchBar.querySelector('.ehm-olx-location-field')
+      || searchBar.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"]');
+    if (locationField) {
+      locationField.classList.remove('ehm-desktop-native-location-hidden', 'ehm-desktop-top-location-hidden');
+      locationField.classList.add('ehm-olx-location-field');
     }
 
-    if (!bar.querySelector('#ehmDesktopHeroCategory') || !bar.querySelector('#ehmDesktopHeroLocation')) {
-      bar.innerHTML = `
-        <select class="ehm-desktop-category-select" id="ehmDesktopHeroCategory" aria-label="Category"></select>
-        <select class="ehm-desktop-district-select" id="ehmDesktopHeroLocation" aria-label="Location"></select>
-      `;
-    }
+    let location = locationField?.querySelector('select') || null;
+    if (!location) return;
+    location.classList.remove('ehm-desktop-native-location-hidden', 'ehm-desktop-top-location-hidden');
+    location.classList.add('ehm-desktop-district-select');
+    location.id = 'ehmDesktopHeroLocation';
+    location.setAttribute('aria-label', 'Location');
 
-    const cat = bar.querySelector('#ehmDesktopHeroCategory');
-    const location = bar.querySelector('#ehmDesktopHeroLocation');
+    let categoryField = searchBar.querySelector('.ehm-olx-category-field');
+    if (!categoryField) {
+      categoryField = document.createElement('div');
+      categoryField.className = 'ehm-olx-category-field';
+      const categorySelect = document.createElement('select');
+      categorySelect.setAttribute('aria-label', 'Category');
+      categoryField.appendChild(categorySelect);
+      searchBar.insertBefore(categoryField, locationField);
+    }
+    categoryField.classList.remove('ehm-desktop-native-category-hidden');
+
+    const cat = categoryField.querySelector('select');
+    if (!cat) return;
+    cat.classList.remove('ehm-desktop-native-category-hidden');
+    cat.classList.add('ehm-desktop-category-select');
+    cat.id = 'ehmDesktopHeroCategory';
+    cat.setAttribute('aria-label', 'Category');
+
     const catHtml = categoryOptionsHtml('');
     const locationHtml = desktopLocationOptionsHtml('');
-
-    // Keep the native selects stable. Replacing their HTML on every observer
-    // tick interrupted desktop interaction and caused unnecessary layout work.
     if (cat.__ehmOptionsHtml !== catHtml) {
       cat.innerHTML = catHtml;
       cat.__ehmOptionsHtml = catHtml;
@@ -1805,6 +1782,7 @@
       location.innerHTML = locationHtml;
       location.__ehmOptionsHtml = locationHtml;
     }
+
     cat.value = categoryValueFromState();
     location.value = desktopLocationValueFromState();
 
@@ -1827,8 +1805,6 @@
         renderDesktopResults(true);
       });
     }
-
-    balanceDesktopHeroStats();
   }
 
   function desktopHomeSectionByHeading(label) {
@@ -1902,15 +1878,15 @@
     if (isMobile() || !isHomeRoute() || desktopShellMutating) return false;
     desktopShellMutating = true;
     try {
-      document.documentElement.classList.add('ehm-desktop-home-prepaint');
+      document.documentElement.classList.remove('ehm-desktop-home-prepaint');
       document.body?.classList?.remove('ehm-ad-detail-route');
-      enhanceDesktopTopSearch();
       enhanceDesktopHeroControls();
+      enhanceDesktopTopSearch();
       syncDesktopCategorySelects();
       syncDesktopLocationSelects();
       balanceDesktopHeroStats();
       arrangeDesktopHomeSections();
-      return !!document.getElementById('ehmDesktopHeroFilterbar');
+      return !!document.getElementById('ehmDesktopHeroCategory') && !!document.getElementById('ehmDesktopHeroLocation');
     } finally {
       Promise.resolve().then(() => { desktopShellMutating = false; });
     }
@@ -2663,8 +2639,7 @@
   }
 
   function handleRouteChange() {
-    if (!isHomeRoute() || isMobile()) document.documentElement.classList.remove('ehm-desktop-home-prepaint');
-    else document.documentElement.classList.add('ehm-desktop-home-prepaint');
+    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
     refreshRouteObserver();
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
@@ -2770,7 +2745,7 @@
 
   function installDesktopHomePrepaintWatcher() {
     if (window.__ehmDesktopPrepaintObserver || isMobile() || !isHomeRoute()) return;
-    document.documentElement.classList.add('ehm-desktop-home-prepaint');
+    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
 
     const observer = new MutationObserver(() => {
       if (window.__ehmMutating || desktopShellMutating) return;
