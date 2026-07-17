@@ -1158,6 +1158,14 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
     color: #334155 !important;
   }
 
+  .ehm-desktop-account-button > div:first-child {
+    display: none !important;
+  }
+
+  .ehm-desktop-account-button {
+    gap: 0 !important;
+  }
+
   .ehm-desktop-account-label {
     display: inline !important;
     max-width: none !important;
