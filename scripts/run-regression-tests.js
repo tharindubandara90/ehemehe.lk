@@ -12,6 +12,7 @@ const tests = [
   ['password_reset_security_test.js', []],
   ['phone_auth_flow_test.js', []],
   ['login_auto_identifier_ui_regression_test.js', []],
+  ['dashboard_profile_picture_regression_test.js', []],
   ['post_ad_all_category_fields_test.js', []],
   ['post_ad_canonical_route_test.js', []],
   ['post_ad_category_location_test.js', []],
