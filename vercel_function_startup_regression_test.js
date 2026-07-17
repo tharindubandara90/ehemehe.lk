@@ -7,6 +7,8 @@ const root = __dirname;
 const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
+assert.strictEqual(config.framework, null, 'Vercel Framework Preset must be forced to Other, not Node/Express.');
+assert.strictEqual(config.buildCommand, 'npm run build', 'Vercel must run the static asset build command.');
 assert.strictEqual(config.outputDirectory, 'public', 'Vercel must serve the frontend from the public directory.');
 assert(!config.builds, 'Legacy builds configuration must not be used.');
 assert(!config.routes, 'The frontend must not be routed through a catch-all serverless function.');
