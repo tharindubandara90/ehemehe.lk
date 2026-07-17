@@ -1,0 +1,24 @@
+{
+  "project": "EheMehe.lk",
+  "scope": "Tester feedback: desktop hero filters, home order, search accuracy, favourites and report-ad",
+  "root_causes": [
+    "The replacement desktop location select could be hidden by a later generic native-select cleanup pass.",
+    "Hero controls were rebuilt during repeated stabilization passes.",
+    "Supabase Latest Ads was inserted before Browse Categories while bundled Featured/Latest sections remained.",
+    "Search used interior substring matching, producing false positives such as cat in education/location.",
+    "Latest-card hearts had no persistent click implementation.",
+    "Report this ad had no action and its mobile wrapper was hidden."
+  ],
+  "fixed": [
+    "Stable desktop Category/Location controls with aligned arrows",
+    "Hero -> Browse Categories -> Latest Ads order",
+    "Word-prefix multi-token search",
+    "Persistent favourite toggle with React-store synchronization",
+    "Mobile/desktop report modal and server API",
+    "Idempotent Supabase ad_reports schema"
+  ],
+  "production_limitations": [
+    "No live Vercel deployment was performed from the validation environment.",
+    "No real production Supabase report row was inserted; the API insert was tested with a mocked Supabase response."
+  ]
+}

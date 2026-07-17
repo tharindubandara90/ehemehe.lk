@@ -142,6 +142,11 @@
   let promotionsLoaded = false;
   const AD_PROMOTIONS_KEY = 'ehemeheAdPromotions';
   const BANNER_ADS_KEY = 'ehemeheBannerAds';
+  const FAVORITES_STORAGE_KEY = 'ehemehe:favorites:v2';
+  const REPORT_REASON_LABELS = {
+    scam: 'Scam or fraud', spam: 'Spam or misleading', duplicate: 'Duplicate listing',
+    sold: 'Already sold or unavailable', category: 'Wrong category', inappropriate: 'Inappropriate content', other: 'Other'
+  };
   function readLocalArray(key) { try { return JSON.parse(localStorage.getItem(key) || '[]') || []; } catch (e) { return []; } }
   function isActivePromo(row) { if (!row) return false; if (row.is_active === false || row.is_enabled === false || String(row.status || 'active').toLowerCase() === 'disabled') return false; const end = row.end_at || row.expires_at; if (!end) return true; const t = new Date(end).getTime(); return !Number.isFinite(t) || t >= Date.now(); }
   let syncing = false;
@@ -547,6 +552,160 @@
   }
 
 
+  function favoriteIds() {
+    const stored = readLocalArray(FAVORITES_STORAGE_KEY);
+    const ids = new Set((Array.isArray(stored) ? stored : []).map((id) => String(id)));
+    try {
+      const storeIds = window.__EHM_STORE?.getState?.().favorites || [];
+      if (Array.isArray(storeIds)) storeIds.forEach((id) => ids.add(String(id)));
+    } catch (_) {}
+    return ids;
+  }
+
+  function isFavoriteId(id) {
+    return favoriteIds().has(String(id));
+  }
+
+  function saveFavoriteIds(ids) {
+    try { localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(ids))); } catch (_) {}
+  }
+
+  function showUiToast(message, type = 'success') {
+    let toast = document.getElementById('ehmUiToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'ehmUiToast';
+      toast.className = 'ehm-ui-toast';
+      document.body.appendChild(toast);
+    }
+    toast.className = `ehm-ui-toast ${type === 'error' ? 'error' : 'success'} show`;
+    toast.textContent = message;
+    clearTimeout(toast.__ehmTimer);
+    toast.__ehmTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  function selectorEscape(value) {
+    const text = String(value || '');
+    if (window.CSS?.escape) return window.CSS.escape(text);
+    return text.replace(/([\"'])/g, '\\$1');
+  }
+
+  function updateFavoriteButtons(id) {
+    const active = isFavoriteId(id);
+    document.querySelectorAll(`[data-ehm-favorite-id="${selectorEscape(id)}"]`).forEach((button) => {
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      const icon = button.querySelector('[data-ehm-heart-icon]') || button;
+      if (icon) icon.textContent = active ? '♥' : '♡';
+    });
+  }
+
+  function toggleFavoriteId(id) {
+    const cleanId = String(id || '').trim();
+    if (!cleanId) return false;
+    const ids = favoriteIds();
+    const wasActive = ids.has(cleanId);
+    if (wasActive) ids.delete(cleanId); else ids.add(cleanId);
+    saveFavoriteIds(ids);
+
+    try {
+      const store = window.__EHM_STORE;
+      const storeState = store?.getState?.();
+      if (storeState?.toggleFavorite) {
+        const inStore = (storeState.favorites || []).map(String).includes(cleanId);
+        if (inStore === wasActive) storeState.toggleFavorite(cleanId);
+      }
+    } catch (_) {}
+
+    updateFavoriteButtons(cleanId);
+    showUiToast(wasActive ? 'Removed from favourites' : 'Added to favourites');
+    return !wasActive;
+  }
+
+  function currentReportAdId() {
+    return decodeURIComponent(window.location.pathname.replace(/^\/ad\//, '').replace(/\/$/, '')).replace(/^static-/, '');
+  }
+
+  function closeReportModal() {
+    document.getElementById('ehmReportModal')?.remove();
+    document.body.classList.remove('ehm-modal-open');
+  }
+
+  function openReportModal(adId = currentReportAdId()) {
+    closeReportModal();
+    const modal = document.createElement('div');
+    modal.id = 'ehmReportModal';
+    modal.className = 'ehm-report-modal';
+    modal.innerHTML = `
+      <div class="ehm-report-backdrop" data-ehm-report-close></div>
+      <section class="ehm-report-dialog" role="dialog" aria-modal="true" aria-labelledby="ehmReportTitle">
+        <button type="button" class="ehm-report-close" data-ehm-report-close aria-label="Close">×</button>
+        <h2 id="ehmReportTitle">Report this ad</h2>
+        <p>Tell us why this listing should be reviewed. Reports are sent to the EheMehe admin team.</p>
+        <form id="ehmReportForm">
+          <input type="hidden" name="adId" value="${esc(adId)}">
+          <label>Reason
+            <select name="reason" required>
+              <option value="">Select a reason</option>
+              ${Object.entries(REPORT_REASON_LABELS).map(([value,label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Additional details <span>(optional)</span>
+            <textarea name="message" rows="4" maxlength="800" placeholder="Add any useful details for the review team"></textarea>
+          </label>
+          <label>Email <span>(optional)</span>
+            <input type="email" name="reporterEmail" maxlength="180" placeholder="For follow-up only" value="${esc(window.__EHM_STORE?.getState?.().currentUser?.email || '')}">
+          </label>
+          <div class="ehm-report-actions">
+            <button type="button" class="ehm-report-cancel" data-ehm-report-close>Cancel</button>
+            <button type="submit" class="ehm-report-submit">Submit Report</button>
+          </div>
+          <div class="ehm-report-status" aria-live="polite"></div>
+        </form>
+      </section>`;
+    document.body.appendChild(modal);
+    document.body.classList.add('ehm-modal-open');
+    modal.querySelector('select')?.focus();
+  }
+
+  async function submitAdReport(form) {
+    const submit = form.querySelector('.ehm-report-submit');
+    const status = form.querySelector('.ehm-report-status');
+    const data = Object.fromEntries(new FormData(form).entries());
+    if (!data.reason) {
+      status.textContent = 'Select a reason.';
+      status.className = 'ehm-report-status error';
+      return;
+    }
+    submit.disabled = true;
+    submit.textContent = 'Submitting…';
+    status.textContent = '';
+    try {
+      const response = await fetch('/api/report-ad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adId: String(data.adId || currentReportAdId()),
+          reason: String(data.reason || ''),
+          message: String(data.message || ''),
+          reporterEmail: String(data.reporterEmail || ''),
+          pageUrl: window.location.href
+        })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.message || 'Could not submit the report.');
+      status.textContent = 'Report submitted. Thank you.';
+      status.className = 'ehm-report-status success';
+      showUiToast('Report submitted');
+      setTimeout(closeReportModal, 900);
+    } catch (error) {
+      status.textContent = error.message || 'Could not submit the report.';
+      status.className = 'ehm-report-status error';
+      submit.disabled = false;
+      submit.textContent = 'Submit Report';
+    }
+  }
+
   function getSearchInput() {
     const visible = (input) => {
       if (!input) return false;
@@ -685,11 +844,34 @@
     });
   }
 
+  function searchWords(value) {
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+  }
+
+  function adMatchesSearchQuery(ad, query) {
+    const tokens = searchWords(query);
+    if (!tokens.length) return true;
+
+    const customValues = ad.customFields && typeof ad.customFields === 'object'
+      ? Object.values(ad.customFields).flatMap((value) => Array.isArray(value) ? value : [value]).join(' ')
+      : '';
+    const words = searchWords(`${ad.title} ${ad.description} ${ad.categoryName} ${ad.categoryId} ${ad.subcategoryId} ${ad.location} ${ad.cityName} ${ad.districtId} ${customValues}`);
+
+    // Every query token must match the beginning of a real word. This keeps
+    // "cat" matching "Cats" while rejecting accidental interior matches in
+    // words such as "education" and "location".
+    return tokens.every((token) => words.some((word) => word.startsWith(token)));
+  }
+
   function adMatchesSearch(ad) {
-    const q = getSearchValue();
-    if (!q) return true;
-    const haystack = `${ad.title} ${ad.description} ${ad.categoryName} ${ad.categoryId} ${ad.subcategoryId} ${ad.location} ${ad.cityName}`.toLowerCase();
-    return haystack.includes(q);
+    return adMatchesSearchQuery(ad, getSearchValue());
   }
 
   function adCategoryMatchesPromotion(ad, promo) {
@@ -770,10 +952,10 @@
       .ehm-promo-banner img{width:100%;height:clamp(92px,16vw,190px);object-fit:cover;display:block;filter:saturate(1.04);}
       .ehm-promo-banner span{position:absolute;left:18px;bottom:16px;background:rgba(15,23,42,.72);backdrop-filter:blur(8px);padding:9px 13px;border-radius:999px;font-weight:800;font-size:14px;}
       .ehm-badge.top{background:#ef4444!important;}
-      .ehm-desktop-category-select,.ehm-desktop-district-select,.ehm-desktop-city-select{height:46px;border:1.5px solid #dbe6ef;border-radius:14px;background:#fff;color:#334155;padding:0 14px;font-size:15px;font-weight:600;outline:none;min-width:155px;}
+      .ehm-desktop-category-select,.ehm-desktop-district-select,.ehm-desktop-city-select{height:46px;border:1.5px solid #dbe6ef;border-radius:14px;background-color:#fff;color:#334155;padding:0 44px 0 16px;font-size:15px;font-weight:600;outline:none;min-width:155px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 20 20'%3E%3Cpath d='M5 7.5l5 5 5-5' fill='none' stroke='%2364758b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 15px center;background-size:18px;}
       .ehm-desktop-category-select:focus,.ehm-desktop-district-select:focus,.ehm-desktop-city-select:focus{border-color:#06b6d4;box-shadow:0 0 0 3px rgba(6,182,212,.12);}
       .ehm-desktop-top-category{display:none!important;}
-      .ehm-desktop-top-location-hidden{display:none!important;}
+      .ehm-desktop-top-location-hidden,.ehm-desktop-native-location-hidden{display:none!important;}
       .ehm-desktop-hero-filterbar{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center;justify-content:center;margin:14px auto 0;width:min(100%,680px);max-width:680px;padding:0 6px;}
       .ehm-desktop-hero-filterbar select{width:100%;min-width:0;height:48px;border-radius:14px;font-size:15.5px;}
       .ehm-desktop-results{max-width:1180px;margin:34px auto 58px;padding:0 24px;}
@@ -815,7 +997,10 @@
       .ehm-desktop-results .ehm-badges{position:absolute;left:10px;right:10px;top:10px;display:flex;justify-content:space-between;gap:8px;align-items:center;}
       .ehm-desktop-results .ehm-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;color:#fff;text-transform:uppercase;}
       .ehm-desktop-results .ehm-badge.featured{background:#f59e0b;}.ehm-desktop-results .ehm-badge.promoted{background:#06b6d4;}.ehm-desktop-results .ehm-badge.top{background:#ef4444;}
-      .ehm-desktop-results .ehm-heart{position:absolute;right:10px;bottom:10px;width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:22px;box-shadow:0 4px 14px rgba(15,23,42,.14);}
+      .ehm-desktop-results .ehm-heart{position:absolute;right:10px;bottom:10px;width:38px;height:38px;border:0;border-radius:999px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:23px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.14);z-index:4;}
+      .ehm-heart.active,.ehm-dynamic-heart.active{color:#ef4444!important;background:#fff1f2!important;}
+      .ehm-ui-toast{position:fixed;z-index:10050;left:50%;bottom:96px;transform:translate(-50%,16px);opacity:0;pointer-events:none;padding:11px 16px;border-radius:999px;background:#0f172a;color:#fff;font-size:14px;font-weight:750;box-shadow:0 14px 36px rgba(15,23,42,.25);transition:.2s ease;white-space:nowrap}.ehm-ui-toast.error{background:#b91c1c}.ehm-ui-toast.show{opacity:1;transform:translate(-50%,0)}
+      .ehm-report-modal{position:fixed;inset:0;z-index:10040;display:flex;align-items:center;justify-content:center;padding:18px}.ehm-report-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.58);backdrop-filter:blur(3px)}.ehm-report-dialog{position:relative;width:min(520px,100%);max-height:calc(100vh - 36px);overflow:auto;background:#fff;border-radius:20px;padding:25px;box-shadow:0 30px 80px rgba(15,23,42,.3)}.ehm-report-dialog h2{margin:0 0 7px;color:#0f172a;font-size:24px}.ehm-report-dialog>p{margin:0 0 20px;color:#64748b;line-height:1.5}.ehm-report-close{position:absolute;right:14px;top:12px;width:36px;height:36px;border:0;border-radius:999px;background:#f1f5f9;font-size:25px;color:#475569;cursor:pointer}.ehm-report-dialog form{display:grid;gap:15px}.ehm-report-dialog label{display:grid;gap:7px;color:#334155;font-size:14px;font-weight:750}.ehm-report-dialog label span{font-weight:500;color:#94a3b8}.ehm-report-dialog select,.ehm-report-dialog textarea,.ehm-report-dialog input{width:100%;box-sizing:border-box;border:1.5px solid #dbe4ea;border-radius:12px;padding:11px 12px;background:#fff;color:#0f172a;font:inherit;outline:none}.ehm-report-dialog select:focus,.ehm-report-dialog textarea:focus,.ehm-report-dialog input:focus{border-color:#22b98b;box-shadow:0 0 0 3px rgba(34,185,139,.12)}.ehm-report-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:2px}.ehm-report-actions button{height:44px;border-radius:11px;padding:0 17px;font-weight:800;cursor:pointer}.ehm-report-cancel{border:1px solid #dbe4ea;background:#fff;color:#475569}.ehm-report-submit{border:0;background:#22b98b;color:#fff}.ehm-report-submit:disabled{opacity:.65;cursor:wait}.ehm-report-status{min-height:20px;font-size:13px}.ehm-report-status.error{color:#b91c1c}.ehm-report-status.success{color:#047857}.ehm-report-ad{width:100%;border:0;background:transparent;color:#64748b;font-size:13px;font-weight:750;cursor:pointer;padding:10px 6px}.ehm-report-ad:hover{color:#dc2626}
       .ehm-desktop-results .ehm-ad-body{padding:14px 16px 16px;}
       .ehm-desktop-results .ehm-ad-title{margin:0 0 10px;font-size:17px;line-height:1.32;font-weight:800;color:#0f172a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:44px;}
       .ehm-desktop-results .ehm-ad-price{font-size:20px;font-weight:900;color:#0891b2;margin-bottom:8px;}
@@ -842,6 +1027,9 @@
         .ehm-results-grid{display:grid!important;gap:12px!important;}
         .ehm-results-grid.grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
         .ehm-results-grid.list{grid-template-columns:1fr!important;}
+        .ehm-mobile-results .ehm-heart{position:absolute!important;right:9px!important;bottom:9px!important;width:36px!important;height:36px!important;border:0!important;border-radius:999px!important;background:rgba(255,255,255,.95)!important;display:flex!important;align-items:center!important;justify-content:center!important;color:#94a3b8!important;font-size:22px!important;line-height:1!important;z-index:4!important;box-shadow:0 3px 12px rgba(15,23,42,.14)!important;}
+        .ehm-mobile-results .ehm-heart.active{color:#ef4444!important;background:#fff1f2!important;}
+        .ehm-report-dialog{padding:22px 18px!important;border-radius:17px!important}.ehm-report-actions{display:grid!important;grid-template-columns:1fr 1fr!important}.ehm-report-actions button{width:100%!important;padding:0 10px!important}
         .ehm-ad-card{display:block!important;text-decoration:none!important;color:inherit!important;background:#fff!important;border:1px solid #e5edf3!important;border-radius:16px!important;overflow:hidden!important;box-shadow:0 8px 24px rgba(15,23,42,.07)!important;min-width:0!important;}
         .ehm-ad-img-wrap{height:132px!important;background:#eef5f9!important;position:relative!important;overflow:hidden!important;}
         .ehm-ad-img{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important;}
@@ -1062,7 +1250,7 @@
         <div class="ehm-ad-img-wrap">
           ${ad.image ? `<img class="ehm-ad-img" src="${esc(ad.image)}" alt="${esc(ad.title)}" loading="lazy">` : ''}
           <div class="ehm-badges">${topPromotionForAd(ad) ? '<span class="ehm-badge top">Top Ad</span>' : (ad.isFeatured ? '<span class="ehm-badge featured">Featured</span>' : '<span></span>')}${ad.isPromoted ? '<span class="ehm-badge promoted">Promoted</span>' : ''}</div>
-          <span class="ehm-heart">♡</span>
+          <button type="button" class="ehm-heart${isFavoriteId(ad.id) ? ' active' : ''}" data-ehm-favorite-id="${esc(ad.id)}" aria-label="Add to favourites" aria-pressed="${isFavoriteId(ad.id) ? 'true' : 'false'}"><span data-ehm-heart-icon>${isFavoriteId(ad.id) ? '♥' : '♡'}</span></button>
         </div>
         <div class="ehm-ad-body">
           <h3 class="ehm-ad-title">${esc(ad.title)}</h3>
@@ -1446,6 +1634,10 @@
             renderDesktopResults(true);
           }
         }, true);
+        input.addEventListener('input', () => {
+          state.query = (input.value || '').trim();
+          if (!state.query) renderDesktopResults(true, false);
+        });
       }
     });
   }
@@ -1458,12 +1650,18 @@
 
   function syncDesktopLocationSelects() {
     const selected = desktopLocationValueFromState();
+    const optionsHtml = desktopLocationOptionsHtml('');
 
-    const heroLocation = document.getElementById('ehmDesktopHeroLocation');
-    if (heroLocation) {
-      heroLocation.innerHTML = desktopLocationOptionsHtml(selected);
-      heroLocation.value = selected;
-    }
+    const syncOne = (select) => {
+      if (!select) return;
+      if (select.__ehmOptionsHtml !== optionsHtml) {
+        select.innerHTML = optionsHtml;
+        select.__ehmOptionsHtml = optionsHtml;
+      }
+      select.value = selected;
+    };
+
+    syncOne(document.getElementById('ehmDesktopHeroLocation'));
 
     // Remove old separate city controls if an older cached DOM still has them.
     document.querySelectorAll('.ehm-desktop-city-select').forEach((select) => {
@@ -1471,9 +1669,7 @@
     });
 
     document.querySelectorAll('.ehm-desktop-district-select').forEach((select) => {
-      if (select.id === 'ehmDesktopHeroLocation') return;
-      select.innerHTML = desktopLocationOptionsHtml(selected);
-      select.value = selected;
+      if (select.id !== 'ehmDesktopHeroLocation') syncOne(select);
     });
   }
 
@@ -1529,10 +1725,18 @@
     const section = heroInput.closest('section') || heroInput.closest('div');
     if (!section) return;
 
-    // Hide existing native/simple location select near hero search.
+    // Hide existing native/simple location select near hero search. Never
+    // re-hide the EheMehe replacement controls on later stabilization passes.
     Array.from(section.querySelectorAll('select')).forEach((sel) => {
+      if (sel.id?.startsWith('ehm') || sel.closest('#ehmDesktopHeroFilterbar')) return;
       const txt = Array.from(sel.options || []).map((o) => o.textContent).join(' ');
-      if (/All Locations|Colombo|Kandy|Galle|Gampaha|Matara/i.test(txt)) sel.classList.add('ehm-desktop-top-location-hidden');
+      if (/All Locations|Colombo|Kandy|Galle|Gampaha|Matara/i.test(txt)) {
+        sel.classList.add('ehm-desktop-top-location-hidden');
+        // Hide the select's small icon/wrapper too. Hiding only the select left
+        // a dead location-pin control inside the search box.
+        const nativeWrap = sel.closest('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"]') || sel.parentElement;
+        if (nativeWrap && !nativeWrap.contains(heroInput)) nativeWrap.classList.add('ehm-desktop-native-location-hidden');
+      }
     });
 
     let bar = document.getElementById('ehmDesktopHeroFilterbar');
@@ -1545,29 +1749,75 @@
       heroSearchParent.insertAdjacentElement('afterend', bar);
     }
 
-    bar.innerHTML = `
-      <select class="ehm-desktop-category-select" id="ehmDesktopHeroCategory">${categoryOptionsHtml(categoryValueFromState())}</select>
-      <select class="ehm-desktop-district-select" id="ehmDesktopHeroLocation">${desktopLocationOptionsHtml(desktopLocationValueFromState())}</select>
-    `;
+    if (!bar.querySelector('#ehmDesktopHeroCategory') || !bar.querySelector('#ehmDesktopHeroLocation')) {
+      bar.innerHTML = `
+        <select class="ehm-desktop-category-select" id="ehmDesktopHeroCategory" aria-label="Category"></select>
+        <select class="ehm-desktop-district-select" id="ehmDesktopHeroLocation" aria-label="Location"></select>
+      `;
+    }
 
     const cat = bar.querySelector('#ehmDesktopHeroCategory');
     const location = bar.querySelector('#ehmDesktopHeroLocation');
+    const catHtml = categoryOptionsHtml('');
+    const locationHtml = desktopLocationOptionsHtml('');
 
-    cat.addEventListener('change', () => {
-      setCategoryFromSelect(cat.value);
-      setDesktopQueryFromInput(heroInput);
-      syncDesktopCategorySelects();
-      renderDesktopResults(true);
-    });
+    // Keep the native selects stable. Replacing their HTML on every observer
+    // tick interrupted desktop interaction and caused unnecessary layout work.
+    if (cat.__ehmOptionsHtml !== catHtml) {
+      cat.innerHTML = catHtml;
+      cat.__ehmOptionsHtml = catHtml;
+    }
+    if (location.__ehmOptionsHtml !== locationHtml) {
+      location.innerHTML = locationHtml;
+      location.__ehmOptionsHtml = locationHtml;
+    }
+    cat.value = categoryValueFromState();
+    location.value = desktopLocationValueFromState();
 
-    location.addEventListener('change', () => {
-      setDesktopLocationFromSelect(location.value);
-      setDesktopQueryFromInput(heroInput);
-      syncDesktopLocationSelects();
-      renderDesktopResults(true);
-    });
+    if (cat.dataset.ehmBound !== '1') {
+      cat.dataset.ehmBound = '1';
+      cat.addEventListener('change', () => {
+        setCategoryFromSelect(cat.value);
+        setDesktopQueryFromInput(heroInput);
+        syncDesktopCategorySelects();
+        renderDesktopResults(true);
+      });
+    }
+
+    if (location.dataset.ehmBound !== '1') {
+      location.dataset.ehmBound = '1';
+      location.addEventListener('change', () => {
+        setDesktopLocationFromSelect(location.value);
+        setDesktopQueryFromInput(heroInput);
+        syncDesktopLocationSelects();
+        renderDesktopResults(true);
+      });
+    }
 
     balanceDesktopHeroStats();
+  }
+
+  function desktopHomeSectionByHeading(label) {
+    const heading = Array.from(document.querySelectorAll('#root section h2')).find((node) => String(node.textContent || '').trim() === label);
+    return heading?.closest('section') || null;
+  }
+
+  function arrangeDesktopHomeSections() {
+    if (isMobile() || !isHomeRoute()) return null;
+    const sections = Array.from(document.querySelectorAll('#root section'));
+    const browse = sections.find((section) => String(section.querySelector('h2')?.textContent || '').trim() === 'Browse Categories') || null;
+
+    // The Supabase-backed section is the only Latest Ads source. Hide every
+    // bundled Featured/Latest section so the final order is always:
+    // Hero → Browse Categories → Latest Ads.
+    sections.forEach((section) => {
+      if (section.id === 'ehmDesktopResults') return;
+      const heading = String(section.querySelector('h2')?.textContent || '').trim();
+      if (heading === 'Featured Ads' || heading === 'Latest Ads') {
+        section.style.setProperty('display', 'none', 'important');
+      }
+    });
+    return browse;
   }
 
   function createDesktopResultsHost() {
@@ -1576,8 +1826,14 @@
       host = document.createElement('section');
       host.id = 'ehmDesktopResults';
       host.className = 'ehm-desktop-results';
-      const hero = Array.from(document.querySelectorAll('section')).find((s) => /What are you looking for|Sri Lanka's #1 Modern Marketplace/i.test(s.textContent || ''));
-      (hero || document.querySelector('#root') || document.body).insertAdjacentElement(hero ? 'afterend' : 'beforeend', host);
+    }
+    const browse = arrangeDesktopHomeSections();
+    const hero = Array.from(document.querySelectorAll('section')).find((s) => /What are you looking for|Sri Lanka's #1 Modern Marketplace/i.test(s.textContent || ''));
+    const anchor = browse || hero;
+    if (anchor && (host.previousElementSibling !== anchor || host.parentElement !== anchor.parentElement)) {
+      anchor.insertAdjacentElement('afterend', host);
+    } else if (!anchor && !host.parentElement) {
+      (document.querySelector('#root') || document.body).appendChild(host);
     }
     return host;
   }
@@ -1618,6 +1874,7 @@
     syncDesktopCategorySelects();
     syncDesktopLocationSelects();
     balanceDesktopHeroStats();
+    arrangeDesktopHomeSections();
     // Desktop previously rendered database ads only when a banner happened to
     // be active. Always show the live latest-ad grid; do not auto-scroll during
     // the initial page load.
@@ -2031,7 +2288,7 @@
             ${images.length > 1 ? `<div class="ehm-dynamic-thumbs">${images.map((src, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-ehm-detail-image="${esc(src)}"><img src="${esc(src)}" alt=""></button>`).join('')}</div>` : ''}
           </section>
           <section class="ehm-dynamic-card ehm-dynamic-summary">
-            <div class="ehm-dynamic-title-row"><h1>${esc(ad.title)}</h1><button type="button" class="ehm-dynamic-heart" aria-label="Save ad">♡</button></div>
+            <div class="ehm-dynamic-title-row"><h1>${esc(ad.title)}</h1><button type="button" class="ehm-dynamic-heart${isFavoriteId(ad.id) ? ' active' : ''}" data-ehm-favorite-id="${esc(ad.id)}" aria-label="Save ad" aria-pressed="${isFavoriteId(ad.id) ? 'true' : 'false'}"><span data-ehm-heart-icon>${isFavoriteId(ad.id) ? '♥' : '♡'}</span></button></div>
             <div class="ehm-dynamic-price">${esc(formatPrice(ad.price, ad.currency || 'LKR'))}</div>
             ${finance ? `<div class="ehm-dynamic-finance"><div><span>Down Payment</span><strong>${esc(formatPrice(finance.downPayment, ad.currency || 'LKR'))}</strong></div><div><span>Monthly Payment</span><strong>${esc(formatPrice(finance.monthlyPayment, ad.currency || 'LKR'))}</strong></div><div><span>Finance Company</span><strong>${esc(finance.companyPhone || '')}</strong></div></div>` : ''}
             <div class="ehm-dynamic-meta">${ad.condition ? `<span>${esc(String(ad.condition).toLowerCase() === 'used' ? 'Used' : 'New')}</span>` : ''}<span>⌖ ${esc(location)}</span><span>◷ ${esc(relativeDate(ad.postedAt))}</span></div>
@@ -2046,7 +2303,7 @@
             ${phones.length ? `<div class="ehm-dynamic-phones">${phones.map((phone, index) => `<a href="tel:${esc(phone.replace(/[^+\d]/g, ''))}"><span>${index === 0 ? 'Primary' : `Contact ${index + 1}`}</span><strong>${esc(formatPublicPhone(phone))}</strong></a>`).join('')}</div>` : '<p>No contact number available.</p>'}
             ${primaryDial ? `<a class="ehm-dynamic-call" href="tel:${esc(primaryDial)}">Call Now</a><a class="ehm-dynamic-message" href="sms:${esc(primaryDial)}">Send Message</a>` : ''}
           </section>
-          <section class="ehm-dynamic-card ehm-dynamic-safety"><h2>Stay Safe</h2><p>Inspect the item before paying and meet the seller in a safe public place.</p></section>
+          <section class="ehm-dynamic-card ehm-dynamic-safety"><h2>Stay Safe</h2><p>Inspect the item before paying and meet the seller in a safe public place.</p><button type="button" class="ehm-report-ad" data-ehm-report-ad="${esc(ad.id)}">⚑ Report this ad</button></section>
         </aside>
       </div>`;
   }
@@ -2140,6 +2397,15 @@
     const digits=String(value||'').replace(/\D/g,'');
     if(/^94\d{9}$/.test(digits))return `+94 ${digits.slice(2,4)} ${digits.slice(4,7)} ${digits.slice(7)}`;
     return String(value||'').trim();
+  }
+
+  function enableStaticReportButton() {
+    if (!isAdRoute()) return false;
+    const button = Array.from(document.querySelectorAll('button')).find((node) => /^report this ad$/i.test(String(node.textContent || '').trim()));
+    if (!button) return false;
+    button.setAttribute('data-ehm-report-ad', currentReportAdId());
+    button.type = 'button';
+    return true;
   }
 
   function injectSellerPhoneAboveCall() {
@@ -2237,12 +2503,14 @@
           injectAdDetailBanner();
           injectAdDetailFinance();
           injectSellerPhoneAboveCall();
+          enableStaticReportButton();
           hideAdDetailLocation();
         });
 
         injectAdDetailBanner();
         injectAdDetailFinance();
         injectSellerPhoneAboveCall();
+        enableStaticReportButton();
         scheduleSellerPhoneInjection();
         hideAdDetailLocation();
         return;
@@ -2347,6 +2615,30 @@
     window.__ehmFinalWatchers = true;
 
     document.addEventListener('click', (event) => {
+      const favoriteButton = event.target?.closest?.('[data-ehm-favorite-id]');
+      if (favoriteButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        toggleFavoriteId(favoriteButton.getAttribute('data-ehm-favorite-id'));
+        return;
+      }
+
+      const reportButton = event.target?.closest?.('[data-ehm-report-ad]') || event.target?.closest?.('button');
+      if (reportButton && (reportButton.hasAttribute?.('data-ehm-report-ad') || /^report this ad$/i.test(String(reportButton.textContent || '').trim()))) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        openReportModal(reportButton.getAttribute?.('data-ehm-report-ad') || currentReportAdId());
+        return;
+      }
+
+      if (event.target?.closest?.('[data-ehm-report-close]')) {
+        event.preventDefault();
+        closeReportModal();
+        return;
+      }
+
       const link = event.target?.closest?.('a[data-ehm-ad-id],a[href^="/ad/"]');
       if (!link) return;
       const href = String(link.getAttribute('href') || '');
@@ -2356,6 +2648,16 @@
       if (selected?.source === 'supabase') cachePublicDetailAd(selected);
       if (cleanId && !/^\d+$/.test(cleanId)) beginDynamicDetailPending();
     }, true);
+
+    document.addEventListener('submit', (event) => {
+      if (event.target?.id !== 'ehmReportForm') return;
+      event.preventDefault();
+      submitAdReport(event.target);
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && document.getElementById('ehmReportModal')) closeReportModal();
+    });
 
     const originalPush = history.pushState;
     const originalReplace = history.replaceState;

@@ -355,10 +355,22 @@ body.ehm-mobile-device.ehm-route-ad [data-yw^="c3JjL2NvbXBvbmVudHMvQWRHYWxsZXJ5"
   border-radius: 14px !important;
 }
 
-/* Remove large map and report block on mobile ad details. */
-body.ehm-mobile-device.ehm-route-ad [data-yw="c3JjL3BhZ2VzL0FkRGV0YWlsUGFnZS50c3hAOTc6MTI"],
-body.ehm-mobile-device.ehm-route-ad [data-yw="c3JjL3BhZ2VzL0FkRGV0YWlsUGFnZS50c3hAMTExOjEy"] {
+/* Keep the large placeholder map hidden on phones, but keep Report this ad visible. */
+body.ehm-mobile-device.ehm-route-ad [data-yw="c3JjL3BhZ2VzL0FkRGV0YWlsUGFnZS50c3hAOTc6MTI"] {
   display: none !important;
+}
+
+body.ehm-mobile-device.ehm-route-ad [data-yw="c3JjL3BhZ2VzL0FkRGV0YWlsUGFnZS50c3hAMTExOjEy"] {
+  display: block !important;
+  margin: 14px 0 0 !important;
+  padding: 0 0 8px !important;
+  text-align: center !important;
+}
+
+body.ehm-mobile-device.ehm-route-ad [data-yw="c3JjL3BhZ2VzL0FkRGV0YWlsUGFnZS50c3hAMTExOjEy"] button {
+  min-height: 42px !important;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
 }
 
 body.ehm-mobile-device.ehm-route-ad .w-full.lg\:w-80 {
