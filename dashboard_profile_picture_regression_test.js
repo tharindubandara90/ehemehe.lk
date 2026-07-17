@@ -20,6 +20,7 @@ expect(profile.includes('compressAvatar(file)'), 'Profile photo compression is m
 expect(handler.includes('avatar_url: avatarUrl'), 'Uploaded avatar URL is not saved in user metadata.');
 expect(!profile.includes('avatar_url: imageData'), 'Base64 image data must not be stored in the auth token.');
 expect(profile.includes("'Change photo' : 'Add photo'"), 'Add/change profile photo UI state is missing.');
+expect(profile.includes("node.querySelectorAll('.ehm-header-profile-image').forEach((image) => image.remove())"), 'Header Account button can still be replaced by the uploaded profile photo.');
 expect(css.includes('body.ehm-route-dashboard [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEA1ODoxNA"]'), 'Dashboard-only district control hide rule is missing.');
 expect(css.includes('body.ehm-route-dashboard .ehm-desktop-post-button span'), 'Dashboard Post an Ad text balance rule is missing.');
 expect(css.includes('white-space: nowrap !important'), 'Dashboard Post an Ad text can still wrap.');

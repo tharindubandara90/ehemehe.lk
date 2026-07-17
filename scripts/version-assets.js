@@ -24,6 +24,7 @@ const assetUrls = [
   '/auth-unified.css',
   '/supabase.js',
   '/auth-session-bridge.js',
+  '/dashboard-profile.js',
   '/post-ad-category-fields.js',
   './post-ad-category-fields.js',
   '/index-filters.js',

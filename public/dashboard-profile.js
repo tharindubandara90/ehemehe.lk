@@ -69,8 +69,12 @@
   }
 
   function applyAvatarToHeader() {
+    // Keep the desktop Account control as a normal button. The uploaded
+    // profile photo belongs only in the dashboard profile card; placing it
+    // inside the compact header avatar stretches the Account button.
     document.querySelectorAll(HEADER_AVATAR).forEach((node) => {
-      paintAvatar(node, currentAvatarUrl, 'ehm-header-profile-image');
+      node.querySelectorAll('.ehm-header-profile-image').forEach((image) => image.remove());
+      node.classList.remove('ehm-has-profile-photo');
     });
   }
 
