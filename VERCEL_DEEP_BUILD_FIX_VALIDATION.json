@@ -1,0 +1,94 @@
+{
+  "fix": "Vercel generic Node backend entrypoint detection bypassed with explicit static and API builders",
+  "rootCause": "The deployment was entering @vercel/backends for the project root and requiring app.js/index.js/server.js/main.js. This project is a static frontend plus isolated api/*.js functions, so a root Node server entrypoint is the wrong architecture.",
+  "vercelBuilds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "public"
+      }
+    },
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "apiFunctionCount": 18,
+  "apiFunctions": [
+    "ad-image.js",
+    "auth-settings.js",
+    "login-user.js",
+    "my-ads.js",
+    "public-ad.js",
+    "public-ads.js",
+    "public-promotions.js",
+    "publish-ad.js",
+    "register-phone-user.js",
+    "register-verified-user.js",
+    "report-ad.js",
+    "request-otp.js",
+    "request-registration-otp.js",
+    "reset-phone-password.js",
+    "update-my-ad.js",
+    "validate-ad-phones.js",
+    "verify-otp.js",
+    "verify-registration-otp.js"
+  ],
+  "routesVerified": [
+    {
+      "src": "/post-ad(?:\\.html)?",
+      "headers": {
+        "Location": "/post"
+      },
+      "status": 308
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1.js"
+    },
+    {
+      "src": "/assets/(.*)",
+      "headers": {
+        "Cache-Control": "public, max-age=86400"
+      },
+      "continue": true
+    },
+    {
+      "src": "/(.*)\\.html",
+      "headers": {
+        "Cache-Control": "no-cache, max-age=0, must-revalidate"
+      },
+      "continue": true
+    },
+    {
+      "src": "/(.*)\\.(?:js|css)",
+      "headers": {
+        "Cache-Control": "no-cache, max-age=0, must-revalidate"
+      },
+      "continue": true
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "localBuild": {
+    "command": "vercel build",
+    "result": "passed",
+    "message": "Build Completed in .vercel/output",
+    "staticOutput": "public -> .vercel/output/static",
+    "apiOutput": "18 isolated @vercel/node functions"
+  },
+  "regressionTests": {
+    "passed": 21,
+    "failed": 0
+  },
+  "package": {
+    "vercelDependencyRemoved": true,
+    "nodeEngine": "22.x"
+  }
+}
