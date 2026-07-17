@@ -140,6 +140,10 @@ async function handler(req, res) {
     return res.end();
   }
   if (pathname === '/browse') pathname = '/browse.html';
+  if (pathname === '/terms' || pathname === '/terms/') pathname = '/terms.html';
+  if (pathname === '/privacy' || pathname === '/privacy/') pathname = '/privacy.html';
+  if (pathname === '/safety' || pathname === '/safety/') pathname = '/safety.html';
+  if (pathname === '/contact' || pathname === '/contact/') pathname = '/contact.html';
 
   const safePath = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
   let filePath = path.join(publicDir, safePath);

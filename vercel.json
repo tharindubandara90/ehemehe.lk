@@ -23,6 +23,22 @@
       "status": 308
     },
     {
+      "src": "/terms(?:/)?",
+      "dest": "/terms.html"
+    },
+    {
+      "src": "/privacy(?:/)?",
+      "dest": "/privacy.html"
+    },
+    {
+      "src": "/safety(?:/)?",
+      "dest": "/safety.html"
+    },
+    {
+      "src": "/contact(?:/)?",
+      "dest": "/contact.html"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/index.js?__api_route=$1"
     },

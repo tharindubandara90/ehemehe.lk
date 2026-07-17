@@ -1677,3 +1677,8 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
     max-width: 170px !important;
   }
 }
+
+/* Footer cleanup: newsletter section removed; legal/support content begins immediately. */
+footer [data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEA4OjY"]{
+  display:none!important;
+}

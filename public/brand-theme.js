@@ -161,6 +161,38 @@
 
 
 
+  function enhanceFooterAndSupportLinks() {
+    const newsletter = document.querySelector('footer [data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEA4OjY"]');
+    if (newsletter) newsletter.remove();
+
+    const emailNode = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEAxMTE6NzQ"]');
+    const phoneNode = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEAxMTI6NzU"]');
+    const addressNode = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEAxMTM6ODY"]');
+    if (emailNode) emailNode.textContent = ' ehemehe.lk@gmail.com';
+    if (phoneNode) phoneNode.textContent = ' +94 76 686 686 7';
+    if (addressNode) addressNode.textContent = ' Kandy Road, Hasalaka';
+
+    const staticRoutes = new Set(['/terms', '/privacy', '/safety', '/contact']);
+    document.querySelectorAll('a[href]').forEach((link) => {
+      let href = link.getAttribute('href') || '';
+      if (href === 'mailto:support@ehemehe.lk') link.setAttribute('href', 'mailto:ehemehe.lk@gmail.com');
+      if (href === 'tel:+94112345678') link.setAttribute('href', 'tel:+94766866867');
+      href = link.getAttribute('href') || '';
+      if (staticRoutes.has(href)) link.dataset.ehmStaticPage = '1';
+    });
+
+    if (!document.documentElement.dataset.ehmStaticNavigationBound) {
+      document.documentElement.dataset.ehmStaticNavigationBound = '1';
+      document.addEventListener('click', (event) => {
+        const link = event.target.closest?.('a[data-ehm-static-page="1"]');
+        if (!link || event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        location.assign(link.getAttribute('href'));
+      }, true);
+    }
+  }
+
   function enhanceDesktopHomeOlx() {
     const desktop = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
     const path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
@@ -342,6 +374,7 @@
     enhanceDashboardMobile();
     enhanceDesktopHomeOlx();
     enhanceDesktopAccountButton();
+    enhanceFooterAndSupportLinks();
     ensureFavicon();
     replaceHeaderLogos();
     replaceInlineCyan();
