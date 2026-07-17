@@ -1114,3 +1114,9 @@ html.ehm-physical-mobile body.ehm-route-dashboard .ehm-dash-quick-actions>*{
 html.ehm-physical-mobile button[data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxNTA6MTI"] {
   display: none !important;
 }
+
+/* Logged-in mobile header: use the bottom Profile tab instead of a duplicate avatar dropdown */
+html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTQ6MTQ"],
+html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]{
+  display:none!important;
+}

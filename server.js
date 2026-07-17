@@ -18,6 +18,7 @@ const loginUser = require('./api/login-user');
 const validateAdPhones = require('./api/validate-ad-phones');
 const publishAd = require('./api/publish-ad');
 const myAds = require('./api/my-ads');
+const updateMyAd = require('./api/update-my-ad');
 const reportAd = require('./api/report-ad');
 
 function loadEnvFile(file) {
@@ -79,6 +80,7 @@ async function handler(req, res) {
     '/api/validate-ad-phones': validateAdPhones,
     '/api/publish-ad': publishAd,
     '/api/my-ads': myAds,
+    '/api/update-my-ad': updateMyAd,
     '/api/report-ad': reportAd
   };
 
