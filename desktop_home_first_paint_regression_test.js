@@ -25,7 +25,7 @@ assert(filters.includes("searchBar.insertBefore(categoryField, locationField);")
 assert(filters.includes("location.id = 'ehmDesktopHeroLocation';"), 'Native location control is not reused.');
 assert(filters.includes("cat.id = 'ehmDesktopHeroCategory';"), 'Native category control is not reused.');
 assert(!filters.includes("bar.classList.add('ehm-inline')"), 'The delayed absolute-position overlay is still enabled.');
-assert(filters.includes('stabilizeDesktopHomeShell();\n    renderDesktopResults(true, false);'), 'Desktop final shell is not rendered before network work.');
+assert(filters.includes('stabilizeDesktopHomeShell();\n    renderDesktopResults(false, false);'), 'Desktop shell must render immediately without forcing the separate Latest Ads host.');
 assert(filters.includes('Promise.allSettled(['), 'Desktop data requests are not parallelized.');
 assert(!filters.includes('setTimeout(ensureDesktopHome, 500)'), 'Old delayed desktop rewrite is still present.');
 assert(!filters.includes('setTimeout(ensureDesktopHome, 1400)'), 'Old second delayed desktop rewrite is still present.');

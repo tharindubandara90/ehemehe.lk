@@ -28,8 +28,9 @@ assert(helper.includes('cachePublicDetailAd(selected)'), 'Clicked live ad is not
 assert(helper.includes('const routeAdPromise = loadAdForCurrentRoute();'), 'Selected ad is not fetched before background list/settings work');
 assert(helper.includes('Promise.allSettled([loadFinanceSettings(), loadPromotions(), loadAds()])'), 'Non-critical ad detail work is not deferred to the background');
 
-// Desktop must display live ads without requiring a banner or an active filter.
-assert(helper.includes('renderDesktopResults(true, false);'), 'Desktop live ads are still conditional');
+// The unfiltered desktop home keeps the existing Fresh recommendations section.
+// Live database results are shown when search/category/location filters are active.
+assert(helper.includes('renderDesktopResults(false, false);'), 'Desktop home still forces the separate Latest Ads host');
 assert(!helper.includes('if (bannerAds.length) renderDesktopResults(true);'), 'Old banner-gated desktop rendering remains');
 
 // UUID /ad routes must resolve to the SPA shell on local and Vercel server dispatch.

@@ -1640,7 +1640,7 @@
         }, true);
         input.addEventListener('input', () => {
           state.query = (input.value || '').trim();
-          if (!state.query) renderDesktopResults(true, false);
+          if (!state.query) renderDesktopResults(false, false);
         });
       }
     });
@@ -1816,19 +1816,35 @@
     if (isMobile() || !isHomeRoute()) return null;
     const sections = Array.from(document.querySelectorAll('#root section'));
     const browse = sections.find((section) => String(section.querySelector('h2')?.textContent || '').trim() === 'Browse Categories') || null;
+    const recommendations = sections.find((section) => {
+      if (section.id === 'ehmDesktopResults') return false;
+      const heading = String(section.querySelector('h2')?.textContent || '').trim();
+      return heading === 'Latest Ads' || heading === 'Fresh recommendations' || section.classList.contains('ehm-olx-latest-section');
+    }) || null;
+    const active = hasActiveFilters();
 
-    // The Supabase-backed section is the only Latest Ads source. Hide every
-    // bundled Featured/Latest section so the final order is always:
-    // Hero → Browse Categories → Latest Ads.
+    // Keep the existing Fresh recommendations cards and their exact sizing.
+    // Only the separate injected Latest Ads results host is hidden on the
+    // unfiltered desktop home page. Search Results still replace the
+    // recommendations when a desktop filter is active.
     sections.forEach((section) => {
       if (section.id === 'ehmDesktopResults') return;
       const heading = String(section.querySelector('h2')?.textContent || '').trim();
-      if (heading === 'Featured Ads' || heading === 'Latest Ads') {
-        if (section.style.getPropertyValue('display') !== 'none' || section.style.getPropertyPriority('display') !== 'important') {
-          section.style.setProperty('display', 'none', 'important');
-        }
+      if (heading === 'Featured Ads') {
+        section.style.setProperty('display', 'none', 'important');
+        return;
+      }
+      if (section === recommendations) {
+        if (active) section.style.setProperty('display', 'none', 'important');
+        else section.style.removeProperty('display');
       }
     });
+
+    // Featured Ads is hidden, so place Fresh recommendations directly after
+    // Browse Categories without changing its grid/card CSS or dimensions.
+    if (browse && recommendations && recommendations.previousElementSibling !== browse) {
+      browse.insertAdjacentElement('afterend', recommendations);
+    }
     return browse;
   }
 
@@ -1899,7 +1915,7 @@
     // Network lookups must never control the first paint or swap the hero UI
     // several seconds after the page has already become visible.
     stabilizeDesktopHomeShell();
-    renderDesktopResults(true, false);
+    renderDesktopResults(false, false);
 
     if (!desktopDataPromise) {
       desktopDataPromise = Promise.allSettled([
@@ -1913,7 +1929,7 @@
 
     if (isMobile() || !isHomeRoute()) return;
     stabilizeDesktopHomeShell();
-    renderDesktopResults(true, false);
+    renderDesktopResults(false, false);
   }
 
   async function ensureHomeMobile() {
