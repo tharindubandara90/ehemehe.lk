@@ -7,6 +7,7 @@ const lock = JSON.parse(lockText);
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
 const npmrc = fs.readFileSync('.npmrc', 'utf8');
 const server = fs.readFileSync('server.js', 'utf8');
+const vercelIgnore = fs.readFileSync('.vercelignore', 'utf8');
 const dependencyNames = new Set([
   ...Object.keys(pkg.dependencies || {}),
   ...Object.keys(pkg.devDependencies || {})
@@ -24,6 +25,8 @@ for (const legacyKey of ['builds', 'routes', 'functions', 'rewrites']) {
 assert(server.includes("if (require.main === module || process.env.VERCEL) startHttpServer();"), 'Root server is not started in the Vercel runtime');
 assert(server.includes('server.listen(port'), 'Root server does not expose the listen call required by Vercel server detection');
 assert(!fs.existsSync('api'), 'Root api directory would create one Vercel Function per endpoint');
+assert(/(^|\n)\/?api\/\*\*(\n|$)/.test(vercelIgnore), 'Stale api files are not excluded from Vercel deployment');
+assert.strictEqual(pkg.scripts?.['cleanup:vercel-functions'], 'node scripts/cleanup-legacy-vercel-api.js', 'Legacy API cleanup command is missing');
 assert(fs.existsSync('server-routes'), 'Internal route modules were not moved outside the Vercel api directory');
 assert(fs.readdirSync('server-routes').filter((name) => name.endsWith('.js')).length >= 17, 'Internal route modules are incomplete');
 assert(server.includes("require('./server-routes/request-otp')"), 'Root server is not dispatching internal route modules');

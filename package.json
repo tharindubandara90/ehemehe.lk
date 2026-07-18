@@ -1,6 +1,6 @@
 {
   "name": "ehemehe-lk-marketplace",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "EheMehe.lk marketplace website and API",
   "engines": {
@@ -18,7 +18,8 @@
     "test": "node scripts/run-regression-tests.js",
     "test:http": "node scripts/http-regression-test.js",
     "build-css": "node scripts/build-css.js",
-    "build-public-js": "node scripts/build-public-js.js"
+    "build-public-js": "node scripts/build-public-js.js",
+    "cleanup:vercel-functions": "node scripts/cleanup-legacy-vercel-api.js"
   },
   "dependencies": {
     "sharp": "0.34.1"

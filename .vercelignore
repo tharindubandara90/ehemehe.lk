@@ -1,3 +1,18 @@
+# Critical: old deployments used one Vercel Function per file under /api.
+# When this project is copied over an existing Git working tree, Windows
+# "Replace files" does not delete that old directory. Exclude every possible
+# legacy API path so stale tracked files can never exceed the Hobby limit.
+api/
+api/**
+/api/
+/api/**
+app/api/
+app/api/**
+pages/api/
+pages/api/**
+src/api/
+src/api/**
+
 public/ad/**
 node_modules/**
 .git/**
