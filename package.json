@@ -1,6 +1,6 @@
 {
   "name": "ehemehe-lk-marketplace",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "description": "EheMehe.lk marketplace website and API",
   "engines": {
@@ -13,13 +13,15 @@
     "sync-ad-shells": "node scripts/sync-ad-route-shells.js",
     "validate-supabase": "node scripts/validate-supabase-config.js",
     "version-assets": "node scripts/version-assets.js",
-    "prepare-assets": "npm run build-css && npm run build-public-js && node scripts/version-assets.js && node scripts/sync-ad-route-shells.js",
+    "prepare-assets": "npm run cleanup:deployment && npm run build-css && npm run build-public-js && node scripts/version-assets.js && node scripts/sync-ad-route-shells.js && npm run verify:desktop-theme",
     "build": "npm run prepare-assets",
     "test": "node scripts/run-regression-tests.js",
     "test:http": "node scripts/http-regression-test.js",
     "build-css": "node scripts/build-css.js",
     "build-public-js": "node scripts/build-public-js.js",
-    "cleanup:vercel-functions": "node scripts/cleanup-legacy-vercel-api.js"
+    "cleanup:vercel-functions": "node scripts/cleanup-legacy-vercel-api.js",
+    "cleanup:deployment": "node scripts/cleanup-stale-deployment-output.js && node scripts/cleanup-legacy-vercel-api.js",
+    "verify:desktop-theme": "node scripts/verify-desktop-theme-build.js"
   },
   "dependencies": {
     "sharp": "0.34.1"

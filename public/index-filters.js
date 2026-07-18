@@ -1993,7 +1993,14 @@
       syncDesktopLocationSelects();
       balanceDesktopHeroStats();
       arrangeDesktopHomeSections();
-      return !!document.getElementById('ehmDesktopHeroFilterbar');
+      const shellReady = !!document.getElementById('ehmDesktopHeroFilterbar');
+      if (shellReady) {
+        window.__EHM_DESKTOP_SHELL_READY = 'desktop-home-v4-20260718';
+        document.documentElement.setAttribute('data-ehm-desktop-theme', window.__EHM_DESKTOP_SHELL_READY);
+        window.__ehmCriticalDesktopObserver?.disconnect?.();
+        window.__ehmCriticalDesktopObserver = null;
+      }
+      return shellReady;
     } finally {
       Promise.resolve().then(() => { desktopShellMutating = false; });
     }

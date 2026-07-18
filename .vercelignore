@@ -27,3 +27,14 @@ scripts/run-regression-tests.js
 scripts/http-regression-test.js
 supabase_*.sql
 scrape.js
+
+# Never upload stale frontend build outputs from earlier project versions.
+dist/**
+build/**
+out/**
+.next/**
+.output/**
+.vercel/output/**
+public-old/**
+public_backup/**
+public-backup/**

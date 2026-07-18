@@ -1,0 +1,43 @@
+{
+  "project": "EheMehe.lk",
+  "fix": "Desktop theme deployment source-of-truth restore",
+  "build_marker": "desktop-home-v4-20260718",
+  "root_causes": [
+    "Windows overlay copy preserved stale frontend output directories from older deployments.",
+    "Vercel Output Directory/Framework settings were not explicitly overridden by repository configuration.",
+    "The redesigned desktop shell depended on a deferred runtime helper instead of having a pre-React critical shell."
+  ],
+  "vercel": {
+    "framework": null,
+    "outputDirectory": "public",
+    "single_server_entry": "server.js",
+    "legacy_api_excluded": true,
+    "home_cache_control_configured": true
+  },
+  "desktop_theme": {
+    "critical_script_before_react": true,
+    "critical_build_marker": true,
+    "hero_filterbar_in_built_helper": true,
+    "latest_ads_host_in_built_helper": true,
+    "section_order_target": [
+      "Hero",
+      "Browse Categories",
+      "Latest Ads"
+    ]
+  },
+  "tests": {
+    "passes": 3,
+    "regression_tests_per_pass": 22,
+    "javascript_syntax": "passed",
+    "build_verification": "passed",
+    "stale_output_cleanup_simulation": "passed",
+    "vercel_function_count": 1,
+    "categories": 13,
+    "subcategories": 62
+  },
+  "static_ad_shells": {
+    "count": 100,
+    "all_match_main_index": true
+  },
+  "production_tested": false
+}

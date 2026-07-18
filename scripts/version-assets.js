@@ -37,6 +37,7 @@ const assetUrls = [
   '/auth-session-bridge.js',
   '/post-ad-category-fields.js',
   './post-ad-category-fields.js',
+  '/desktop-home-critical-v4.js',
   '/index-filters.min.js',
   './index-filters.min.js',
   '/index-filters.js',

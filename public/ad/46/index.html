@@ -76,6 +76,54 @@
           opacity: 1 !important;
           transform: none !important;
         }
+
+        html.ehm-desktop-theme-v4-ready #ehmDesktopHeroFilterbar,
+        html.ehm-desktop-home-prepaint #ehmDesktopHeroFilterbar {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+          gap: 12px !important;
+          width: min(680px, calc(100% - 32px)) !important;
+          max-width: 680px !important;
+          margin: 14px auto 0 !important;
+          padding: 0 !important;
+          align-items: center !important;
+        }
+        html.ehm-desktop-home-prepaint #ehmDesktopHeroFilterbar select {
+          display: block !important;
+          width: 100% !important;
+          height: 48px !important;
+          min-width: 0 !important;
+          border: 1.5px solid #dbe6ef !important;
+          border-radius: 14px !important;
+          background-color: #fff !important;
+          color: #334155 !important;
+          padding: 0 44px 0 16px !important;
+          font-size: 15.5px !important;
+          font-weight: 600 !important;
+          outline: none !important;
+          appearance: none !important;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 20 20'%3E%3Cpath d='M5 7.5l5 5 5-5' fill='none' stroke='%2364758b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+          background-repeat: no-repeat !important;
+          background-position: right 15px center !important;
+          background-size: 18px !important;
+        }
+        html.ehm-desktop-home-prepaint .ehm-desktop-native-location-hidden,
+        html.ehm-desktop-home-prepaint .ehm-desktop-top-location-hidden { display: none !important; }
+        html.ehm-desktop-home-prepaint .ehm-critical-results-placeholder {
+          max-width: 1180px !important;
+          margin: 34px auto 58px !important;
+          padding: 0 24px !important;
+        }
+        html.ehm-desktop-home-prepaint .ehm-critical-results-placeholder h2 {
+          margin: 0 !important;
+          color: #0f172a !important;
+          font-size: 30px !important;
+          font-weight: 900 !important;
+        }
+        html.ehm-desktop-home-prepaint .ehm-critical-results-placeholder p { color: #64748b !important; }
+        .ehm-critical-card-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 18px; margin-top: 18px; }
+        .ehm-critical-card-grid i { display:block; height: 310px; border-radius:18px; background:linear-gradient(100deg,#edf3f6 25%,#f8fbfc 45%,#edf3f6 65%); background-size:200% 100%; animation:ehmCriticalShimmer 1.4s linear infinite; }
+        @keyframes ehmCriticalShimmer { to { background-position:-200% 0; } }
       }
     </style>
 
@@ -83,6 +131,7 @@
     <meta name="theme-color" content="#3DC697">
     <title>ehemehe.lk - Sri Lanka's Marketplace</title>
     <link id="ehm-site-enhancements" rel="stylesheet" href="/css/ehemehe-app.min.css?v=39be73d114bd350a">
+    <script id="ehm-desktop-home-critical-v4" src="/desktop-home-critical-v4.js?v=910230ea5c2a5c0f"></script>
     <script id="ehm-route-head-assets">
 (function () {
   var path = location.pathname.replace(/\/+$/, '') || '/';
@@ -98,7 +147,7 @@
   }
 
   if (!authOnly) addPreload('modulepreload', '/js/index-BsKly-Vj.js?v=078944741ea31c09');
-  if (path === '/' || path.indexOf('/ad/') === 0) addPreload('preload', '/index-filters.min.js?v=74d3bfe931be64d8', 'script');
+  if (path === '/' || path.indexOf('/ad/') === 0) addPreload('preload', '/index-filters.min.js?v=a6c3ba2137325d59', 'script');
 
   var styles = [];
   if (path === '/post' || path.indexOf('/dashboard') === 0) {
@@ -159,7 +208,7 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
   }
 
   if (path === '/' || path.indexOf('/ad/') === 0) {
-    script('/index-filters.min.js?v=74d3bfe931be64d8', 'defer');
+    script('/index-filters.min.js?v=a6c3ba2137325d59', 'defer');
   }
   script('/brand-theme.js?v=a0232680779565ef', 'async');
 
