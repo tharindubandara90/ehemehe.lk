@@ -54,16 +54,37 @@
     <script id="ehm-desktop-home-exact-route">
 (function () {
   var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
-  var desktopHome = path === '/' && !!window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
+  var nav = window.navigator || {};
+  var ua = String(nav.userAgent || '');
+  var uaDataMobile = !!(nav.userAgentData && nav.userAgentData.mobile === true);
+  var mobileUa = /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
+  var touch = ('ontouchstart' in window) || Number(nav.maxTouchPoints || 0) > 0;
+  var physicalShortSide = Math.min(Number(screen.width || 9999), Number(screen.height || 9999));
+  var touchPhoneOrTablet = touch && physicalShortSide <= 820;
+
+  // Route ownership must never depend on a CSS viewport breakpoint. Browser zoom,
+  // scrollbars and DevTools can move a desktop viewport across 1024px after first
+  // paint, which previously reloaded the page into the old React home layout.
+  var physicalMobile = uaDataMobile || mobileUa || touchPhoneOrTablet;
+  var desktopHome = path === '/' && !physicalMobile;
+
   window.__EHM_DESKTOP_HOME_EXACT = desktopHome;
-  if (desktopHome) document.documentElement.classList.add('ehm-desktop-home-exact');
+  window.__EHM_DESKTOP_HOME_OWNER = desktopHome ? 'exact-compact-v7' : 'react-mobile';
+  if (desktopHome) {
+    document.documentElement.classList.add('ehm-desktop-home-exact');
+    document.documentElement.setAttribute('data-ehm-home-owner', 'exact-compact-v7');
+  }
 })();
     </script>
+    <style id="ehm-desktop-home-owner-style">
+      html.ehm-desktop-home-exact #root{display:none!important}
+      html.ehm-desktop-home-exact #ehmDesktopHomeExact{display:block!important}
+    </style>
 
     <meta name="description" content="ehemehe.lk - Sri Lanka's #1 Modern Marketplace. Buy, sell, and discover amazing deals.">
     <meta name="theme-color" content="#3DC697">
     <title>ehemehe.lk - Sri Lanka's Marketplace</title>
-    <link id="ehm-site-enhancements" rel="stylesheet" href="/css/ehemehe-app.min.css?v=a25a31481ee6b6f1">
+    <link id="ehm-site-enhancements" rel="stylesheet" href="/css/ehemehe-app.min.css?v=7a03a0454dfaebca">
     <script id="ehm-route-head-assets">
 (function () {
   var path = location.pathname.replace(/\/+$/, '') || '/';
@@ -101,8 +122,17 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_HOME_EXACT) {
     </script>
 </head>
   <body>
-    <div id="ehmDesktopHomeExact" aria-label="EheMehe desktop marketplace"></div>
+    <div id="ehmDesktopHomeExact" aria-label="EheMehe desktop marketplace" hidden></div>
     <div id="root"></div>
+    <script id="ehm-desktop-home-owner-lock">
+(function () {
+  if (!window.__EHM_DESKTOP_HOME_EXACT) return;
+  var host = document.getElementById('ehmDesktopHomeExact');
+  var root = document.getElementById('root');
+  if (host) host.hidden = false;
+  if (root) { root.hidden = true; root.setAttribute('aria-hidden', 'true'); }
+})();
+    </script>
     <script id="ehm-route-core-loader">
 (function () {
   var path = location.pathname.replace(/\/+$/, '') || '/';
@@ -146,7 +176,7 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_HOME_EXACT) {
   }
 
   if (desktopHome) {
-    script('/desktop-home-exact.min.js?v=42c2701df10434b5', 'defer');
+    script('/desktop-home-exact.min.js?v=5f5e6a7c3785ac65');
   } else if (path === '/' || path.indexOf('/ad/') === 0) {
     script('/index-filters.min.js?v=3d0acffdaeb3a17e', 'defer');
   }

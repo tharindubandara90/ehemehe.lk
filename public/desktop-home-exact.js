@@ -1,9 +1,8 @@
 (function desktopHomeExactBootstrap() {
   'use strict';
 
-  const BREAKPOINT = 1024;
   const HOME_PATH = (location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/');
-  if (HOME_PATH !== '/' || !window.matchMedia || !window.matchMedia(`(min-width:${BREAKPOINT}px)`).matches) return;
+  if (HOME_PATH !== '/' || window.__EHM_DESKTOP_HOME_EXACT !== true) return;
 
   const FAVORITES_KEY = 'ehemehe:favorites:v2';
   const FALLBACK_CATEGORIES = [
@@ -414,13 +413,16 @@
     render();
   }
 
-  function handleBreakpointChange(event) {
-    if (!event.matches) location.reload();
+  function lockDesktopOwnership() {
+    document.documentElement.classList.add('ehm-desktop-home-exact');
+    document.documentElement.setAttribute('data-ehm-home-owner', 'exact-compact-v7');
+    const root = document.getElementById('root');
+    const host = document.getElementById('ehmDesktopHomeExact');
+    if (root) { root.hidden = true; root.setAttribute('aria-hidden', 'true'); }
+    if (host) host.hidden = false;
   }
 
-  document.documentElement.classList.add('ehm-desktop-home-exact');
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { if (mount()) loadData(); }, { once:true });
-  } else if (mount()) loadData();
-  window.matchMedia(`(min-width:${BREAKPOINT}px)`).addEventListener?.('change',handleBreakpointChange);
+  lockDesktopOwnership();
+  if (mount()) loadData();
+  else document.addEventListener('DOMContentLoaded', () => { lockDesktopOwnership(); if (mount()) loadData(); }, { once:true });
 })();

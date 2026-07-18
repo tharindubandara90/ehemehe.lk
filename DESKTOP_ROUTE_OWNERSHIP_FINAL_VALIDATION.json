@@ -1,0 +1,20 @@
+{
+  "validated_at": "2026-07-18",
+  "root_cause": "Desktop home ownership depended on matchMedia(min-width:1024px). A post-first-paint viewport/breakpoint change triggered location.reload(), and the reloaded page started the old React home layout.",
+  "fixes": [
+    "Desktop/mobile ownership is decided once from physical-device signals rather than CSS viewport width.",
+    "Removed the breakpoint change listener and location.reload() path.",
+    "Locked the desktop host visible and the React root hidden on the desktop home route.",
+    "Loaded the exact desktop helper synchronously after its host.",
+    "Moved exact desktop ownership CSS outside the volatile 1024px media query.",
+    "Added responsive compact-desktop rules for browser zoom and narrow desktop windows."
+  ],
+  "build": "passed",
+  "regression_suite": {
+    "tests_per_pass": 24,
+    "completed_full_passes": 10,
+    "result": "passed"
+  },
+  "new_regression_test": "desktop_home_route_ownership_regression_test.js",
+  "vercel_functions_expected": 1
+}
