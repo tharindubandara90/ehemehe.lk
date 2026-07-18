@@ -1089,7 +1089,15 @@
     });
   }
   function filteredAds() {
-    return sortAdsForPlacement(allAds().filter((ad) => adMatchesSearch(ad) && adMatchesLocation(ad) && adMatchesCategory(ad)));
+    // Desktop keyword search is intentionally global across categories.
+    // A selected district/city still narrows the results, while category
+    // shortcuts continue to work when the text query is empty.
+    const desktopKeywordSearch = !isMobile() && isHomeRoute() && !!getSearchValue();
+    return sortAdsForPlacement(allAds().filter((ad) =>
+      adMatchesSearch(ad) &&
+      adMatchesLocation(ad) &&
+      (desktopKeywordSearch || adMatchesCategory(ad))
+    ));
   }
 
   function getDistrictCities(district) {
@@ -1141,7 +1149,8 @@
       .ehm-desktop-hero-filterbar select{width:100%;min-width:0;height:48px;border-radius:14px;font-size:15.5px;}
       .ehm-desktop-results{max-width:1180px;margin:34px auto 58px;padding:0 24px;}
       .ehm-desktop-hero-filterbar + .ehm-desktop-hero-filterbar{display:none!important;}
-      .ehm-olx-category-field .ehm-desktop-category-select,.ehm-olx-location-field .ehm-desktop-district-select{height:50px!important;min-width:0!important;width:100%!important;border:0!important;border-radius:0!important;box-shadow:none!important;background-color:transparent!important;padding:0 34px 0 0!important;font-size:15px!important;font-weight:600!important;color:#52606b!important;}
+      .ehm-olx-category-field{display:none!important;}
+      .ehm-olx-location-field .ehm-desktop-district-select{height:50px!important;min-width:0!important;width:100%!important;border:0!important;border-radius:0!important;box-shadow:none!important;background-color:transparent!important;padding:0 34px 0 0!important;font-size:15px!important;font-weight:600!important;color:#52606b!important;}
       @media(min-width:768px){
         #ehmDesktopHeroFilterbar{margin-top:18px!important;}
         #ehmDesktopHeroFilterbar.ehm-stats-balanced{margin-bottom:74px!important;}
@@ -1783,6 +1792,13 @@
     if (input) state.query = (input.value || '').trim();
   }
 
+  function prepareDesktopKeywordSearch(input) {
+    setDesktopQueryFromInput(input);
+    // Typed desktop searches must search the whole marketplace. Location
+    // remains active, but any category state left by a shortcut is cleared.
+    if (state.query) state.category = null;
+  }
+
   function enhanceDesktopTopSearch() {
     if (isMobile() || !isHomeRoute()) return;
     hideDesktopTopDistrictControl();
@@ -1813,7 +1829,7 @@
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation?.();
-          setDesktopQueryFromInput(input);
+          prepareDesktopKeywordSearch(input);
           renderDesktopResults(true);
         }, true);
       }
@@ -1822,7 +1838,7 @@
         input.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            setDesktopQueryFromInput(input);
+            prepareDesktopKeywordSearch(input);
             renderDesktopResults(true);
           }
         }, true);
@@ -1942,53 +1958,23 @@
     location.id = 'ehmDesktopHeroLocation';
     location.setAttribute('aria-label', 'Location');
 
-    let categoryField = searchBar.querySelector('.ehm-olx-category-field');
-    if (!categoryField) {
-      categoryField = document.createElement('div');
-      categoryField.className = 'ehm-olx-category-field';
-      const categorySelect = document.createElement('select');
-      categorySelect.setAttribute('aria-label', 'Category');
-      categoryField.appendChild(categorySelect);
-      searchBar.insertBefore(categoryField, locationField);
-    }
-    categoryField.classList.remove('ehm-desktop-native-category-hidden');
+    // Desktop text search no longer has a category dropdown. Remove any
+    // category field left by an older cached theme/helper implementation.
+    searchBar.querySelectorAll('.ehm-olx-category-field, .ehm-desktop-top-category').forEach((node) => node.remove());
 
-    const cat = categoryField.querySelector('select');
-    if (!cat) return;
-    cat.classList.remove('ehm-desktop-native-category-hidden');
-    cat.classList.add('ehm-desktop-category-select');
-    cat.id = 'ehmDesktopHeroCategory';
-    cat.setAttribute('aria-label', 'Category');
-
-    const catHtml = categoryOptionsHtml('');
     const locationHtml = desktopLocationOptionsHtml('');
-    if (cat.__ehmOptionsHtml !== catHtml) {
-      cat.innerHTML = catHtml;
-      cat.__ehmOptionsHtml = catHtml;
-    }
     if (location.__ehmOptionsHtml !== locationHtml) {
       location.innerHTML = locationHtml;
       location.__ehmOptionsHtml = locationHtml;
     }
 
-    cat.value = categoryValueFromState();
     location.value = desktopLocationValueFromState();
-
-    if (cat.dataset.ehmBound !== '1') {
-      cat.dataset.ehmBound = '1';
-      cat.addEventListener('change', () => {
-        setCategoryFromSelect(cat.value);
-        setDesktopQueryFromInput(heroInput);
-        syncDesktopCategorySelects();
-        renderDesktopResults(true);
-      });
-    }
 
     if (location.dataset.ehmBound !== '1') {
       location.dataset.ehmBound = '1';
       location.addEventListener('change', () => {
         setDesktopLocationFromSelect(location.value);
-        setDesktopQueryFromInput(heroInput);
+        prepareDesktopKeywordSearch(heroInput);
         syncDesktopLocationSelects();
         renderDesktopResults(true);
       });
@@ -2161,7 +2147,7 @@
       balanceDesktopHeroStats();
       arrangeDesktopHomeSections();
       renderDesktopHomeRecommendations();
-      return !!document.getElementById('ehmDesktopHeroCategory') && !!document.getElementById('ehmDesktopHeroLocation');
+      return !!document.getElementById('ehmDesktopHeroLocation') && !document.querySelector('.ehm-olx-category-field');
     } finally {
       Promise.resolve().then(() => { desktopShellMutating = false; });
     }

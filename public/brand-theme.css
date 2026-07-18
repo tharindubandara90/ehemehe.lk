@@ -1328,7 +1328,7 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
 
   body.ehm-desktop-olx-home .ehm-olx-search-bar {
     display: grid !important;
-    grid-template-columns: minmax(320px, 1.5fr) minmax(220px, .82fr) minmax(220px, .82fr) 152px !important;
+    grid-template-columns: minmax(520px, 1.75fr) minmax(260px, .85fr) 152px !important;
     align-items: center !important;
     width: 100% !important;
     max-width: none !important;
@@ -1340,8 +1340,11 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
     overflow: hidden !important;
   }
 
+  body.ehm-desktop-olx-home .ehm-olx-category-field {
+    display: none !important;
+  }
+
   body.ehm-desktop-olx-home .ehm-olx-query-field,
-  body.ehm-desktop-olx-home .ehm-olx-category-field,
   body.ehm-desktop-olx-home .ehm-olx-location-field {
     height: 52px !important;
     min-width: 0 !important;
@@ -1351,13 +1354,11 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
     background: #ffffff !important;
   }
 
-  body.ehm-desktop-olx-home .ehm-olx-category-field,
   body.ehm-desktop-olx-home .ehm-olx-location-field {
     border-left: 1px solid #d8e0e4 !important;
   }
 
   body.ehm-desktop-olx-home .ehm-olx-query-field input,
-  body.ehm-desktop-olx-home .ehm-olx-category-field select,
   body.ehm-desktop-olx-home .ehm-olx-location-field select {
     width: 100% !important;
     min-width: 0 !important;
@@ -1370,7 +1371,6 @@ html.ehm-physical-mobile [data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjc6MTg"]
     font-size: 15px !important;
   }
 
-  body.ehm-desktop-olx-home .ehm-olx-category-field select,
   body.ehm-desktop-olx-home .ehm-olx-location-field select {
     cursor: pointer !important;
   }

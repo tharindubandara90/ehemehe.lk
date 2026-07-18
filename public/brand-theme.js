@@ -237,38 +237,9 @@
     locationField?.classList.add('ehm-olx-location-field');
     searchButton?.classList.add('ehm-olx-search-button');
 
-    if (searchBar && locationField && !searchBar.querySelector('.ehm-olx-category-field')) {
-      const categoryField = document.createElement('div');
-      categoryField.className = 'ehm-olx-category-field';
-      const categorySelect = document.createElement('select');
-      categorySelect.setAttribute('aria-label', 'Category');
-      categorySelect.innerHTML = '<option value="">All categories</option>';
-
-      const categoryGrid = byYw('c3JjL2NvbXBvbmVudHMvQ2F0ZWdvcnlHcmlkLnRzeEAxMTo0');
-      const categoryLinks = Array.from(categoryGrid?.querySelectorAll(':scope > a') || []);
-      const fallback = [
-        ['vehicles','Vehicles'], ['property','Property'], ['mobile-phones','Mobile Phones'],
-        ['electronics','Electronics'], ['jobs','Jobs'], ['services','Services'],
-        ['home-garden','Home & Garden'], ['fashion','Fashion']
-      ];
-      const options = categoryLinks.length ? categoryLinks.map((link) => {
-        const href = link.getAttribute('href') || '';
-        return [href.split('/').filter(Boolean).pop() || '', (link.textContent || '').trim()];
-      }) : fallback;
-      options.forEach(([value, label]) => {
-        if (!value || !label) return;
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = label;
-        categorySelect.appendChild(option);
-      });
-      categorySelect.value = heroForm?.dataset.ehmOlxCategory || '';
-      categorySelect.addEventListener('change', () => {
-        if (heroForm) heroForm.dataset.ehmOlxCategory = categorySelect.value;
-      });
-      categoryField.appendChild(categorySelect);
-      searchBar.insertBefore(categoryField, locationField);
-    }
+    // Desktop keyword search is global across categories. Remove any stale
+    // category selector inserted by an older cached build.
+    searchBar?.querySelectorAll('.ehm-olx-category-field').forEach((node) => node.remove());
 
     if (heroForm && !heroForm.dataset.ehmOlxSubmitBound) {
       heroForm.dataset.ehmOlxSubmitBound = '1';
@@ -277,11 +248,9 @@
         event.stopImmediatePropagation();
         const query = heroForm.querySelector('input[type="text"]')?.value?.trim() || '';
         const selects = heroForm.querySelectorAll('select');
-        const category = heroForm.querySelector('.ehm-olx-category-field select')?.value || heroForm.dataset.ehmOlxCategory || '';
         const district = Array.from(selects).find((select) => !select.closest('.ehm-olx-category-field'))?.value || '';
         const params = new URLSearchParams();
         if (query) params.set('q', query);
-        if (category) params.set('category', category);
         if (district) params.set('district', district);
         location.assign(`/search${params.toString() ? `?${params}` : ''}`);
       }, true);

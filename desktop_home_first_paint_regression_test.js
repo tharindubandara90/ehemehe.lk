@@ -21,9 +21,8 @@ assert(filters.includes('function installDesktopHomePrepaintWatcher()'), 'Early 
 assert(filters.includes('installDesktopHomePrepaintWatcher();\n  beginDynamicDetailPending();'), 'Early desktop observer is not installed before normal init.');
 assert(filters.includes('return isHomeRoute() || isAdRoute();'), 'Desktop home is not covered by the route observer.');
 assert(filters.includes('document.getElementById(\'ehmDesktopHeroFilterbar\')?.remove();'), 'Legacy delayed filter overlay is not removed.');
-assert(filters.includes("searchBar.insertBefore(categoryField, locationField);"), 'Category control is not inserted into the stable native search grid.');
+assert(filters.includes("searchBar.querySelectorAll('.ehm-olx-category-field, .ehm-desktop-top-category').forEach((node) => node.remove());"), 'Stale desktop category controls are not removed.');
 assert(filters.includes("location.id = 'ehmDesktopHeroLocation';"), 'Native location control is not reused.');
-assert(filters.includes("cat.id = 'ehmDesktopHeroCategory';"), 'Native category control is not reused.');
 assert(!filters.includes("bar.classList.add('ehm-inline')"), 'The delayed absolute-position overlay is still enabled.');
 assert(filters.includes('stabilizeDesktopHomeShell();\n    renderDesktopResults(false, false);'), 'Desktop shell must render immediately without forcing the separate Latest Ads host.');
 assert(filters.includes('Promise.allSettled(['), 'Desktop data requests are not parallelized.');
