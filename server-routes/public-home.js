@@ -2,14 +2,29 @@ const zlib = require('zlib');
 const sharp = require('sharp');
 const { supabaseAdminConfig, supabasePublicKey } = require('./_otp-utils');
 
-const HOME_CACHE = 'public, max-age=30, s-maxage=120, stale-while-revalidate=600';
+const HOME_CACHE = 'public, max-age=15, s-maxage=45, stale-while-revalidate=180';
+const PUBLIC_STATUSES = new Set(['approved', 'active', 'published']);
+
+// Preferred list projection. It deliberately excludes image_url and images so
+// home/list pages never download the complete Base64 photo payload.
 const LIST_SELECT = [
   'id','title','description','price','currency','phone','condition','status',
   'category_id','city_id','custom_fields','is_featured','is_promoted',
   'promotion_type','view_count','finance_enabled','finance_downpayment',
   'finance_monthly_payment','finance_company_phone','created_at','updated_at'
 ].join(',');
+
+// Some older EheMehe databases were created before optional promotion/finance
+// columns existed. A missing optional column makes PostgREST reject the entire
+// preferred select. This reduced projection keeps real ads visible without
+// falling back to the huge `select=*` response.
+const CORE_LIST_SELECT = [
+  'id','title','description','price','currency','phone','condition','status',
+  'category_id','city_id','custom_fields','created_at','updated_at'
+].join(',');
+
 const FIRST_IMAGE_SELECT = 'id,image_url,created_at,updated_at';
+const PUBLIC_STATUS_FILTER = 'in.(approved,active,published)';
 
 function sendJsonBody(req, res, body) {
   if (req.method === 'HEAD') return res.end();
@@ -42,18 +57,60 @@ function projectConfig() {
   }
 }
 
-async function rest(table, params, key, url) {
+async function restResult(table, params, key, url) {
   const query = new URLSearchParams(params);
-  const response = await fetch(`${url}/rest/v1/${table}?${query.toString()}`, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      Accept: 'application/json'
-    }
-  });
-  if (!response.ok) return [];
-  const data = await response.json().catch(() => []);
-  return Array.isArray(data) ? data : [];
+  try {
+    const response = await fetch(`${url}/rest/v1/${table}?${query.toString()}`, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        Accept: 'application/json'
+      }
+    });
+    const payload = await response.json().catch(() => []);
+    return {
+      ok: response.ok,
+      rows: response.ok && Array.isArray(payload) ? payload : [],
+      status: response.status || 0,
+      error: response.ok ? '' : String(payload?.message || payload?.hint || payload?.details || '')
+    };
+  } catch (error) {
+    return { ok: false, rows: [], status: 0, error: String(error?.message || error || '') };
+  }
+}
+
+function isPublicRow(row) {
+  return PUBLIC_STATUSES.has(String(row?.status || '').trim().toLowerCase());
+}
+
+async function loadCompactAds(key, url) {
+  const common = {
+    status: PUBLIC_STATUS_FILTER,
+    order: 'created_at.desc',
+    limit: '60'
+  };
+
+  const preferred = await restResult('ads', { select: LIST_SELECT, ...common }, key, url);
+  if (preferred.ok && preferred.rows.length) return preferred.rows;
+
+  // Schema-compatible fallback for installations where one optional preferred
+  // column has not yet been added. This was the reason the independent desktop
+  // shell showed “0 listings found” even while the previous site showed ads.
+  if (!preferred.ok) {
+    const core = await restResult('ads', { select: CORE_LIST_SELECT, ...common }, key, url);
+    if (core.ok && core.rows.length) return core.rows;
+  }
+
+  // Compatibility for legacy rows whose public status used different casing or
+  // the older `active`/`published` values. Fetch only compact text metadata and
+  // filter on the server; pending/rejected rows are never returned to clients.
+  const legacy = await restResult('ads', {
+    select: CORE_LIST_SELECT,
+    order: 'created_at.desc',
+    limit: '120'
+  }, key, url);
+  if (!legacy.ok) return [];
+  return legacy.rows.filter(isPublicRow).slice(0, 60);
 }
 
 function imageRoute(row) {
@@ -75,9 +132,6 @@ async function prepareFirstPaintImage(row) {
   const value = String(row?.image_url || '').trim();
   if (!value) return '';
 
-  // New ads already store a small 480px WebP thumbnail in image_url. Reuse it
-  // directly so the first card image is delivered in the same JSON response
-  // and is not hidden behind a second client-side API dependency.
   const parsed = parseDataImage(value);
   if (parsed) {
     if (parsed.mime === 'image/webp' && parsed.buffer.length <= 180 * 1024) return value;
@@ -93,10 +147,28 @@ async function prepareFirstPaintImage(row) {
     }
   }
 
-  // Remote image URLs can be requested by the browser immediately after the
-  // single home JSON response without another Supabase/schema lookup.
   if (/^https?:\/\//i.test(value) || value.startsWith('/')) return value;
   return '';
+}
+
+async function loadFirstImageRows(key, url) {
+  const result = await restResult('ads', {
+    select: FIRST_IMAGE_SELECT,
+    status: PUBLIC_STATUS_FILTER,
+    order: 'created_at.desc',
+    limit: '1'
+  }, key, url);
+  return result.ok ? result.rows : [];
+}
+
+async function loadFirstImageById(id, key, url) {
+  if (!id) return null;
+  const result = await restResult('ads', {
+    select: FIRST_IMAGE_SELECT,
+    id: `eq.${id}`,
+    limit: '1'
+  }, key, url);
+  return result.ok ? result.rows[0] || null : null;
 }
 
 module.exports = async function publicHome(req, res) {
@@ -109,27 +181,20 @@ module.exports = async function publicHome(req, res) {
 
   try {
     const { url, key } = projectConfig();
-    // The browser makes one critical request. Inside that request the compact
-    // listing data and only the newest thumbnail are fetched in parallel. This
-    // removes the old client dependency chain: home JSON -> image API ->
-    // Supabase -> image conversion. Filters, promotions and finance settings
-    // remain deferred to /api/public-meta.
+
+    // Keep the normal LCP path at two parallel compact requests. Compatibility
+    // retries happen only when the live schema rejects/empties the preferred
+    // query; they do not penalize healthy deployments.
     const [ads, firstImageRows] = await Promise.all([
-      rest('ads', {
-        select: LIST_SELECT,
-        status: 'eq.approved',
-        order: 'created_at.desc',
-        limit: '60'
-      }, key, url),
-      rest('ads', {
-        select: FIRST_IMAGE_SELECT,
-        status: 'eq.approved',
-        order: 'created_at.desc',
-        limit: '1'
-      }, key, url)
+      loadCompactAds(key, url),
+      loadFirstImageRows(key, url)
     ]);
 
-    const firstImageRow = firstImageRows[0] || null;
+    let firstImageRow = firstImageRows[0] || null;
+    if ((!firstImageRow || String(firstImageRow.id) !== String(ads[0]?.id || '')) && ads[0]?.id) {
+      firstImageRow = await loadFirstImageById(ads[0].id, key, url);
+    }
+
     const firstPaintImage = firstImageRow ? await prepareFirstPaintImage(firstImageRow) : '';
     const safeAds = ads.map((row, index) => ({
       ...row,
@@ -148,7 +213,7 @@ module.exports = async function publicHome(req, res) {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', HOME_CACHE);
-    res.setHeader('CDN-Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+    res.setHeader('CDN-Cache-Control', 'public, s-maxage=45, stale-while-revalidate=180');
     res.setHeader('Vary', 'Accept-Encoding');
     return sendJsonBody(req, res, body);
   } catch (error) {

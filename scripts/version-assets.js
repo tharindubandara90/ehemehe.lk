@@ -37,8 +37,6 @@ const assetUrls = [
   '/auth-session-bridge.js',
   '/post-ad-category-fields.js',
   './post-ad-category-fields.js',
-  '/desktop-olx-home.js',
-  '/css/desktop-olx-home.css',
   '/index-filters.min.js',
   './index-filters.min.js',
   '/index-filters.js',

@@ -1,0 +1,18 @@
+{
+  "fix": "restore_previous_desktop_layout_and_live_ads",
+  "desktop_source": "shared React application plus index-filters",
+  "removed_competing_assets": [
+    "public/desktop-olx-home.js",
+    "public/css/desktop-olx-home.css"
+  ],
+  "public_home_fallbacks": [
+    "preferred compact optional-column projection",
+    "core compact schema-compatible projection",
+    "server-side public legacy-status compatibility"
+  ],
+  "public_statuses": ["approved", "active", "published"],
+  "public_pending_rejected_excluded": true,
+  "regression_passes": 3,
+  "tests_per_pass": 23,
+  "vercel_functions": 1
+}

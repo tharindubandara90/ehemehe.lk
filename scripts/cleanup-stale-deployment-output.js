@@ -27,7 +27,9 @@ for (const relative of staleDirectories) {
 // The current application source of truth is public/** plus server.js.
 const staleRootFiles = [
   'index.html',
-  path.join('public', 'desktop-home-critical-v4.js')
+  path.join('public', 'desktop-home-critical-v4.js'),
+  path.join('public', 'desktop-olx-home.js'),
+  path.join('public', 'css', 'desktop-olx-home.css')
 ];
 for (const relative of staleRootFiles) {
   const target = path.join(root, relative);

@@ -12,7 +12,6 @@ const filtersMin = read('public/index-filters.min.js');
 const mainCss = read('public/css/index-DcB2eYwd.css');
 const enhancements = read('public/css/site-enhancements.css');
 const appCss = read('public/css/ehemehe-app.min.css');
-const desktopOlxCss = read('public/css/desktop-olx-home.css');
 const publicHome = read('server-routes/public-home.js');
 const publicMeta = read('server-routes/public-meta.js');
 const publicImage = read('server-routes/public-ad-image.js');
@@ -38,7 +37,7 @@ assert(!/fonts\.googleapis|fonts\.gstatic/i.test(html), 'External font dependenc
 const staticStyles = (html.match(/<link(?=[^>]+rel="stylesheet")(?=[^>]+href="\/css\/)[^>]*>/g) || []);
 assert.strictEqual(staticStyles.length, 1, 'Home shell should have one unconditional render-blocking stylesheet.');
 assert(/\/css\/ehemehe-app\.min\.css\?v=[a-f0-9]{12,64}/i.test(html), 'Combined CSS is not content-versioned.');
-assert(appCss.length < mainCss.length + enhancements.length + desktopOlxCss.length, 'Combined CSS was not minified.');
+assert(appCss.length < mainCss.length + enhancements.length, 'Combined CSS was not minified.');
 
 // Public home critical path is one lightweight list request. Heavy lookup and
 // promotional metadata must not delay the first listing paint.

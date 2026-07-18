@@ -51,30 +51,38 @@
 })();
 </script>
 
-    <script id="ehm-desktop-olx-prepaint">
+    <script id="ehm-desktop-home-prepaint-class">
 (function () {
   var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
-  var desktop = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
-  if (path === '/' && desktop) {
-    window.__EHM_DESKTOP_OLX_HOME = true;
-    document.documentElement.classList.add('ehm-desktop-olx-home-active');
+  if (path === '/') {
+    document.documentElement.classList.add('ehm-home-route-prepaint');
+    if (window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
+      document.documentElement.classList.add('ehm-desktop-home-prepaint');
+    }
   }
 })();
     </script>
-    <style id="ehm-desktop-olx-critical">
-      #ehmDesktopOlxHome{display:none}
-      @media (min-width:1024px){
-        html.ehm-desktop-olx-home-active body{margin:0;background:#f2f4f5}
-        html.ehm-desktop-olx-home-active #root{display:none!important}
-        html.ehm-desktop-olx-home-active #ehmDesktopOlxHome{display:block!important;min-height:100vh;background:#f2f4f5}
+    <style id="ehm-desktop-home-prepaint-style">
+      @media (min-width: 768px) {
+        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"] {
+          display: none !important;
+        }
+        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDMxOjEw"],
+        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDM3OjEw"],
+        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQzOjEw"],
+        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQ4OjEw"],
+        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDg2OjEw"] {
+          animation: none !important;
+          opacity: 1 !important;
+          transform: none !important;
+        }
       }
     </style>
 
     <meta name="description" content="ehemehe.lk - Sri Lanka's #1 Modern Marketplace. Buy, sell, and discover amazing deals.">
     <meta name="theme-color" content="#3DC697">
     <title>ehemehe.lk - Sri Lanka's Marketplace</title>
-    <link id="ehm-site-enhancements" rel="stylesheet" href="/css/ehemehe-app.min.css?v=2cb8722c28171b6b">
-    <script id="ehm-desktop-olx-home" src="/desktop-olx-home.js?v=3a8e46ccd0c6448a"></script>
+    <link id="ehm-site-enhancements" rel="stylesheet" href="/css/ehemehe-app.min.css?v=39be73d114bd350a">
     <script id="ehm-route-head-assets">
 (function () {
   var path = location.pathname.replace(/\/+$/, '') || '/';
@@ -89,8 +97,8 @@
     document.head.appendChild(link);
   }
 
-  if (!authOnly && !window.__EHM_DESKTOP_OLX_HOME) addPreload('modulepreload', '/js/index-BsKly-Vj.js?v=078944741ea31c09');
-  if ((path !== '/' || !window.__EHM_DESKTOP_OLX_HOME) && (path === '/' || path.indexOf('/ad/') === 0)) addPreload('preload', '/index-filters.min.js?v=a6c3ba2137325d59', 'script');
+  if (!authOnly) addPreload('modulepreload', '/js/index-BsKly-Vj.js?v=078944741ea31c09');
+  if (path === '/' || path.indexOf('/ad/') === 0) addPreload('preload', '/index-filters.min.js?v=74d3bfe931be64d8', 'script');
 
   var styles = [];
   if (path === '/post' || path.indexOf('/dashboard') === 0) {
@@ -103,7 +111,7 @@
 })();
     </script>
 <script type="module">
-if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_OLX_HOME) {
+if (!window.__EHM_AUTH_ONLY_ROUTE) {
   import('/js/index-BsKly-Vj.js?v=078944741ea31c09').catch(function (error) {
     console.error('Could not start EheMehe application.', error);
   });
@@ -111,62 +119,6 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_OLX_HOME) {
     </script>
 </head>
   <body>
-    <div id="ehmDesktopOlxHome" class="ehm-olx-shell" aria-hidden="true">
-      <header class="ehm-olx-header">
-        <div class="ehm-olx-header-inner">
-          <a class="ehm-olx-brand" href="/" aria-label="EheMehe home">
-            <img src="/assets/ehemehe_logo_header.webp?v=eeb21c8b6d956e1a" alt="EheMehe" width="228" height="64">
-          </a>
-          <nav class="ehm-olx-nav" aria-label="Account navigation">
-            <a href="/dashboard/favorites">Favorites</a>
-            <a href="/dashboard">Account</a>
-            <a class="ehm-olx-post" href="/post">Post an Ad</a>
-          </nav>
-        </div>
-      </header>
-      <main class="ehm-olx-main">
-        <div class="ehm-olx-container">
-          <form id="ehmOlxSearchForm" class="ehm-olx-search" role="search">
-            <label class="ehm-olx-field">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-              <input id="ehmOlxSearchInput" type="search" placeholder="What are you looking for?" autocomplete="off" aria-label="Search ads">
-            </label>
-            <label class="ehm-olx-field select">
-              <select id="ehmOlxCategorySelect" aria-label="All categories"><option value="">All categories</option></select>
-            </label>
-            <label class="ehm-olx-field select">
-              <select id="ehmOlxLocationSelect" aria-label="Location"><option value="">Location</option></select>
-            </label>
-            <button type="submit">Search</button>
-          </form>
-          <section id="ehmOlxCategories" class="ehm-olx-categories" aria-label="Popular categories"></section>
-          <section id="ehmOlxResults" class="ehm-olx-results">
-            <div class="ehm-olx-results-head">
-              <div><h1 id="ehmOlxResultsTitle">Fresh recommendations</h1><p id="ehmOlxResultsCount">Loading the newest listings</p></div>
-              <a href="/search">View all</a>
-            </div>
-            <div id="ehmOlxGrid" class="ehm-olx-grid">
-              <article class="ehm-olx-card ehm-olx-card-skeleton"><div class="ehm-olx-skeleton-image"></div><div class="ehm-olx-card-body"><i></i><i></i><i></i></div></article>
-              <article class="ehm-olx-card ehm-olx-card-skeleton"><div class="ehm-olx-skeleton-image"></div><div class="ehm-olx-card-body"><i></i><i></i><i></i></div></article>
-              <article class="ehm-olx-card ehm-olx-card-skeleton"><div class="ehm-olx-skeleton-image"></div><div class="ehm-olx-card-body"><i></i><i></i><i></i></div></article>
-              <article class="ehm-olx-card ehm-olx-card-skeleton"><div class="ehm-olx-skeleton-image"></div><div class="ehm-olx-card-body"><i></i><i></i><i></i></div></article>
-            </div>
-          </section>
-        </div>
-      </main>
-      <footer class="ehm-olx-footer">
-        <div class="ehm-olx-footer-grid">
-          <div class="ehm-olx-footer-brand">
-            <img src="/assets/ehemehe_logo_header.webp?v=eeb21c8b6d956e1a" alt="EheMehe" width="190" height="54">
-            <p>Sri Lanka’s modern marketplace to buy, sell and discover trusted local deals.</p>
-          </div>
-          <div><h2>Quick links</h2><a href="/">Home</a><a href="/category/vehicles">Vehicles</a><a href="/category/property">Property</a><a href="/category/electronics">Electronics</a></div>
-          <div><h2>Categories</h2><a href="/category/mobile-phones">Mobile phones</a><a href="/category/home-garden">Home &amp; Garden</a><a href="/category/jobs">Jobs</a><a href="/category/services">Services</a></div>
-          <div><h2>Support</h2><a href="/help">Help Center</a><a href="/about">About Us</a><a href="/contact">Contact Us</a><a href="/terms">Terms &amp; Conditions</a></div>
-        </div>
-        <div class="ehm-olx-footer-bottom"><span>© 2026 EheMehe.lk</span><span>Buy and sell safely across Sri Lanka</span></div>
-      </footer>
-    </div>
     <div id="root"></div>
     <script id="ehm-route-core-loader">
 (function () {
@@ -185,8 +137,6 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_OLX_HOME) {
     node.onerror = done || null;
     document.head.appendChild(node);
   }
-
-  if (window.__EHM_DESKTOP_OLX_HOME) return;
 
   if (authCritical) {
     writeScript('/supabase.js?v=828b6b4eb6050614');
@@ -208,10 +158,10 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_OLX_HOME) {
     document.write('<script src="' + src + '"' + attr + '><\/script>');
   }
 
-  if ((path !== '/' || !window.__EHM_DESKTOP_OLX_HOME) && (path === '/' || path.indexOf('/ad/') === 0)) {
-    script('/index-filters.min.js?v=a6c3ba2137325d59', 'defer');
+  if (path === '/' || path.indexOf('/ad/') === 0) {
+    script('/index-filters.min.js?v=74d3bfe931be64d8', 'defer');
   }
-  if (!window.__EHM_DESKTOP_OLX_HOME) script('/brand-theme.js?v=a0232680779565ef', 'async');
+  script('/brand-theme.js?v=a0232680779565ef', 'async');
 
   var needsSms = path === '/login' || path === '/signup' || path === '/post' || path.indexOf('/dashboard') === 0;
   if (needsSms) script('/sms-verification-service.js?v=06eb7d2a20d4c31b');
@@ -236,7 +186,7 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_OLX_HOME) {
     path.indexOf('/dashboard') === 0 || path.indexOf('/profile') === 0 || path.indexOf('/messages') === 0;
 
   function start() {
-    if (window.__EHM_DESKTOP_OLX_HOME || started || window.supabase) return;
+    if (started || window.supabase) return;
     started = true;
     var sdk = document.createElement('script');
     sdk.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
