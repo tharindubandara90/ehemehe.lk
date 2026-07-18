@@ -14,7 +14,7 @@ assert(desktop.includes('loadAdsDirectly'), 'Desktop listings have no direct Sup
 assert(desktop.includes('PUBLIC_SUPABASE_ANON_KEY'), 'Desktop fallback cannot authenticate with the public anon role.');
 assert(desktop.includes("fetchJson('/api/public-home'"), 'Primary optimized marketplace API was removed.');
 assert(!/font-weight:(850|900)/.test(css), 'Desktop typography still uses synthetic ultra-heavy weights.');
-assert(css.includes('font-family:"Segoe UI",Arial,Helvetica,sans-serif'), 'Stable desktop font stack is missing.');
+assert(css.includes('font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif'), 'Original Plus Jakarta Sans desktop font stack is missing.');
 
 const originalFetch = global.fetch;
 const originalEnv = { ...process.env };

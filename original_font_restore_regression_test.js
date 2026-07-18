@@ -1,0 +1,10 @@
+const fs = require('fs');
+const assert = require('assert');
+const html = fs.readFileSync('public/index.html', 'utf8');
+const desktopCss = fs.readFileSync('public/css/desktop-home-exact.css', 'utf8');
+const appCss = fs.readFileSync('public/css/ehemehe-app.min.css', 'utf8');
+assert(html.includes('family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'), 'Plus Jakarta Sans webfont loader missing.');
+assert(desktopCss.includes('font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif'), 'Desktop shell is not using the original site font.');
+assert(appCss.includes('font-family:Plus Jakarta Sans,system-ui,-apple-system,sans-serif'), 'React/mobile app font family changed.');
+assert(!desktopCss.includes('font-family:"Segoe UI",Arial,Helvetica,sans-serif'), 'New Segoe-only font override still exists.');
+console.log('Original Plus Jakarta Sans font regression passed.');

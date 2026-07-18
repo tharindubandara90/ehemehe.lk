@@ -35,7 +35,9 @@ assert(enhancements.includes('(min-width: 1024px) and (max-width: 1147px)'), 'Pr
 // Critical CSS should be a single, minified, cache-versioned request with no
 // Google Fonts import dependency.
 assert(!/@import\s+url\([^)]*fonts\.googleapis/i.test(mainCss), 'Google Fonts render-blocking import remains.');
-assert(!/fonts\.googleapis|fonts\.gstatic/i.test(html), 'External font dependency remains in the home shell.');
+assert(/fonts\.googleapis\.com\/css2\?family=Plus\+Jakarta\+Sans/i.test(html), 'Original Plus Jakarta Sans loader is missing.');
+assert(/rel="stylesheet"[^>]+fonts\.googleapis[^>]+media="print"[^>]+onload=/i.test(html), 'The restored font stylesheet must remain non-render-blocking.');
+assert(!/<link(?![^>]+media="print")(?=[^>]+rel="stylesheet")(?=[^>]+fonts\.googleapis)[^>]*>/i.test(html), 'A render-blocking external font stylesheet remains in the home shell.');
 const staticStyles = (html.match(/<link(?=[^>]+rel="stylesheet")(?=[^>]+href="\/css\/)[^>]*>/g) || []);
 assert.strictEqual(staticStyles.length, 1, 'Home shell should have one unconditional render-blocking stylesheet.');
 assert(/\/css\/ehemehe-app\.min\.css\?v=[a-f0-9]{12,64}/i.test(html), 'Combined CSS is not content-versioned.');
