@@ -12,11 +12,11 @@ const filtersMin = read('public/index-filters.min.js');
 const mainCss = read('public/css/index-DcB2eYwd.css');
 const enhancements = read('public/css/site-enhancements.css');
 const appCss = read('public/css/ehemehe-app.min.css');
-const publicHome = read('api/public-home.js');
-const publicMeta = read('api/public-meta.js');
-const publicImage = read('api/public-ad-image.js');
+const publicHome = read('server-routes/public-home.js');
+const publicMeta = read('server-routes/public-meta.js');
+const publicImage = read('server-routes/public-ad-image.js');
 const postRuntime = read('public/post-ad-runtime.js');
-const publishApi = read('api/publish-ad.js');
+const publishApi = read('server-routes/publish-ad.js');
 const server = read('server.js');
 const pkg = JSON.parse(read('package.json'));
 
@@ -104,7 +104,7 @@ assert(fs.statSync('public/assets/ehemehe_favicon_64.png').size < 10000, 'Favico
 assert(/ehemehe_logo_header\.webp\?v=[a-f0-9]{12,64}/i.test(html), 'Optimized logo is not preloaded/versioned.');
 
 async function testPublicHomeCriticalResponse() {
-  const handlerPath = path.resolve('api/public-home.js');
+  const handlerPath = path.resolve('server-routes/public-home.js');
   delete require.cache[handlerPath];
   const handler = require(handlerPath);
   const originalFetch = global.fetch;
@@ -154,7 +154,7 @@ async function testPublicHomeCriticalResponse() {
 }
 
 async function testImageOptimization() {
-  const handlerPath = path.resolve('api/public-ad-image.js');
+  const handlerPath = path.resolve('server-routes/public-ad-image.js');
   delete require.cache[handlerPath];
   const handler = require(handlerPath);
   const source = await sharp({ create: { width: 1400, height: 1000, channels: 3, background: '#3dc697' } })

@@ -23,7 +23,10 @@ for (const legacyKey of ['builds', 'routes', 'functions', 'rewrites']) {
 }
 assert(server.includes("if (require.main === module || process.env.VERCEL) startHttpServer();"), 'Root server is not started in the Vercel runtime');
 assert(server.includes('server.listen(port'), 'Root server does not expose the listen call required by Vercel server detection');
-assert(!fs.existsSync('api/index.js'), 'Competing catch-all API wrapper remains');
+assert(!fs.existsSync('api'), 'Root api directory would create one Vercel Function per endpoint');
+assert(fs.existsSync('server-routes'), 'Internal route modules were not moved outside the Vercel api directory');
+assert(fs.readdirSync('server-routes').filter((name) => name.endsWith('.js')).length >= 17, 'Internal route modules are incomplete');
+assert(server.includes("require('./server-routes/request-otp')"), 'Root server is not dispatching internal route modules');
 assert(!lock.packages['node_modules/vercel'], 'Lockfile must not include the Vercel CLI');
 assert(!Object.keys(lock.packages).some((name) => name.startsWith('node_modules/@vercel/')), 'Lockfile must not contain the Vercel CLI dependency tree');
 assert(!/packages\.applied-caas-gateway1\.internal\.api\.openai\.org/i.test(lockText), 'Lockfile contains a private build-environment registry URL');

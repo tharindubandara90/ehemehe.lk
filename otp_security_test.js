@@ -34,7 +34,7 @@ async function invoke(handler, body) {
 
 (async () => {
   // Text.lk HTTP 200 + status:error must be treated as failure.
-  const utils = require('./api/_otp-utils');
+  const utils = require('./server-routes/_otp-utils');
   global.fetch = async () => ({
     ok: true,
     status: 200,
@@ -46,7 +46,7 @@ async function invoke(handler, body) {
   if (!rejected) throw new Error('Text.lk error response was incorrectly accepted.');
 
   // Registration request sends OTP but must not create a Supabase user.
-  delete require.cache[require.resolve('./api/request-registration-otp')];
+  delete require.cache[require.resolve('./server-routes/request-registration-otp')];
   crypto.randomInt = () => 123456;
   const calls = [];
   global.fetch = async (url, options={}) => {
@@ -63,7 +63,7 @@ async function invoke(handler, body) {
     throw new Error('Unexpected URL '+url);
   };
 
-  const requestHandler = require('./api/request-registration-otp');
+  const requestHandler = require('./server-routes/request-registration-otp');
   const requested = await invoke(requestHandler,{phone:'0771234567',email:''});
   if (requested.status !== 200 || !requested.body.challenge) throw new Error('OTP request failed in test.');
   if (calls.some(c => c.method === 'POST' && c.url.includes('/auth/v1/admin/users'))) {
@@ -71,7 +71,7 @@ async function invoke(handler, body) {
   }
 
   // Account may be created only by verify endpoint with the correct code.
-  delete require.cache[require.resolve('./api/verify-registration-otp')];
+  delete require.cache[require.resolve('./server-routes/verify-registration-otp')];
   let createCount = 0;
   global.fetch = async (url, options={}) => {
     if (String(url).includes('/auth/v1/admin/users') && (options.method||'GET') === 'GET') {
@@ -87,7 +87,7 @@ async function invoke(handler, body) {
     throw new Error('Unexpected URL '+url);
   };
 
-  const verifyHandler = require('./api/verify-registration-otp');
+  const verifyHandler = require('./server-routes/verify-registration-otp');
   const wrong = await invoke(verifyHandler,{
     challenge:requested.body.challenge,code:'000000',name:'Test User',
     email:'',phone:'94771234567',password:'secret12'

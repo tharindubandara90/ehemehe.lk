@@ -7,6 +7,7 @@ const node = process.execPath;
 const tests = [
   ['admin_dashboard_link_test.js', ['public/admin.html', 'public/admin.js']],
   ['deployment_install_regression_test.js', []],
+  ['vercel_function_count_regression_test.js', []],
   ['category_taxonomy_uuid_regression_test.js', []],
   ['multi_phone_otp_test.js', []],
   ['otp_security_test.js', []],

@@ -1,0 +1,13 @@
+{
+  "issue": "Vercel Hobby deployment exceeded the 12 Serverless Functions limit",
+  "root_cause": "Seventeen request handlers and one helper were stored in the root api directory while the project also used root server.js. Vercel treated the endpoint files as separate Functions instead of only as dependencies of the root dispatcher.",
+  "fix": {
+    "function_entry": "server.js",
+    "internal_route_directory": "server-routes",
+    "root_api_directory_removed": true,
+    "public_api_urls_preserved": true,
+    "projected_vercel_function_count": 1
+  },
+  "preserved_endpoints": 17,
+  "hobby_function_limit": 12
+}
