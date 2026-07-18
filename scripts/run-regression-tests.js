@@ -24,6 +24,7 @@ const tests = [
   ['desktop_home_first_paint_regression_test.js', []],
   ['desktop_home_route_ownership_regression_test.js', []],
   ['desktop_theme_deployment_regression_test.js', []],
+  ['desktop_live_ads_delivery_regression_test.js', []],
   ['public_ads_detail_desktop_regression_test.js', []],
   ['public_home_interactions_regression_test.js', []],
   ['public_home_schema_compatibility_test.js', []],

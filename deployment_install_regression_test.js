@@ -22,7 +22,8 @@ assert.strictEqual(vercel.buildCommand, 'npm run build', 'Vercel build command m
 for (const legacyKey of ['builds', 'routes', 'functions', 'rewrites']) {
   assert(!Object.prototype.hasOwnProperty.call(vercel, legacyKey), `${legacyKey} must not compete with Vercel root-server auto detection`);
 }
-assert(server.includes("if (require.main === module || process.env.VERCEL) startHttpServer();"), 'Root server is not started in the Vercel runtime');
+assert(server.includes('const server = http.createServer'), 'Root Node HTTP server is missing');
+assert(!Object.prototype.hasOwnProperty.call(vercel, 'outputDirectory'), 'outputDirectory must not disable root server capture and API routing');
 assert(server.includes('server.listen(port'), 'Root server does not expose the listen call required by Vercel server detection');
 assert(!fs.existsSync('api'), 'Root api directory would create one Vercel Function per endpoint');
 assert(/(^|\n)\/?api\/\*\*(\n|$)/.test(vercelIgnore), 'Stale api files are not excluded from Vercel deployment');

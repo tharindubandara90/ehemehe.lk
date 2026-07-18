@@ -25,7 +25,7 @@ assert(desktop.includes("href=\"/ad/${encodeURIComponent(ad.id)}\""), 'Live ad-d
 assert(appCss.includes('.ehdx-header'), 'Exact desktop header CSS is missing from combined CSS.');
 assert(appCss.includes('.ehdx-grid'), 'Exact desktop grid CSS is missing from combined CSS.');
 assert.strictEqual(vercel.framework, null, 'Vercel framework must stay Other/null.');
-assert.strictEqual(vercel.outputDirectory, 'public', 'Vercel must deploy public static assets.');
+assert(!Object.prototype.hasOwnProperty.call(vercel, 'outputDirectory'), 'Vercel must capture root server.js; public/** is served automatically by the CDN.');
 assert(packageJson.scripts['prepare-assets'].includes('cleanup:deployment'), 'Build does not clean stale output.');
 assert(packageJson.scripts['prepare-assets'].includes('verify:desktop-theme'), 'Build does not verify desktop view.');
 

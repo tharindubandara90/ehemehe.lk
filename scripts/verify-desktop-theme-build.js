@@ -23,6 +23,7 @@ const combinedCss = fs.readFileSync(required.combinedCss, 'utf8');
 const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
 const checks = [
   [vercel.framework === null, 'Vercel framework must remain Other'],
+  [!Object.prototype.hasOwnProperty.call(vercel, 'outputDirectory'), 'Static-only outputDirectory would disable the root API server'],
   [index.includes('ehm-desktop-home-exact-route'), 'desktop route guard is missing'],
   [index.includes('id="ehmDesktopHomeExact"'), 'desktop home host is missing'],
   [index.includes("script('/desktop-home-exact.min.js"), 'exact desktop script is not loaded'],
@@ -30,9 +31,11 @@ const checks = [
   [desktopSource.includes('Latest Ads'), 'exact desktop Latest Ads renderer is missing'],
   [desktopSource.includes("fetchJson('/api/public-home'"), 'live marketplace endpoint is not used'],
   [desktopSource.includes("fetchJson('/api/public-meta'"), 'live filters endpoint is not used'],
+  [desktopSource.includes('loadAdsDirectly'), 'direct public Supabase listings fallback is missing'],
   [desktopSource.includes("href=\"/ad/${encodeURIComponent(ad.id)}\""), 'database ad-detail link renderer is missing'],
   [desktopCss.includes('.ehdx-searchbar'), 'compact search bar CSS is missing'],
   [desktopCss.includes('grid-template-columns:repeat(4'), 'four-column desktop ad grid is missing'],
+  [! /font-weight:(850|900)/.test(desktopCss), 'synthetic ultra-heavy desktop typography survived the build'],
   [combinedCss.includes('.ehdx-results-section'), 'exact desktop CSS was not included in combined CSS'],
   [desktopMin.length < desktopSource.length, 'exact desktop helper was not minified'],
   [!index.includes('desktop-olx-home.js'), 'obsolete OLX demo shell is still loaded']

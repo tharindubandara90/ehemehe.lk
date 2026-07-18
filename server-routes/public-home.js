@@ -1,5 +1,4 @@
 const zlib = require('zlib');
-const sharp = require('sharp');
 const { supabaseAdminConfig, supabasePublicKey } = require('./_otp-utils');
 
 const HOME_CACHE = 'public, max-age=15, s-maxage=45, stale-while-revalidate=180';
@@ -59,13 +58,16 @@ function projectConfig() {
 
 async function restResult(table, params, key, url) {
   const query = new URLSearchParams(params);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
   try {
     const response = await fetch(`${url}/rest/v1/${table}?${query.toString()}`, {
       headers: {
         apikey: key,
         Authorization: `Bearer ${key}`,
         Accept: 'application/json'
-      }
+      },
+      signal: controller.signal
     });
     const payload = await response.json().catch(() => []);
     return {
@@ -76,6 +78,8 @@ async function restResult(table, params, key, url) {
     };
   } catch (error) {
     return { ok: false, rows: [], status: 0, error: String(error?.message || error || '') };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -136,6 +140,7 @@ async function prepareFirstPaintImage(row) {
   if (parsed) {
     if (parsed.mime === 'image/webp' && parsed.buffer.length <= 180 * 1024) return value;
     try {
+      const sharp = require('sharp');
       const output = await sharp(parsed.buffer, { failOn: 'none' })
         .rotate()
         .resize(480, 360, { fit: 'cover', position: 'centre', withoutEnlargement: false })
@@ -217,6 +222,7 @@ module.exports = async function publicHome(req, res) {
     res.setHeader('Vary', 'Accept-Encoding');
     return sendJsonBody(req, res, body);
   } catch (error) {
+    console.error('public-home failed:', error?.message || error);
     res.statusCode = 502;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');

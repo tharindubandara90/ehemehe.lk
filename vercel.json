@@ -3,7 +3,6 @@
   "framework": null,
   "installCommand": "npm ci --include=dev --no-audit --no-fund --prefer-online",
   "buildCommand": "npm run build",
-  "outputDirectory": "public",
   "headers": [
     {
       "source": "/",
@@ -14,7 +13,7 @@
         },
         {
           "key": "X-EheMehe-Desktop-Build",
-          "value": "desktop-exact-compact-v7-stable-owner-20260718"
+          "value": "desktop-compact-live-ads-v8-20260718"
         }
       ]
     },
@@ -27,7 +26,7 @@
         },
         {
           "key": "X-EheMehe-Desktop-Build",
-          "value": "desktop-exact-compact-v7-stable-owner-20260718"
+          "value": "desktop-compact-live-ads-v8-20260718"
         }
       ]
     },

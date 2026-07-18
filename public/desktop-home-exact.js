@@ -5,6 +5,12 @@
   if (HOME_PATH !== '/' || window.__EHM_DESKTOP_HOME_EXACT !== true) return;
 
   const FAVORITES_KEY = 'ehemehe:favorites:v2';
+  // Public Supabase credentials are intentionally browser-safe (anon role).
+  // They provide a resilient read-only fallback when a deployment's /api
+  // routing is temporarily unavailable; RLS remains the source of access control.
+  const PUBLIC_SUPABASE_URL = 'https://ieymsjeywkapqeniirlm.supabase.co';
+  const PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlleW1zamV5d2thcHFlbmlpcmxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjkxOTQsImV4cCI6MjA5OTUwNTE5NH0.L2T1cEjznaeJHa4DVC9F8dA5c-e3P0OQ9U4vetJIeMM';
+  const PUBLIC_AD_STATUSES = new Set(['approved', 'active', 'published']);
   const FALLBACK_CATEGORIES = [
     { key: 'vehicles', label: 'Vehicles', aliases: ['vehicle','vehicles','cars','car','motorbike','motorbikes'], icon: 'car' },
     { key: 'property', label: 'Property', aliases: ['property','properties','house','land','apartment'], icon: 'building' },
@@ -393,22 +399,99 @@
     } finally { clearTimeout(timer); }
   }
 
+  async function directSupabaseRows(select, includeStatusFilter) {
+    const params = new URLSearchParams({
+      select,
+      order: 'created_at.desc',
+      limit: '60'
+    });
+    if (includeStatusFilter) params.set('status', 'in.(approved,active,published)');
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(`${PUBLIC_SUPABASE_URL}/rest/v1/ads?${params.toString()}`, {
+        headers: {
+          apikey: PUBLIC_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${PUBLIC_SUPABASE_ANON_KEY}`,
+          Accept: 'application/json'
+        },
+        signal: controller.signal
+      });
+      const payload = await response.json().catch(() => []);
+      if (!response.ok || !Array.isArray(payload)) {
+        throw new Error(payload?.message || payload?.hint || `Supabase request failed (${response.status})`);
+      }
+      return payload;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function loadAdsDirectly() {
+    const projections = [
+      'id,title,description,price,currency,phone,condition,status,category_id,city_id,custom_fields,is_featured,is_promoted,promotion_type,image_url,created_at,updated_at',
+      'id,title,description,price,phone,condition,status,category_id,city_id,custom_fields,image_url,created_at,updated_at',
+      '*'
+    ];
+    let lastError = null;
+
+    for (const select of projections) {
+      try {
+        const rows = await directSupabaseRows(select, true);
+        return { ok: true, ads: rows };
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    // Compatibility for older rows whose status value has different casing.
+    try {
+      const rows = await directSupabaseRows('*', false);
+      return {
+        ok: true,
+        ads: rows.filter((row) => PUBLIC_AD_STATUSES.has(String(row?.status || '').trim().toLowerCase())).slice(0, 60)
+      };
+    } catch (error) {
+      lastError = error;
+    }
+
+    console.error('Direct Supabase listings fallback failed:', lastError);
+    return { ok: false, ads: [] };
+  }
+
   async function loadData() {
     appState.loaded = false;
     appState.failed = false;
     render();
-    const [homeResult,metaResult] = await Promise.allSettled([
-      fetchJson('/api/public-home',15000),
-      fetchJson('/api/public-meta',15000)
+
+    const [homeResult, metaResult] = await Promise.allSettled([
+      fetchJson('/api/public-home', 15000),
+      fetchJson('/api/public-meta', 15000)
     ]);
     if (metaResult.status === 'fulfilled') applyMeta(metaResult.value);
+
+    let rows = [];
+    let listingsLoaded = false;
     if (homeResult.status === 'fulfilled' && Array.isArray(homeResult.value.ads)) {
-      appState.ads = homeResult.value.ads.map(normalizeAd).filter((ad) => ad.id);
-      appState.failed = false;
+      rows = homeResult.value.ads;
+      listingsLoaded = true;
     } else {
-      appState.ads = [];
-      appState.failed = true;
+      console.warn('Marketplace API unavailable; using direct public Supabase fallback.', homeResult.reason || '');
+      const fallback = await loadAdsDirectly();
+      rows = fallback.ads;
+      listingsLoaded = fallback.ok;
     }
+
+    // An empty API response can be caused by a stale schema/cache query. Confirm
+    // it once against public RLS before presenting a genuinely empty marketplace.
+    if (listingsLoaded && rows.length === 0) {
+      const fallback = await loadAdsDirectly();
+      if (fallback.ok && fallback.ads.length) rows = fallback.ads;
+    }
+
+    appState.ads = rows.map(normalizeAd).filter((ad) => ad.id);
+    appState.failed = !listingsLoaded;
     appState.loaded = true;
     render();
   }
