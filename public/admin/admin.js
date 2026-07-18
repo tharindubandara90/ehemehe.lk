@@ -6,6 +6,7 @@ let USERS = [], ADS = [], CATEGORIES = [], DISTRICTS = [], CITIES = [];
 let STAFF = [], REPORTS = [], SHOPS = [], VERIFICATIONS = [];
 let PAYMENTS = [], PRICING = [], INVOICES = [], CUSTOM_FIELDS = [], BANNERS = [], AD_PROMOTIONS = [];
 let SETTINGS = {};
+let EDIT_AD_IMAGES = [];
 
 const MAIN_ADMIN = "ehemehe.lk@gmail.com";
 
@@ -138,23 +139,26 @@ function updateStaticAdOverrideFor(ad, patch){
 function staticPatchFromEditor(currentAd){
   const cityId = el('editCity').value;
   const cityName = cityNameById(cityId);
-  const image = el('editImage').value.trim();
+  const images = editAdImagesWithPendingUrl();
+  const placement = selectedAdPlacement();
   return {
     title: el('editTitle').value,
     price: el('editPrice').value || null,
     contactPhone: el('editPhone').value,
     phone: el('editPhone').value,
     description: el('editDescription').value,
-    image_url: image,
-    images: image ? [image] : [],
+    image_url: images[0] || '',
+    images,
     status: el('editStatus').value,
     categoryId: el('editCategory').value || currentAd.category_id,
     subcategoryId: currentAd.subcategory_id || '',
     location: cityName === '-' ? (currentAd.cities?.name || currentAd.location || 'Sri Lanka') : cityName,
     condition: currentAd.condition || 'new',
-    isFeatured: !!currentAd.is_featured,
-    isPromoted: !!el('editPromotion').value,
-    promotion_type: el('editPromotion').value || '',
+    isFeatured: placement === 'featured',
+    isPromoted: placement === 'promoted',
+    is_featured: placement === 'featured',
+    is_promoted: placement === 'promoted',
+    promotion_type: placement || '',
     finance: calcVehicleFinance(el('editPrice').value)
   };
 }
@@ -826,6 +830,74 @@ function imageOf(a){
   }
   return '';
 }
+function adImages(a){
+  const output = [];
+  const add = (value) => {
+    const image = String(value || '').trim();
+    if(image && !output.includes(image)) output.push(image);
+  };
+  add(a?.image_url);
+  if(Array.isArray(a?.images)) a.images.forEach(add);
+  else if(typeof a?.images === 'string'){
+    try{ const parsed=JSON.parse(a.images); if(Array.isArray(parsed)) parsed.forEach(add); else add(a.images); }
+    catch(e){ add(a.images); }
+  }
+  return output.slice(0,10);
+}
+function adPlacement(a){
+  const type=String(a?.promotion_type || a?.promotionType || '').toLowerCase();
+  if(a?.is_promoted || a?.promoted || a?.isPromoted || ['promoted','top'].includes(type)) return 'promoted';
+  if(a?.is_featured || a?.featured || a?.isFeatured || type === 'featured') return 'featured';
+  return '';
+}
+function selectedAdPlacement(){ return String(el('editPromotion')?.value || '').toLowerCase(); }
+function editAdImagesWithPendingUrl(){
+  const pending=String(el('editImage')?.value || '').trim();
+  const rows=[...(pending ? [pending] : []), ...EDIT_AD_IMAGES].filter(Boolean);
+  return Array.from(new Set(rows)).slice(0,10);
+}
+function renderEditAdImages(){
+  const target=el('editImagesList'); if(!target) return;
+  if(!EDIT_AD_IMAGES.length){ target.innerHTML='<div class="ehm-admin-image-empty">No images attached to this ad.</div>'; return; }
+  target.innerHTML=EDIT_AD_IMAGES.map((src,index)=>`<div class="ehm-admin-edit-image"><img src="${html(src)}" alt="Ad image ${index+1}"><button type="button" class="btn danger small" onclick="removeEditAdImage(${index})">Remove</button></div>`).join('');
+}
+function removeEditAdImage(index){
+  EDIT_AD_IMAGES.splice(Number(index),1);
+  renderEditAdImages();
+}
+function addEditAdImage(){
+  const input=el('editImage');
+  const value=String(input?.value || '').trim();
+  if(!value){ toast('Enter an image URL first.'); return; }
+  if(!EDIT_AD_IMAGES.includes(value)) EDIT_AD_IMAGES.unshift(value);
+  input.value='';
+  renderEditAdImages();
+}
+function installAdminAdManagementStyles(){
+  if(document.getElementById('ehmAdminAdManagementStyles')) return;
+  const style=document.createElement('style');
+  style.id='ehmAdminAdManagementStyles';
+  style.textContent=`
+    .listing-card[data-admin-preview-id]{cursor:pointer}.listing-card[data-admin-preview-id]:focus{outline:3px solid rgba(16,185,129,.28);outline-offset:3px}
+    .ehm-admin-images{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin:8px 0 12px}.ehm-admin-edit-image{position:relative;border:1px solid #dbe5ea;border-radius:14px;padding:8px;background:#f8fafc}.ehm-admin-edit-image img{width:100%;height:92px;object-fit:cover;border-radius:10px;display:block;margin-bottom:8px}.ehm-admin-image-empty{padding:18px;border:1px dashed #cbd5e1;border-radius:12px;color:#64748b;text-align:center}
+    .ehm-admin-preview-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}.ehm-admin-preview-gallery img{width:100%;height:150px;object-fit:cover;border-radius:14px;border:1px solid #dbe5ea}.ehm-admin-preview-title{font-size:24px;font-weight:800;margin:0 0 8px}.ehm-admin-preview-price{font-size:22px;font-weight:800;color:#059669;margin-bottom:14px}.ehm-admin-preview-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.ehm-admin-preview-chip{padding:6px 10px;border-radius:999px;background:#eef2f7;color:#334155;font-size:12px;font-weight:700}.ehm-admin-preview-description{white-space:pre-wrap;line-height:1.65;color:#475569}
+  `;
+  document.head.appendChild(style);
+}
+function previewAd(id,event){
+  if(event?.target?.closest?.('button,a,input,select,textarea')) return;
+  const a=ADS.find(x=>String(x.id)===String(id)); if(!a) return;
+  const images=adImages(a);
+  const placement=adPlacement(a);
+  openModal('Listing Preview', `
+    ${images.length?`<div class="ehm-admin-preview-gallery">${images.map((src,index)=>`<img src="${html(src)}" alt="${html(a.title||'Listing')} image ${index+1}">`).join('')}</div>`:'<div class="ehm-admin-image-empty">This ad has no images.</div>'}
+    <h2 class="ehm-admin-preview-title">${html(a.title||'Untitled listing')}</h2>
+    <div class="ehm-admin-preview-price">${html(money(a.price))}</div>
+    <div class="ehm-admin-preview-meta"><span class="ehm-admin-preview-chip">${html(adCategoryName(a))}</span><span class="ehm-admin-preview-chip">${html(adCityName(a))}</span><span class="ehm-admin-preview-chip">${html(a.status||'pending')}</span>${placement?`<span class="ehm-admin-preview-chip">${html(placement==='promoted'?'Promoted Ad':'Featured Ad')}</span>`:''}</div>
+    <div class="ehm-admin-preview-description">${html(a.description||'No description provided.')}</div>
+  `);
+}
+
 function catNameById(id){
   const c = CATEGORIES.find(x => String(x.id).toLowerCase() === String(id).toLowerCase() || String(x.slug).toLowerCase() === String(id).toLowerCase());
   return c?.name || id || '-';
@@ -965,7 +1037,7 @@ function renderAds(){
 }
 function renderAdCard(a){
   const img = imageOf(a);
-  return `<article class="listing-card">
+  return `<article class="listing-card" data-admin-preview-id="${html(a.id)}" tabindex="0" onclick="previewAd('${html(a.id)}',event)" onkeydown="if(event.key==='Enter')previewAd('${html(a.id)}',event)">
     <div class="listing-thumb">${img?`<img src="${html(img)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',innerText:'e'}))">`:`<div class="noimg">e</div>`}<div class="listing-status">${statusBadge(a.status || 'pending')}</div></div>
     <div class="listing-body">
       <div class="listing-title">${html(a.title || 'Untitled listing')}</div>
@@ -974,6 +1046,7 @@ function renderAdCard(a){
       <div class="listing-meta"><span>📍 ${html(adCityName(a))}</span><span>🗂 ${html(adCategoryName(a))}</span><span>👤 ${html(adSeller(a))}</span></div>
       <div class="listing-desc">${html((a.description || '').slice(0,160))}</div>
       <div class="listing-actions">
+        <button class="btn small" onclick="previewAd('${html(a.id)}')">Preview</button>
         <button class="btn small" onclick="editAd('${html(a.id)}')" ${can('can_edit_ads')?'':'disabled'}>Edit</button>
         <button class="btn ok small" onclick="approveAd('${html(a.id)}')" ${can('can_approve_ads')?'':'disabled'}>Approve</button>
         <button class="btn warn small" onclick="rejectAd('${html(a.id)}')" ${can('can_approve_ads')?'':'disabled'}>Reject</button>
@@ -1017,6 +1090,8 @@ async function deleteAd(id){
 function editAd(id){ if(!requirePermission('can_edit_ads')) return; const a=ADS.find(x=>String(x.id)===String(id)); if(!a) return; openAdModal(a); }
 function openAdCreate(){ if(!requirePermission('can_edit_ads')) return; openAdModal({status:'pending'}); }
 function openAdModal(a){
+  EDIT_AD_IMAGES = adImages(a);
+  const placement = adPlacement(a);
   openModal(a.id?'Edit Listing':'Add Listing', `<div class="grid">
     <div class="field"><label>Title</label><input class="input" id="editTitle" value="${html(a.title||'')}"></div>
     <div class="field"><label>Price</label><input class="input" id="editPrice" value="${html(a.price||'')}"></div>
@@ -1024,12 +1099,14 @@ function openAdModal(a){
     <div class="field"><label>Status</label><select id="editStatus"><option ${a.status==='pending'?'selected':''} value="pending">Pending</option><option ${a.status==='approved'?'selected':''} value="approved">Approved</option><option ${a.status==='rejected'?'selected':''} value="rejected">Rejected</option></select></div>
     <div class="field"><label>Category</label><select id="editCategory">${CATEGORIES.map(c=>`<option value="${html(c.id)}" ${String(a.category_id)===String(c.id)?'selected':''}>${html(c.name)}</option>`).join('')}</select></div>
     <div class="field"><label>City</label><select id="editCity">${CITIES.map(c=>`<option value="${html(c.id)}" ${String(a.city_id)===String(c.id)?'selected':''}>${html(c.name)}</option>`).join('')}</select></div>
-    <div class="field"><label>Image URL</label><input class="input" id="editImage" value="${html(imageOf(a))}"></div>
-    <div class="field"><label>Promotion type</label><select id="editPromotion"><option value="">None</option><option ${a.promotion_type==='top'?'selected':''} value="top">Top Ad</option><option ${a.promotion_type==='bump'?'selected':''} value="bump">Bump Ad</option><option ${a.promotion_type==='urgent'?'selected':''} value="urgent">Urgent</option></select></div>
+    <div class="field"><label>Ad visibility</label><select id="editPromotion"><option value="" ${!placement?'selected':''}>Normal Ad</option><option value="featured" ${placement==='featured'?'selected':''}>Featured Ad — top of its category</option><option value="promoted" ${placement==='promoted'?'selected':''}>Promoted Ad — top of home page</option></select></div>
+    <div class="field"><label>Add image URL</label><div style="display:flex;gap:8px"><input class="input" id="editImage" value="" placeholder="https://..."><button type="button" class="btn small" onclick="addEditAdImage()">Add</button></div></div>
+    <div class="field" style="grid-column:1/-1"><label>Current Images</label><div id="editImagesList" class="ehm-admin-images"></div></div>
     <div class="field" style="grid-column:1/-1"><label>Description</label><textarea id="editDescription">${html(a.description||'')}</textarea></div>
     <div style="grid-column:1/-1">${editModalFinancePreview(a)}</div>
   </div>
   <button class="btn primary" onclick="saveAd('${html(a.id||'')}')">Save Listing</button>`);
+  renderEditAdImages();
   bindEditFinancePreview();
 }
 async function saveAd(id){
@@ -1037,11 +1114,14 @@ async function saveAd(id){
   const current = ADS.find(x => String(x.id) === String(id));
   const editedAdForFinance = {price: el('editPrice').value, category_id: el('editCategory').value, categories:{name: el('editCategory')?.selectedOptions?.[0]?.textContent || ''}};
   const finance = isVehicleAd(editedAdForFinance) ? calcVehicleFinance(el('editPrice').value) : null;
+  const images = editAdImagesWithPendingUrl();
+  const placement = selectedAdPlacement();
   const payload = {
     title:el('editTitle').value, price:el('editPrice').value||null, phone:el('editPhone').value,
     status:el('editStatus').value, category_id:el('editCategory').value || null, city_id:el('editCity').value || null,
-    image_url:el('editImage').value, description:el('editDescription').value, promotion_type:el('editPromotion').value || null,
-    is_promoted:!!el('editPromotion').value,
+    image_url:images[0] || null, images, description:el('editDescription').value, promotion_type:placement || null,
+    is_featured:placement === 'featured',
+    is_promoted:placement === 'promoted',
     finance_enabled: !!finance,
     finance_downpayment: finance ? finance.downPayment : null,
     finance_monthly_payment: finance ? finance.monthlyPayment : null,
@@ -1554,4 +1634,5 @@ function editBanner(id){ const b=BANNERS.find(x=>String(x.id)===String(id)); if(
 async function saveBanner(){ const days=30; const now=new Date().toISOString(); const id=el('bannerId')?.value||`banner_${Date.now()}`; const payload={id,title:el('bannerTitle')?.value||'Banner Ad',image_url:el('bannerImage')?.value||'',target_url:el('bannerUrl')?.value||'/',placement:el('bannerPlacement')?.value||'home_top',status:'active',is_enabled:true,days,start_at:now,end_at:addDaysISO(days),updated_at:now,created_at:now}; try{ if(typeof supabaseClient!=='undefined'){ const {error}=await supabaseClient.from('banner_ads').upsert(payload,{onConflict:'id'}); if(error) throw error; } else throw new Error('No Supabase'); }catch(e){ const rows=localRead(BANNER_ADS_KEY,[]).filter(x=>String(x.id)!==String(id)); rows.unshift(payload); localWrite(BANNER_ADS_KEY,rows); } ['bannerId','bannerTitle','bannerImage','bannerUrl'].forEach(id=>{ if(el(id)) el(id).value=''; }); await loadBanners(true); }
 async function deleteBanner(id){ if(!confirm('Delete this banner?')) return; try{ if(typeof supabaseClient!=='undefined') await supabaseClient.from('banner_ads').delete().eq('id',id); }catch(e){} const rows=localRead(BANNER_ADS_KEY,[]).filter(x=>String(x.id)!==String(id)); localWrite(BANNER_ADS_KEY,rows); BANNERS=BANNERS.filter(x=>String(x.id)!==String(id)); renderBanners(); renderPromoBanners(); }
 
+installAdminAdManagementStyles();
 checkSession();

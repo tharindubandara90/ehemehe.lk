@@ -1715,3 +1715,99 @@ footer [data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEA4OjY"]{
     row-gap: 2rem !important;
   }
 }
+
+
+/* Admin-managed promoted/featured ads inside the existing desktop Fresh recommendations grid. */
+@media (min-width: 768px) {
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-ad-card {
+    display: block !important;
+    position: relative !important;
+    min-width: 0 !important;
+    color: #293741 !important;
+    text-decoration: none !important;
+    border: 1px solid #d7e0e4 !important;
+    border-radius: 14px !important;
+    background: #fff !important;
+    overflow: hidden !important;
+  }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-ad-img-wrap {
+    position: relative !important;
+    width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    background: #e7ecef !important;
+    overflow: hidden !important;
+  }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-ad-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+  }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-ad-body { padding: 14px 14px 12px !important; }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-ad-title {
+    min-height: 42px !important;
+    margin: 0 0 8px !important;
+    color: #394650 !important;
+    font-size: 15px !important;
+    font-weight: 650 !important;
+    line-height: 1.4 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-ad-price {
+    margin-bottom: 4px !important;
+    color: #16845f !important;
+    font-size: 25px !important;
+    line-height: 1.15 !important;
+    font-weight: 850 !important;
+  }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-ad-meta {
+    display: flex !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+    color: #7b8790 !important;
+    font-size: 13px !important;
+  }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-heart {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    width: 40px !important;
+    height: 40px !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: rgba(255,255,255,.96) !important;
+    color: #8a98a3 !important;
+    font-size: 22px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    z-index: 3 !important;
+  }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-badges {
+    position: absolute !important;
+    top: 12px !important;
+    left: 12px !important;
+    right: 58px !important;
+    z-index: 3 !important;
+    display: flex !important;
+    gap: 6px !important;
+  }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-badge {
+    display: inline-flex !important;
+    padding: 5px 8px !important;
+    border-radius: 999px !important;
+    color: #fff !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+  }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-badge.featured { background: #f59e0b !important; }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-badge.promoted { background: #06b6d4 !important; }
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-badge.top { background: #ef4444 !important; }
+}

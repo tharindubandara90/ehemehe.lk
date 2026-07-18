@@ -1,0 +1,12 @@
+{
+  "feature": "featured_promoted_admin_ad_management",
+  "home_order": "promoted_then_recent",
+  "category_order": "featured_then_recent",
+  "admin_visibility_options": ["normal", "featured", "promoted"],
+  "admin_preview": true,
+  "admin_image_removal": true,
+  "desktop_card_dimensions_changed": false,
+  "regression_tests": 28,
+  "regression_passes": 3,
+  "live_vercel_tested": false
+}

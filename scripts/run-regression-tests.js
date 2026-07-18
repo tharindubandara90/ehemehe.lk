@@ -26,6 +26,7 @@ const tests = [
   ['desktop_olx_home_layout_regression_test.js', []],
   ['desktop_fresh_recommendations_priority_regression_test.js', []],
   ['mobile_filter_button_responsive_regression_test.js', []],
+  ['promotion_featured_admin_regression_test.js', []],
   ['public_ads_detail_desktop_regression_test.js', []],
   ['public_home_interactions_regression_test.js', []],
   ['supabase_marketplace_schema_regression_test.js', []],

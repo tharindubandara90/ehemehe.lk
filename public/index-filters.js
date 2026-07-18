@@ -377,8 +377,9 @@
       images: Array.isArray(raw.images) ? raw.images : (image ? [image] : []),
       condition: raw.condition || '',
       postedAt: raw.created_at || raw.postedAt || raw.updated_at || '',
-      isFeatured: !!raw.isFeatured || !!raw.featured,
-      isPromoted: !!raw.isPromoted || !!raw.promoted,
+      promotionType: String(raw.promotion_type || raw.promotionType || '').toLowerCase(),
+      isFeatured: !!raw.isFeatured || !!raw.featured || !!raw.is_featured || String(raw.promotion_type || raw.promotionType || '').toLowerCase() === 'featured',
+      isPromoted: !!raw.isPromoted || !!raw.promoted || !!raw.is_promoted || ['promoted', 'top'].includes(String(raw.promotion_type || raw.promotionType || '').toLowerCase()),
       viewCount: raw.viewCount ?? raw.view_count ?? 0,
       seller,
       contactPhone,
@@ -901,16 +902,38 @@
       return idOk && adCategoryMatchesPromotion(ad, promo);
     });
   }
-  function sortTopAdsFirst(rows) {
-    return [...rows].sort((a,b)=>{
-      const at = topPromotionForAd(a) ? 1 : 0;
-      const bt = topPromotionForAd(b) ? 1 : 0;
-      if (at !== bt) return bt - at;
-      return new Date(b.postedAt || 0) - new Date(a.postedAt || 0);
+  function isPromotedPlacement(ad) {
+    const type = String(ad?.promotionType || ad?.promotion_type || '').toLowerCase();
+    return !!ad?.isPromoted || ['promoted', 'top'].includes(type) || !!topPromotionForAd(ad);
+  }
+  function isFeaturedPlacement(ad) {
+    const type = String(ad?.promotionType || ad?.promotion_type || '').toLowerCase();
+    return !!ad?.isFeatured || type === 'featured' || !!topPromotionForAd(ad);
+  }
+  function adPostedTime(ad) {
+    const value = new Date(ad?.postedAt || ad?.created_at || 0).getTime();
+    return Number.isFinite(value) ? value : 0;
+  }
+  function sortAdsForPlacement(rows) {
+    const categoryActive = !!state.category;
+    const homeUnfiltered = !hasActiveFilters();
+    return [...rows].sort((a, b) => {
+      // Category pages: Featured ads belong at the top of their matching category.
+      if (categoryActive) {
+        const aFeatured = isFeaturedPlacement(a) ? 1 : 0;
+        const bFeatured = isFeaturedPlacement(b) ? 1 : 0;
+        if (aFeatured !== bFeatured) return bFeatured - aFeatured;
+      // Home page: Promoted ads appear before the recently added listings.
+      } else if (homeUnfiltered) {
+        const aPromoted = isPromotedPlacement(a) ? 1 : 0;
+        const bPromoted = isPromotedPlacement(b) ? 1 : 0;
+        if (aPromoted !== bPromoted) return bPromoted - aPromoted;
+      }
+      return adPostedTime(b) - adPostedTime(a);
     });
   }
   function filteredAds() {
-    return sortTopAdsFirst(allAds().filter((ad) => adMatchesSearch(ad) && adMatchesLocation(ad) && adMatchesCategory(ad)));
+    return sortAdsForPlacement(allAds().filter((ad) => adMatchesSearch(ad) && adMatchesLocation(ad) && adMatchesCategory(ad)));
   }
 
   function getDistrictCities(district) {
@@ -1849,6 +1872,38 @@
     return browse;
   }
 
+  function renderDesktopHomeRecommendations() {
+    if (isMobile() || !isHomeRoute() || hasActiveFilters()) return;
+    const browse = arrangeDesktopHomeSections();
+    const sections = Array.from(document.querySelectorAll('#root section'));
+    const recommendations = sections.find((section) => {
+      if (section.id === 'ehmDesktopResults') return false;
+      const heading = String(section.querySelector('h2')?.textContent || '').trim();
+      return heading === 'Latest Ads' || heading === 'Fresh recommendations' || section.classList.contains('ehm-olx-latest-section');
+    });
+    if (!recommendations) return;
+
+    recommendations.classList.add('ehm-olx-latest-section');
+    recommendations.style.removeProperty('display');
+    const heading = recommendations.querySelector('h2');
+    if (heading && heading.textContent !== 'Fresh recommendations') heading.textContent = 'Fresh recommendations';
+
+    let grid = recommendations.querySelector('.ehm-olx-latest-grid');
+    if (!grid) {
+      grid = recommendations.querySelector('[class*="grid"]');
+      if (grid) grid.classList.add('ehm-olx-latest-grid');
+    }
+    if (!grid) return;
+
+    const rows = sortAdsForPlacement(allAds());
+    const html = rows.map(renderAdCard).join('');
+    if (grid.__ehmPromotionHtml !== html) {
+      grid.__ehmPromotionHtml = html;
+      grid.innerHTML = html;
+    }
+    if (browse && recommendations.previousElementSibling !== browse) browse.insertAdjacentElement('afterend', recommendations);
+  }
+
   function createDesktopResultsHost() {
     let host = document.getElementById('ehmDesktopResults');
     if (!host) {
@@ -1873,6 +1928,7 @@
     const host = createDesktopResultsHost();
     if (!forceShow && !active) {
       host.style.display = 'none';
+      renderDesktopHomeRecommendations();
       return;
     }
 
@@ -1903,6 +1959,7 @@
       syncDesktopLocationSelects();
       balanceDesktopHeroStats();
       arrangeDesktopHomeSections();
+      renderDesktopHomeRecommendations();
       return !!document.getElementById('ehmDesktopHeroCategory') && !!document.getElementById('ehmDesktopHeroLocation');
     } finally {
       Promise.resolve().then(() => { desktopShellMutating = false; });
