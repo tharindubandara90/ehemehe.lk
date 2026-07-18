@@ -50,10 +50,37 @@
 })();
 </script>
 
+    <script id="ehm-desktop-home-exact-route">
+(function () {
+  var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
+  var nav = window.navigator || {};
+  var ua = String(nav.userAgent || '');
+  var uaDataMobile = !!(nav.userAgentData && nav.userAgentData.mobile === true);
+  var mobileUa = /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
+  var touch = ('ontouchstart' in window) || Number(nav.maxTouchPoints || 0) > 0;
+  var physicalShortSide = Math.min(Number(screen.width || 9999), Number(screen.height || 9999));
+  var touchPhoneOrTablet = touch && physicalShortSide <= 820;
+  var physicalMobile = uaDataMobile || mobileUa || touchPhoneOrTablet;
+  var desktopHome = path === '/' && !physicalMobile;
+
+  window.__EHM_DESKTOP_HOME_EXACT = desktopHome;
+  window.__EHM_DESKTOP_HOME_OWNER = desktopHome ? 'exact-compact-stable' : 'react';
+  if (desktopHome) {
+    document.documentElement.classList.add('ehm-desktop-home-exact');
+    document.documentElement.setAttribute('data-ehm-home-owner', 'exact-compact-stable');
+  }
+})();
+    </script>
+    <style id="ehm-desktop-home-owner-style">
+      html.ehm-desktop-home-exact #root{display:none!important}
+      html.ehm-desktop-home-exact #ehmDesktopHomeExact{display:block!important}
+    </style>
+    <link rel="stylesheet" href="/css/desktop-home-exact.css?v=fa355877e75921d4">
+
     <script id="ehm-desktop-home-prepaint-class">
 (function () {
   var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
-  if (path === '/' && window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
+  if (!window.__EHM_DESKTOP_HOME_EXACT && path === '/' && window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
     document.documentElement.classList.add('ehm-desktop-home-prepaint');
   }
 })();
@@ -86,7 +113,7 @@
 })();
 </script>
 <script type="module">
-if (!window.__EHM_AUTH_ONLY_ROUTE) {
+if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_HOME_EXACT) {
   await window.EHM_SMS.whenReady();
   await import('/js/index-BsKly-Vj.js?v=b0ffa00202a57fd2');
 }
@@ -109,7 +136,18 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
 <link rel="stylesheet" href="/auth-unified.css?v=6074283e9d8c1391">
 </head>
   <body>
+    <div id="ehmDesktopHomeExact" aria-label="EheMehe desktop marketplace" hidden></div>
     <div id="root"></div>
+    <script id="ehm-desktop-home-owner-lock">
+(function () {
+  if (!window.__EHM_DESKTOP_HOME_EXACT) return;
+  var host = document.getElementById('ehmDesktopHomeExact');
+  var root = document.getElementById('root');
+  if (host) host.hidden = false;
+  if (root) { root.hidden = true; root.setAttribute('aria-hidden', 'true'); }
+})();
+    </script>
+    <script src="/desktop-home-exact.min.js?v=b23c19a9c0d33fc4"></script>
   
 
 
@@ -121,8 +159,8 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
   <script src="/auth-session-bridge.js?v=3fbc48c04dd76ce2"></script>
 
   <script src="./post-ad-category-fields.js?v=725edf8c7526490c"></script>
-  <script src="./index-filters.js?v=352fbd131cf8f876"></script>
-  <script src="/brand-theme.js?v=c3d69eddf2d46ce7"></script>
+  <script src="./index-filters.js?v=e68cf48d6f24dbf4"></script>
+  <script src="/brand-theme.js?v=ce4c108af72e61f2"></script>
 <script src="/post-ad-runtime.js?v=466ab7a62cf95d79"></script>
 <script src="/auth-unified.js?v=7b32a64cd1e3497d"></script>
 </body></html>

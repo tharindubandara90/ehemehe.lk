@@ -18,6 +18,8 @@ const htmlFiles = [
 const assetUrls = [
   '/sms-verification-service.js',
   '/js/index-BsKly-Vj.js',
+  '/css/desktop-home-exact.css',
+  '/desktop-home-exact.min.js',
   '/post-ad-runtime.css',
   '/post-ad-form-fixes.css',
   '/brand-theme.css',

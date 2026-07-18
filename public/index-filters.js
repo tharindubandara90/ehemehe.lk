@@ -2,6 +2,10 @@
 (function () {
   'use strict';
 
+  // Desktop home is owned by desktop-home-exact.js. Never let this shared
+  // React/mobile enhancer rewrite it after hydration or delayed data loads.
+  if (window.__EHM_DESKTOP_HOME_EXACT) return;
+
   const THEME = '#06b6d4';
   const THEME_DARK = '#0891b2';
   const MOBILE_QUERY = '(max-width: 767px)';

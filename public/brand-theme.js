@@ -1,5 +1,8 @@
 
 (() => {
+  // The compact desktop home has a single owner. This shared theme observer
+  // remains active on every other route, but must not rewrite desktop home.
+  if (window.__EHM_DESKTOP_HOME_EXACT) return;
   const LOGO = '/assets/ehemehe_logo_header.png';
   const FAVICON = '/assets/ehemehe_favicon.png';
   const GREEN = '#3DC697';
