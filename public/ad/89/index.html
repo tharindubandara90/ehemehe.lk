@@ -103,9 +103,22 @@
   window.__EHM_AUTH_ONLY_ROUTE = path === '/login' || path === '/signup';
 })();
 </script>
+<script src="/post-auth-gate.js?v=9821b15dcaa2adad"></script>
+<script id="ehm-public-home-bootstrap">
+(function () {
+  var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
+  if (path !== '/') return;
+  window.__EHM_PUBLIC_HOME_PROMISE = fetch('/api/public-home?limit=80', {
+    headers: { Accept: 'application/json' },
+    credentials: 'same-origin'
+  }).then(function (response) {
+    if (!response.ok) throw new Error('Public home request failed');
+    return response.json();
+  });
+})();
+</script>
 <script type="module">
-if (!window.__EHM_AUTH_ONLY_ROUTE) {
-  await window.EHM_SMS.whenReady();
+if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_BLOCK_APP_BOOT) {
   await import('/js/index-BsKly-Vj.js?v=aae8fde117873601');
 }
 </script>
@@ -134,14 +147,14 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
 
 
   
+  <script src="./index-filters.js?v=11066a33b62d8bab"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/supabase.js?v=828b6b4eb6050614"></script>
   <script src="/auth-session-bridge.js?v=f9f6f9665b885b41"></script>
   <script src="/dashboard-profile.js?v=d789fd7bf91d31c5"></script>
 
   <script src="./post-ad-category-fields.js?v=725edf8c7526490c"></script>
-  <script src="./index-filters.js?v=5b583279656e1d45"></script>
   <script src="/brand-theme.js?v=e1c080729b3f23a5"></script>
 <script src="/post-ad-runtime.js?v=2a5a5c562d1f42ef"></script>
-<script src="/auth-unified.js?v=53c1ce777c14b219"></script>
+<script src="/auth-unified.js?v=a58a667864183ff3"></script>
 </body></html>

@@ -17,6 +17,7 @@ const htmlFiles = [
 
 const assetUrls = [
   '/sms-verification-service.js',
+  '/post-auth-gate.js',
   '/js/index-BsKly-Vj.js',
   '/post-ad-runtime.css',
   '/post-ad-form-fixes.css',

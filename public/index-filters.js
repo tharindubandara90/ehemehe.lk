@@ -153,7 +153,61 @@
   let syncing = false;
   let desktopShellMutating = false;
   let desktopDataPromise = null;
+  let deferredHomeDataPromise = null;
+  let publicHomePayloadPromise = null;
   let lastPath = window.location.pathname;
+
+  function waitForDeferredSupabase(timeoutMs = 5000) {
+    if (window.supabaseClient?.from) return Promise.resolve(window.supabaseClient);
+    if (typeof window.waitForSupabaseClient === 'function') {
+      return window.waitForSupabaseClient(timeoutMs).catch(() => null);
+    }
+    if (typeof window.addEventListener !== 'function') return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      let settled = false;
+      let pollTimer = null;
+      const finish = (client) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        clearTimeout(pollTimer);
+        window.removeEventListener('ehemehe:supabase-ready', onReady);
+        resolve(client?.from ? client : null);
+      };
+      const onReady = (event) => finish(event.detail || window.supabaseClient);
+      const poll = () => {
+        if (settled) return;
+        if (window.supabaseClient?.from) return finish(window.supabaseClient);
+        if (typeof window.waitForSupabaseClient === 'function') {
+          window.waitForSupabaseClient(Math.max(500, timeoutMs / 2)).then(finish).catch(() => {});
+        }
+        pollTimer = setTimeout(poll, 50);
+      };
+      const timer = setTimeout(() => finish(null), timeoutMs);
+      window.addEventListener('ehemehe:supabase-ready', onReady, { once: true });
+      poll();
+    });
+  }
+
+  function publicHomePayload() {
+    if (publicHomePayloadPromise) return publicHomePayloadPromise;
+    const bootstrap = window.__EHM_PUBLIC_HOME_PROMISE;
+    publicHomePayloadPromise = Promise.resolve(bootstrap || fetch('/api/public-home?limit=80', {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin'
+    }).then((response) => {
+      if (!response.ok) throw new Error(`Public home request failed (HTTP ${response.status})`);
+      return response.json();
+    })).then((payload) => {
+      if (!payload || payload.ok === false) throw new Error(payload?.message || 'Could not load marketplace data.');
+      return payload;
+    }).catch((error) => {
+      publicHomePayloadPromise = null;
+      throw error;
+    });
+    return publicHomePayloadPromise;
+  }
   const HOME_LIVE_SNAPSHOT_KEY = 'ehemehe:desktopHomeLiveSnapshot:v1';
   const HOME_LIVE_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000;
   let homeSnapshotHydrated = false;
@@ -560,41 +614,48 @@
   async function loadAds() {
     if (adsLoaded) return supabaseAds;
     if (adsLoadPromise) return adsLoadPromise;
-    if (!window.supabaseClient) return supabaseAds;
 
     adsLoadPromise = (async () => {
       try {
-        let result = await window.supabaseClient
-          .from('ads')
-          .select('*, categories(name,slug), cities(id,name,district_id)')
-          .eq('status', 'approved')
-          .order('created_at', { ascending: false });
-
-        // Some existing projects do not yet have relationship metadata in the
-        // PostgREST schema cache. The ads themselves are still public, so fall
-        // back to a plain table query instead of hiding every live listing.
-        if (result.error) {
-          result = await window.supabaseClient
-            .from('ads')
-            .select('*')
-            .eq('status', 'approved')
-            .order('created_at', { ascending: false });
-        }
-
-        if (result.error) throw result.error;
-        supabaseAds = (result.data || []).map((ad) => normalizeAd(ad, 'supabase'));
+        const payload = await publicHomePayload();
+        const apiAds = Array.isArray(payload?.ads) ? payload.ads : [];
+        supabaseAds = apiAds.map((ad) => normalizeAd(ad, 'supabase'));
         supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
         adsLoaded = true;
         persistHomeSnapshotCache();
-      } catch (e) {
-        if (!homeSnapshotHydrated) supabaseAds = [];
-        // Mark this pass complete to avoid a network-error retry loop from the
-        // route observer. A normal page reload can attempt the query again.
-        adsLoaded = true;
+        return supabaseAds;
+      } catch (apiError) {
+        try {
+          const client = window.supabaseClient || await waitForDeferredSupabase();
+          if (!client) throw apiError;
+
+          let result = await client
+            .from('ads')
+            .select('*, categories(name,slug), cities(id,name,district_id)')
+            .eq('status', 'approved')
+            .order('created_at', { ascending: false });
+
+          if (result.error) {
+            result = await client
+              .from('ads')
+              .select('*')
+              .eq('status', 'approved')
+              .order('created_at', { ascending: false });
+          }
+
+          if (result.error) throw result.error;
+          supabaseAds = (result.data || []).map((ad) => normalizeAd(ad, 'supabase'));
+          supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
+          adsLoaded = true;
+          persistHomeSnapshotCache();
+        } catch (_) {
+          if (!homeSnapshotHydrated) supabaseAds = [];
+          adsLoaded = true;
+        }
+        return supabaseAds;
       } finally {
         adsLoadPromise = null;
       }
-      return supabaseAds;
     })();
 
     return adsLoadPromise;
@@ -607,23 +668,30 @@
     const localBanners = readLocalArray(BANNER_ADS_KEY);
     let remotePromos = [];
     let remoteBanners = [];
+
     try {
-      if (window.supabaseClient) {
-        const [pRes, bRes] = await Promise.all([
-          window.supabaseClient.from('ad_promotions').select('*').order('created_at', { ascending:false }),
-          window.supabaseClient.from('banner_ads').select('*').order('created_at', { ascending:false })
-        ]);
-        if (Array.isArray(pRes.data)) remotePromos = pRes.data;
-        if (Array.isArray(bRes.data)) remoteBanners = bRes.data;
-      }
-    } catch (e) {}
+      const payload = await publicHomePayload();
+      if (Array.isArray(payload?.promotions)) remotePromos = payload.promotions;
+      if (Array.isArray(payload?.banners)) remoteBanners = payload.banners;
+    } catch (_) {
+      try {
+        const client = window.supabaseClient || await waitForDeferredSupabase();
+        if (client) {
+          const [pRes, bRes] = await Promise.all([
+            client.from('ad_promotions').select('*').order('created_at', { ascending:false }),
+            client.from('banner_ads').select('*').order('created_at', { ascending:false })
+          ]);
+          if (Array.isArray(pRes.data)) remotePromos = pRes.data;
+          if (Array.isArray(bRes.data)) remoteBanners = bRes.data;
+        }
+      } catch (_) {}
+    }
+
     const cachedPromos = Array.isArray(adPromotions) ? adPromotions.slice() : [];
     const promoMap = new Map();
-    [...cachedPromos, ...remotePromos, ...localPromos].forEach((p) => promoMap.set(String(p.id || `${p.ad_id}|${p.end_at}`), p));
+    [...cachedPromos, ...remotePromos, ...localPromos].forEach((row) => promoMap.set(String(row.id || `${row.ad_id}|${row.end_at}`), row));
     const bannerMap = new Map();
-    [...remoteBanners, ...localBanners].forEach((b) => bannerMap.set(String(b.id || `${b.image_url}|${b.end_at}`), b));
-    // Keep expired promotion rows as well. Their presence prevents stale
-    // is_featured/is_promoted flags on the ads table from becoming permanent.
+    [...remoteBanners, ...localBanners].forEach((row) => bannerMap.set(String(row.id || `${row.image_url}|${row.end_at}`), row));
     adPromotions = Array.from(promoMap.values());
     bannerAds = Array.from(bannerMap.values()).filter(isActivePromo);
     persistHomeSnapshotCache();
@@ -2099,22 +2167,43 @@
     }
   }
 
+  function refreshDeferredHomeData() {
+    if (deferredHomeDataPromise) return deferredHomeDataPromise;
+    deferredHomeDataPromise = (async () => {
+      const client = window.supabaseClient || await waitForDeferredSupabase();
+      if (!client) return false;
+      lookupsLoaded = false;
+      financeSettingsLoaded = false;
+      await Promise.allSettled([loadLookups(), loadFinanceSettings()]);
+      persistHomeSnapshotCache();
+      const appRoot = document.querySelector?.('#root');
+      if (isHomeRoute() && appRoot && typeof appRoot.appendChild === 'function') {
+        attachSearchHandlers();
+        updatePills();
+        if (isMobile()) renderResults();
+        else renderDesktopResults(false, false);
+      }
+      return true;
+    })();
+    return deferredHomeDataPromise;
+  }
+
   function primeDesktopHomeData() {
     if (isMobile() || !isHomeRoute()) return Promise.resolve([]);
     if (!desktopDataPromise) {
       desktopDataPromise = Promise.allSettled([
-        loadLookups(),
-        loadFinanceSettings(),
         loadAds(),
         loadPromotions()
       ]).then((results) => {
         desktopLiveDataSettled = true;
         persistHomeSnapshotCache();
+        refreshDeferredHomeData();
         return results;
       });
     }
     return desktopDataPromise;
   }
+
 
   async function ensureDesktopHome() {
     if (isMobile() || !isHomeRoute()) return;
@@ -2150,10 +2239,9 @@
     renderResults();
     hideOriginalHomeContent();
 
-    // Load live data in the background and refresh the same Latest Ads grid.
-    await Promise.all([
-      loadLookups(),
-      loadFinanceSettings(),
+    // Load the critical live ad + promotion payload first. Lookups and finance
+    // settings refresh afterward without delaying the first usable listing grid.
+    await Promise.allSettled([
       loadAds(),
       loadPromotions()
     ]);
@@ -2162,6 +2250,7 @@
     updatePills();
     renderResults();
     hideOriginalHomeContent();
+    refreshDeferredHomeData();
 
     // Keep the managed mobile UI pinned right under the header.
     createFilterBar();

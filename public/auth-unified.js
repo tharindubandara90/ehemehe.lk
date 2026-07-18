@@ -460,7 +460,7 @@
 
       await installServerSession(result.session);
       message('OTP verified. Your account has been created successfully.', true);
-      setTimeout(() => { location.href = safeReturnTarget(); }, 600);
+      location.replace(safeReturnTarget());
     } catch (error) {
       message(error.message || 'OTP verification failed.');
     } finally {
@@ -488,7 +488,7 @@
         throw new Error(result.message || `Login failed (HTTP ${response.status}).`);
       }
       await installServerSession(result.session);
-      location.href = safeReturnTarget();
+      location.replace(safeReturnTarget());
     } catch (error) {
       message(error.message || 'Login failed.');
     } finally {

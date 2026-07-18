@@ -31,7 +31,7 @@ assert.strictEqual(packageJson.scripts.start, 'node local-server.js');
 assert(!packageJson.devDependencies?.vercel && !packageJson.dependencies?.vercel);
 
 const handlerFiles = fs.readdirSync(path.join(root, 'api-handlers')).filter((name) => name.endsWith('.js'));
-assert.strictEqual(handlerFiles.length, 19, 'All 19 API handlers must remain available behind the dispatcher.');
+assert.strictEqual(handlerFiles.length, 20, 'All 20 API handlers must remain available behind the dispatcher.');
 assert(fs.readdirSync(path.join(root, 'api')).filter((name) => name.endsWith('.js')).length === 1, 'Only one file may be deployed from api/.');
 
 function responseRecorder() {

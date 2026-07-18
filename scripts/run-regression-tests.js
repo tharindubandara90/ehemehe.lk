@@ -23,6 +23,7 @@ const tests = [
   ['performance_stability_regression_test.js', []],
   ['desktop_home_first_paint_regression_test.js', []],
   ['desktop_live_first_paint_regression_test.js', []],
+  ['post_auth_return_and_fast_home_regression_test.js', []],
   ['desktop_account_hero_balance_regression_test.js', []],
   ['desktop_olx_home_layout_regression_test.js', []],
   ['desktop_fresh_recommendations_priority_regression_test.js', []],

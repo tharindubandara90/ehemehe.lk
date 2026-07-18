@@ -8,7 +8,7 @@ module.exports = async function handler(req, res) {
   try {
     if (cache.expiresAt <= Date.now()) {
       const [promotions, banners] = await Promise.allSettled([
-        rest('/rest/v1/ad_promotions?select=*&promotion_type=eq.top&order=created_at.desc&limit=100', {}, 3500),
+        rest('/rest/v1/ad_promotions?select=*&order=created_at.desc&limit=200', {}, 3500),
         rest('/rest/v1/banner_ads?select=*&order=created_at.desc&limit=100', {}, 3500)
       ]);
       cache = {
