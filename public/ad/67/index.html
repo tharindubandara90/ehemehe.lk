@@ -51,42 +51,24 @@
 })();
 </script>
 
-    <script id="ehm-desktop-home-prepaint-class">
+    <script id="ehm-desktop-home-exact-route">
 (function () {
   var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
-  if (path === '/') {
-    document.documentElement.classList.add('ehm-home-route-prepaint');
-    if (window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
-      document.documentElement.classList.add('ehm-desktop-home-prepaint');
-    }
-  }
+  var desktopHome = path === '/' && !!window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
+  window.__EHM_DESKTOP_HOME_EXACT = desktopHome;
+  if (desktopHome) document.documentElement.classList.add('ehm-desktop-home-exact');
 })();
     </script>
-    <style id="ehm-desktop-home-prepaint-style">
-      @media (min-width: 768px) {
-        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"] {
-          display: none !important;
-        }
-        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDMxOjEw"],
-        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDM3OjEw"],
-        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQzOjEw"],
-        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQ4OjEw"],
-        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDg2OjEw"] {
-          animation: none !important;
-          opacity: 1 !important;
-          transform: none !important;
-        }
-      }
-    </style>
 
     <meta name="description" content="ehemehe.lk - Sri Lanka's #1 Modern Marketplace. Buy, sell, and discover amazing deals.">
     <meta name="theme-color" content="#3DC697">
     <title>ehemehe.lk - Sri Lanka's Marketplace</title>
-    <link id="ehm-site-enhancements" rel="stylesheet" href="/css/ehemehe-app.min.css?v=39be73d114bd350a">
+    <link id="ehm-site-enhancements" rel="stylesheet" href="/css/ehemehe-app.min.css?v=a25a31481ee6b6f1">
     <script id="ehm-route-head-assets">
 (function () {
   var path = location.pathname.replace(/\/+$/, '') || '/';
   var authOnly = path === '/login' || path === '/signup';
+  var desktopHome = !!window.__EHM_DESKTOP_HOME_EXACT;
   window.__EHM_AUTH_ONLY_ROUTE = authOnly;
 
   function addPreload(rel, href, asValue) {
@@ -97,8 +79,8 @@
     document.head.appendChild(link);
   }
 
-  if (!authOnly) addPreload('modulepreload', '/js/index-BsKly-Vj.js?v=078944741ea31c09');
-  if (path === '/' || path.indexOf('/ad/') === 0) addPreload('preload', '/index-filters.min.js?v=74d3bfe931be64d8', 'script');
+  if (!authOnly && !desktopHome) addPreload('modulepreload', '/js/index-BsKly-Vj.js?v=078944741ea31c09');
+  if (!desktopHome && (path === '/' || path.indexOf('/ad/') === 0)) addPreload('preload', '/index-filters.min.js?v=3d0acffdaeb3a17e', 'script');
 
   var styles = [];
   if (path === '/post' || path.indexOf('/dashboard') === 0) {
@@ -111,7 +93,7 @@
 })();
     </script>
 <script type="module">
-if (!window.__EHM_AUTH_ONLY_ROUTE) {
+if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_HOME_EXACT) {
   import('/js/index-BsKly-Vj.js?v=078944741ea31c09').catch(function (error) {
     console.error('Could not start EheMehe application.', error);
   });
@@ -119,10 +101,12 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
     </script>
 </head>
   <body>
+    <div id="ehmDesktopHomeExact" aria-label="EheMehe desktop marketplace"></div>
     <div id="root"></div>
     <script id="ehm-route-core-loader">
 (function () {
   var path = location.pathname.replace(/\/+$/, '') || '/';
+  var desktopHome = !!window.__EHM_DESKTOP_HOME_EXACT;
   var authCritical = path === '/login' || path === '/signup' || path === '/post' ||
     path.indexOf('/dashboard') === 0 || path.indexOf('/profile') === 0 || path.indexOf('/messages') === 0;
 
@@ -137,6 +121,8 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
     node.onerror = done || null;
     document.head.appendChild(node);
   }
+
+  if (desktopHome) return;
 
   if (authCritical) {
     writeScript('/supabase.js?v=828b6b4eb6050614');
@@ -153,15 +139,18 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
     <script id="ehm-route-body-assets">
 (function () {
   var path = location.pathname.replace(/\/+$/, '') || '/';
+  var desktopHome = !!window.__EHM_DESKTOP_HOME_EXACT;
   function script(src, loadMode) {
     var attr = loadMode === 'async' ? ' async' : (loadMode === 'defer' ? ' defer' : '');
     document.write('<script src="' + src + '"' + attr + '><\/script>');
   }
 
-  if (path === '/' || path.indexOf('/ad/') === 0) {
-    script('/index-filters.min.js?v=74d3bfe931be64d8', 'defer');
+  if (desktopHome) {
+    script('/desktop-home-exact.min.js?v=42c2701df10434b5', 'defer');
+  } else if (path === '/' || path.indexOf('/ad/') === 0) {
+    script('/index-filters.min.js?v=3d0acffdaeb3a17e', 'defer');
   }
-  script('/brand-theme.js?v=a0232680779565ef', 'async');
+  if (!desktopHome) script('/brand-theme.js?v=a0232680779565ef', 'async');
 
   var needsSms = path === '/login' || path === '/signup' || path === '/post' || path.indexOf('/dashboard') === 0;
   if (needsSms) script('/sms-verification-service.js?v=06eb7d2a20d4c31b');
@@ -182,6 +171,7 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
 (function () {
   var started = false;
   var path = location.pathname.replace(/\/+$/, '') || '/';
+  if (window.__EHM_DESKTOP_HOME_EXACT) return;
   var authCritical = path === '/login' || path === '/signup' || path === '/post' ||
     path.indexOf('/dashboard') === 0 || path.indexOf('/profile') === 0 || path.indexOf('/messages') === 0;
 

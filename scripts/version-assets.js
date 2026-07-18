@@ -27,6 +27,7 @@ const assetUrls = [
   '/css/ehemehe-app.min.css',
   '/css/index-DcB2eYwd.css',
   '/css/site-enhancements.css',
+  '/css/desktop-home-exact.css',
   '/sms-verification-service.js',
   '/js/index-BsKly-Vj.js',
   '/post-ad-runtime.css',
@@ -37,6 +38,8 @@ const assetUrls = [
   '/auth-session-bridge.js',
   '/post-ad-category-fields.js',
   './post-ad-category-fields.js',
+  '/desktop-home-exact.min.js',
+  '/desktop-home-exact.js',
   '/index-filters.min.js',
   './index-filters.min.js',
   '/index-filters.js',
@@ -52,6 +55,7 @@ const assetUrls = [
 const imageReferenceFiles = [
   ...htmlFiles,
   path.join(publicDir, 'brand-theme.js'),
+  path.join(publicDir, 'desktop-home-exact.js'),
   path.join(publicDir, 'admin', 'brand-theme.js'),
   path.join(publicDir, 'brand-theme.css'),
   path.join(publicDir, 'css', 'site-enhancements.css')

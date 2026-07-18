@@ -11,6 +11,8 @@ const filters = read('public/index-filters.js');
 const filtersMin = read('public/index-filters.min.js');
 const mainCss = read('public/css/index-DcB2eYwd.css');
 const enhancements = read('public/css/site-enhancements.css');
+const desktopExactCss = read('public/css/desktop-home-exact.css');
+const desktopExact = read('public/desktop-home-exact.js');
 const appCss = read('public/css/ehemehe-app.min.css');
 const publicHome = read('server-routes/public-home.js');
 const publicMeta = read('server-routes/public-meta.js');
@@ -37,7 +39,7 @@ assert(!/fonts\.googleapis|fonts\.gstatic/i.test(html), 'External font dependenc
 const staticStyles = (html.match(/<link(?=[^>]+rel="stylesheet")(?=[^>]+href="\/css\/)[^>]*>/g) || []);
 assert.strictEqual(staticStyles.length, 1, 'Home shell should have one unconditional render-blocking stylesheet.');
 assert(/\/css\/ehemehe-app\.min\.css\?v=[a-f0-9]{12,64}/i.test(html), 'Combined CSS is not content-versioned.');
-assert(appCss.length < mainCss.length + enhancements.length, 'Combined CSS was not minified.');
+assert(appCss.length < mainCss.length + enhancements.length + desktopExactCss.length, 'Combined CSS was not minified.');
 
 // Public home critical path is one lightweight list request. Heavy lookup and
 // promotional metadata must not delay the first listing paint.
@@ -63,7 +65,10 @@ assert(filters.includes('supabaseAds.length ? [...supabaseAds] : allStaticAds()'
 assert(filters.includes("loading=\"${index === 0 ? 'eager' : 'lazy'}\""), 'First list image is not eager.');
 assert(filters.includes("fetchpriority=\"${index === 0 ? 'high' : 'low'}\""), 'First list image is not high priority.');
 assert(filters.includes('width="480" height="360"'), 'List image dimensions are not reserved.');
-assert(filters.includes('listingSkeletonHtml'), 'Stable listing skeleton is missing.');
+assert(filters.includes('listingSkeletonHtml'), 'Stable mobile listing skeleton is missing.');
+assert(desktopExact.includes("loading=\"${index === 0 ? 'eager' : 'lazy'}\""), 'Desktop first list image is not eager.');
+assert(desktopExact.includes("fetchpriority=\"${index === 0 ? 'high' : 'low'}\""), 'Desktop first list image is not high priority.');
+assert(desktopExact.includes('width=\"480\" height=\"360\"'), 'Desktop list image dimensions are not reserved.');
 
 // List images are generated from a dedicated thumbnail and old oversized rows
 // are resized server-side to WebP without reading full image arrays by default.

@@ -2,6 +2,11 @@
 (function () {
   'use strict';
 
+  // The exact compact desktop home has its own first-paint source of truth.
+  // Even if an old cached HTML file accidentally requests this shared helper,
+  // it must not restore or mutate the retired green Hero implementation.
+  if (window.__EHM_DESKTOP_HOME_EXACT) return;
+
   const THEME = '#06b6d4';
   const THEME_DARK = '#0891b2';
   const MOBILE_QUERY = '(max-width: 767px)';

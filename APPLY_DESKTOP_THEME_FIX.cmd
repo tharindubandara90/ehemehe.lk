@@ -2,12 +2,12 @@
 setlocal
 cd /d "%~dp0"
 echo.
-echo EheMehe.lk - removing stale demo desktop and deployment outputs...
+echo EheMehe.lk - removing stale desktop demos and deployment outputs...
 call npm run cleanup:deployment
 if errorlevel 1 goto :error
 
 echo.
-echo Rebuilding the previous compact desktop marketplace layout...
+echo Building the exact compact desktop marketplace requested by the owner...
 call npm run build
 if errorlevel 1 goto :error
 
@@ -17,7 +17,7 @@ call npm test
 if errorlevel 1 goto :error
 
 echo.
-echo SUCCESS: Previous desktop layout with live Latest Ads is ready.
+echo SUCCESS: Exact compact desktop home with live Latest Ads is ready.
 echo Now run the Git commands shown by ChatGPT.
 pause
 exit /b 0
