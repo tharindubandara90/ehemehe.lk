@@ -53,13 +53,34 @@
     <script id="ehm-desktop-home-prepaint-class">
 (function () {
   var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
-  if (path === '/' && window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
-    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
+  if (path !== '/' || !window.matchMedia || !window.matchMedia('(min-width: 768px)').matches) return;
+
+  document.documentElement.classList.remove('ehm-desktop-home-prepaint');
+  document.documentElement.classList.add('ehm-home-live-prepaint');
+
+  function markRecommendations() {
+    var sections = document.querySelectorAll('#root section');
+    for (var i = 0; i < sections.length; i += 1) {
+      var heading = sections[i].querySelector('h2');
+      var text = heading ? String(heading.textContent || '').trim() : '';
+      if (text === 'Latest Ads' || text === 'Fresh recommendations') {
+        sections[i].classList.add('ehm-home-live-prepaint-section');
+      }
+    }
   }
+
+  var observer = new MutationObserver(markRecommendations);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  window.__ehmHomeLivePrepaintObserver = observer;
+  markRecommendations();
 })();
     </script>
     <style id="ehm-desktop-home-prepaint-style">
       @media (min-width: 768px) {
+        html.ehm-home-live-prepaint .ehm-home-live-prepaint-section [class*="grid"] {
+          visibility: hidden !important;
+          min-height: 640px !important;
+        }
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDMxOjEw"],
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDM3OjEw"],
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQzOjEw"],
@@ -119,7 +140,7 @@ if (!window.__EHM_AUTH_ONLY_ROUTE) {
   <script src="/dashboard-profile.js?v=d789fd7bf91d31c5"></script>
 
   <script src="./post-ad-category-fields.js?v=725edf8c7526490c"></script>
-  <script src="./index-filters.js?v=b2e64c8a4905d901"></script>
+  <script src="./index-filters.js?v=5b583279656e1d45"></script>
   <script src="/brand-theme.js?v=e1c080729b3f23a5"></script>
 <script src="/post-ad-runtime.js?v=2a5a5c562d1f42ef"></script>
 <script src="/auth-unified.js?v=53c1ce777c14b219"></script>

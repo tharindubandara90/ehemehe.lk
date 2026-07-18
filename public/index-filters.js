@@ -39,6 +39,7 @@
       months: Math.max(1, Math.round(Number(values.vehicle_finance_months) || VEHICLE_FINANCE_DEFAULTS.months)),
       companyPhone: String(values.vehicle_finance_company_phone || VEHICLE_FINANCE_DEFAULTS.companyPhone)
     };
+    persistHomeSnapshotCache();
     return financeSettings;
   }
 
@@ -153,6 +154,76 @@
   let desktopShellMutating = false;
   let desktopDataPromise = null;
   let lastPath = window.location.pathname;
+  const HOME_LIVE_SNAPSHOT_KEY = 'ehemehe:desktopHomeLiveSnapshot:v1';
+  const HOME_LIVE_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000;
+  let homeSnapshotHydrated = false;
+  let desktopLiveDataSettled = false;
+
+  function homeCacheAd(ad) {
+    const image = ad?.image || (Array.isArray(ad?.images) ? ad.images[0] : '');
+    return {
+      id: ad?.id,
+      title: ad?.title,
+      description: ad?.description,
+      price: ad?.price,
+      currency: ad?.currency,
+      categoryId: ad?.categoryId,
+      subcategoryId: ad?.subcategoryId,
+      categoryName: ad?.categoryName,
+      location: ad?.location,
+      cityId: ad?.cityId,
+      cityName: ad?.cityName,
+      districtId: ad?.districtId,
+      image,
+      images: image ? [image] : [],
+      condition: ad?.condition,
+      postedAt: ad?.postedAt,
+      promotionType: ad?.promotionType,
+      isFeatured: !!ad?.isFeatured,
+      isPromoted: !!ad?.isPromoted,
+      viewCount: ad?.viewCount,
+      seller: ad?.seller || {},
+      contactPhone: ad?.contactPhone || '',
+      contactPhones: Array.isArray(ad?.contactPhones) ? ad.contactPhones : [],
+      customFields: ad?.customFields || {}
+    };
+  }
+
+  function persistHomeSnapshotCache() {
+    try {
+      const snapshot = {
+        savedAt: Date.now(),
+        ads: supabaseAds.slice(0, 80).map(homeCacheAd),
+        promotions: Array.isArray(adPromotions) ? adPromotions.slice(0, 160) : [],
+        financeSettings: { ...financeSettings }
+      };
+      localStorage.setItem(HOME_LIVE_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    } catch (_) {}
+  }
+
+  function hydrateHomeSnapshotCache() {
+    try {
+      const raw = localStorage.getItem(HOME_LIVE_SNAPSHOT_KEY);
+      if (!raw) return false;
+      const snapshot = JSON.parse(raw);
+      const age = Date.now() - Number(snapshot?.savedAt || 0);
+      if (!Number.isFinite(age) || age < 0 || age > HOME_LIVE_SNAPSHOT_TTL_MS) return false;
+      if (!Array.isArray(snapshot?.ads) || !Array.isArray(snapshot?.promotions)) return false;
+
+      supabaseAds = snapshot.ads.map((ad) => normalizeAd(ad, 'supabase'));
+      supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
+      adPromotions = snapshot.promotions.slice();
+      if (snapshot.financeSettings && typeof snapshot.financeSettings === 'object') {
+        financeSettings = { ...financeSettings, ...snapshot.financeSettings };
+      }
+      homeSnapshotHydrated = snapshot.ads.length > 0;
+      return homeSnapshotHydrated;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  hydrateHomeSnapshotCache();
 
   function slugify(value) {
     return String(value || '')
@@ -514,8 +585,9 @@
         supabaseAds = (result.data || []).map((ad) => normalizeAd(ad, 'supabase'));
         supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
         adsLoaded = true;
+        persistHomeSnapshotCache();
       } catch (e) {
-        supabaseAds = [];
+        if (!homeSnapshotHydrated) supabaseAds = [];
         // Mark this pass complete to avoid a network-error retry loop from the
         // route observer. A normal page reload can attempt the query again.
         adsLoaded = true;
@@ -545,14 +617,16 @@
         if (Array.isArray(bRes.data)) remoteBanners = bRes.data;
       }
     } catch (e) {}
+    const cachedPromos = Array.isArray(adPromotions) ? adPromotions.slice() : [];
     const promoMap = new Map();
-    [...remotePromos, ...localPromos].forEach((p) => promoMap.set(String(p.id || `${p.ad_id}|${p.end_at}`), p));
+    [...cachedPromos, ...remotePromos, ...localPromos].forEach((p) => promoMap.set(String(p.id || `${p.ad_id}|${p.end_at}`), p));
     const bannerMap = new Map();
     [...remoteBanners, ...localBanners].forEach((b) => bannerMap.set(String(b.id || `${b.image_url}|${b.end_at}`), b));
     // Keep expired promotion rows as well. Their presence prevents stale
     // is_featured/is_promoted flags on the ads table from becoming permanent.
     adPromotions = Array.from(promoMap.values());
     bannerAds = Array.from(bannerMap.values()).filter(isActivePromo);
+    persistHomeSnapshotCache();
     return { adPromotions, bannerAds };
   }
 
@@ -1025,6 +1099,14 @@
           justify-content:center!important;
           gap:7px!important;
         }
+      }
+      @media(min-width:768px){
+        .ehm-home-skeleton-card{min-height:318px;border:1px solid #e5edf3;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 6px 18px rgba(15,23,42,.045);}
+        .ehm-home-skeleton-image{display:block;height:178px;background:linear-gradient(100deg,#eef2f5 18%,#f8fafc 36%,#eef2f5 54%);background-size:220% 100%;animation:ehmHomeSkeleton 1.25s ease-in-out infinite;}
+        .ehm-home-skeleton-body{display:block;padding:16px;}
+        .ehm-home-skeleton-line{display:block;height:14px;border-radius:999px;background:#edf2f5;margin-bottom:12px;}
+        .ehm-home-skeleton-line.title{width:78%;}.ehm-home-skeleton-line.price{width:48%;height:20px;margin-top:22px}.ehm-home-skeleton-line.meta{width:62%;height:11px;margin-top:14px}
+        @keyframes ehmHomeSkeleton{0%{background-position:100% 0}100%{background-position:-100% 0}}
       }
       .ehm-desktop-results-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:18px;}
       .ehm-desktop-results h2{margin:0;font-size:30px;line-height:1.1;font-weight:900;color:#0f172a;letter-spacing:-.03em;}
@@ -1886,6 +1968,34 @@
     return browse;
   }
 
+  function releaseDesktopHomePrepaint() {
+    document.documentElement.classList.remove('ehm-home-live-prepaint');
+    window.__ehmHomeLivePrepaintObserver?.disconnect?.();
+    window.__ehmHomeLivePrepaintObserver = null;
+  }
+
+  function desktopRecommendationSkeletonHtml() {
+    return Array.from({ length: 8 }, () => `
+      <div class="ehm-home-skeleton-card" aria-hidden="true">
+        <span class="ehm-home-skeleton-image"></span>
+        <span class="ehm-home-skeleton-body">
+          <span class="ehm-home-skeleton-line title"></span>
+          <span class="ehm-home-skeleton-line price"></span>
+          <span class="ehm-home-skeleton-line meta"></span>
+        </span>
+      </div>
+    `).join('');
+  }
+
+  function renderDesktopRecommendationsPending(recommendations, grid) {
+    recommendations.classList.add('ehm-home-live-pending');
+    if (grid.__ehmLiveState !== 'pending') {
+      grid.__ehmLiveState = 'pending';
+      grid.innerHTML = desktopRecommendationSkeletonHtml();
+    }
+    releaseDesktopHomePrepaint();
+  }
+
   function renderDesktopHomeRecommendations() {
     if (isMobile() || !isHomeRoute() || hasActiveFilters()) return;
     const browse = arrangeDesktopHomeSections();
@@ -1909,12 +2019,21 @@
     }
     if (!grid) return;
 
+    if (!desktopLiveDataSettled && !homeSnapshotHydrated) {
+      renderDesktopRecommendationsPending(recommendations, grid);
+      if (browse && recommendations.previousElementSibling !== browse) browse.insertAdjacentElement('afterend', recommendations);
+      return;
+    }
+
+    recommendations.classList.remove('ehm-home-live-pending');
+    grid.__ehmLiveState = 'ready';
     const rows = sortAdsForPlacement(allAds());
     const html = rows.map(renderAdCard).join('');
     if (grid.__ehmPromotionHtml !== html) {
       grid.__ehmPromotionHtml = html;
       grid.innerHTML = html;
     }
+    releaseDesktopHomePrepaint();
     if (browse && recommendations.previousElementSibling !== browse) browse.insertAdjacentElement('afterend', recommendations);
   }
 
@@ -1980,24 +2099,33 @@
     }
   }
 
-  async function ensureDesktopHome() {
-    if (isMobile() || !isHomeRoute()) return;
-
-    // Render the final desktop shell immediately from bundled fallback data.
-    // Network lookups must never control the first paint or swap the hero UI
-    // several seconds after the page has already become visible.
-    stabilizeDesktopHomeShell();
-    renderDesktopResults(false, false);
-
+  function primeDesktopHomeData() {
+    if (isMobile() || !isHomeRoute()) return Promise.resolve([]);
     if (!desktopDataPromise) {
       desktopDataPromise = Promise.allSettled([
         loadLookups(),
         loadFinanceSettings(),
         loadAds(),
         loadPromotions()
-      ]).finally(() => { desktopDataPromise = null; });
+      ]).then((results) => {
+        desktopLiveDataSettled = true;
+        persistHomeSnapshotCache();
+        return results;
+      });
     }
-    await desktopDataPromise;
+    return desktopDataPromise;
+  }
+
+  async function ensureDesktopHome() {
+    if (isMobile() || !isHomeRoute()) return;
+
+    // Use the last successful live snapshot immediately. On a first visit,
+    // keep the exact final grid dimensions with neutral skeleton cards instead
+    // of painting bundled demo ads and replacing them a moment later.
+    stabilizeDesktopHomeShell();
+    renderDesktopResults(false, false);
+
+    await primeDesktopHomeData();
 
     if (isMobile() || !isHomeRoute()) return;
     stabilizeDesktopHomeShell();
@@ -2868,6 +2996,7 @@
   installStyles();
   installDesktopHomePrepaintWatcher();
   beginDynamicDetailPending();
+  primeDesktopHomeData();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

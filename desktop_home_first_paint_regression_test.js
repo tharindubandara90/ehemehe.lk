@@ -30,8 +30,9 @@ assert(filters.includes('Promise.allSettled(['), 'Desktop data requests are not 
 assert(!filters.includes('setTimeout(ensureDesktopHome, 500)'), 'Old delayed desktop rewrite is still present.');
 assert(!filters.includes('setTimeout(ensureDesktopHome, 1400)'), 'Old second delayed desktop rewrite is still present.');
 
-const immediateShell = filters.indexOf('// Render the final desktop shell immediately');
-const dataLoad = filters.indexOf('desktopDataPromise = Promise.allSettled', immediateShell);
-assert(immediateShell >= 0 && dataLoad > immediateShell, 'Desktop shell must be stabilized before Supabase requests begin.');
+assert(filters.includes('function primeDesktopHomeData()'), 'Desktop live-data priming helper is missing.');
+assert(filters.includes('primeDesktopHomeData();\n\n  if (document.readyState'), 'Desktop live data must start before DOMContentLoaded.');
+assert(filters.includes('renderDesktopRecommendationsPending'), 'The initial desktop grid must use a stable loading state instead of bundled demo cards.');
+assert(filters.includes('await primeDesktopHomeData();'), 'The managed desktop grid must wait for the primed live-data promise before its final refresh.');
 
 console.log('DESKTOP_HOME_FIRST_PAINT_REGRESSION_TEST_PASSED');

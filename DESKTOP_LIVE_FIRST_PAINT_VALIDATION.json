@@ -1,0 +1,14 @@
+{
+  "scope": "desktop home recommendation first paint only",
+  "source_zip": "ehemehe-admin-promote-duration-popup-full.zip",
+  "changes": [
+    "pre-paint mask for bundled recommendation grid",
+    "early live data priming",
+    "stable final-size skeleton on cold load",
+    "six-hour stale-while-revalidate home snapshot cache",
+    "retain last successful cache on network failure"
+  ],
+  "regression_tests": 29,
+  "passes": 3,
+  "production_tested": false
+}
