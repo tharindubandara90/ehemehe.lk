@@ -7,7 +7,7 @@ const { EventEmitter } = require('events');
 const root = __dirname;
 const publicUi = fs.readFileSync(path.join(root, 'public/index-filters.js'), 'utf8');
 const mobileCss = fs.readFileSync(path.join(root, 'public/brand-theme.css'), 'utf8');
-const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
+const server = fs.readFileSync(path.join(root, 'local-server.js'), 'utf8');
 const reportSql = fs.readFileSync(path.join(root, 'supabase_public_interactions_schema.sql'), 'utf8');
 
 function extractFunction(source, name) {
@@ -93,8 +93,9 @@ assert.strictEqual(searchContext.adMatchesSearchQuery(catAd, 'toyota'), false, '
 assert(publicUi.includes('Hero → Browse Categories → Latest Ads.'), 'Desktop section order guard missing');
 assert(publicUi.includes("heading === 'Featured Ads' || heading === 'Latest Ads'"), 'Bundled duplicate sections are not hidden');
 assert(publicUi.includes("anchor.insertAdjacentElement('afterend', host)"), 'Latest Ads host is not placed after Browse Categories');
-assert(publicUi.includes('ehm-desktop-native-location-hidden'), 'Dead native hero location wrapper is not removed');
-assert(publicUi.includes("sel.id?.startsWith('ehm') || sel.closest('#ehmDesktopHeroFilterbar')"), 'Replacement hero controls can be hidden by a later pass');
+assert(publicUi.includes("locationField.classList.remove('ehm-desktop-native-location-hidden', 'ehm-desktop-top-location-hidden')"), 'Native hero location wrapper is not restored for the stable search grid');
+assert(publicUi.includes("document.getElementById('ehmDesktopHeroFilterbar')?.remove()"), 'Legacy delayed hero overlay is not removed');
+assert(publicUi.includes("searchBar.insertBefore(categoryField, locationField)"), 'Stable category field is not placed before native location field');
 assert(publicUi.includes("location.dataset.ehmBound !== '1'"), 'Desktop location selector is not stably bound');
 assert(publicUi.includes('background-position:right 15px center'), 'Desktop selector arrow alignment missing');
 
@@ -104,7 +105,7 @@ assert(publicUi.includes("showUiToast(wasActive ? 'Removed from favourites' : 'A
 
 assert(publicUi.includes('data-ehm-report-ad'), 'Report control missing');
 assert(publicUi.includes("fetch('/api/report-ad'"), 'Report submit API call missing');
-assert(server.includes("'/api/report-ad': reportAd"), 'Report API server route missing');
+assert(fs.readFileSync('lib/api-dispatcher.js', 'utf8').includes("'/api/report-ad': () => require('../api-handlers/report-ad')"), 'Report API dispatcher route missing');
 assert(/c3JjL3BhZ2VzL0FkRGV0YWlsUGFnZS50c3hAMTExOjEy[\s\S]{0,160}display:\s*block\s*!important/.test(mobileCss), 'Mobile Report this ad block is hidden');
 assert(/create table if not exists public\.ad_reports/i.test(reportSql), 'Report storage migration missing');
 
@@ -135,7 +136,7 @@ function mockResponse() {
 }
 
 (async () => {
-  const handler = require('./api/report-ad');
+  const handler = require('./api-handlers/report-ad');
 
   let req = mockRequest('GET', undefined, 'test-get');
   let res = mockResponse();

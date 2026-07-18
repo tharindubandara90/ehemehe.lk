@@ -1,7 +1,7 @@
 const {Readable}=require('stream');
 process.env.OTP_SECRET='multi_phone_test_secret_long_enough';
-const utils=require('./api/_otp-utils');
-const handler=require('./api/validate-ad-phones');
+const utils=require('./lib/otp-utils');
+const handler=require('./api-handlers/validate-ad-phones');
 
 function req(body){const r=new Readable({read(){}});r.method='POST';process.nextTick(()=>{r.push(JSON.stringify(body));r.push(null)});return r;}
 function res(){return {statusCode:200,headers:{},setHeader(k,v){this.headers[k]=v},end(body){this.body=body;this.done?.()}}}

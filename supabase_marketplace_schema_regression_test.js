@@ -8,8 +8,8 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
 process.env.SUPABASE_ANON_KEY = 'test-anon-key';
 process.env.OTP_SECRET = 'test-otp-secret-for-marketplace-schema';
 
-const { makeToken } = require('./api/_otp-utils');
-const publishAd = require('./api/publish-ad');
+const { makeToken } = require('./lib/otp-utils');
+const publishAd = require('./api-handlers/publish-ad');
 
 const root = __dirname;
 const sql = fs.readFileSync(path.join(root, 'supabase_marketplace_core_schema.sql'), 'utf8');

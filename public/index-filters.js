@@ -2,10 +2,6 @@
 (function () {
   'use strict';
 
-  // Desktop home is owned by desktop-home-exact.js. Never let this shared
-  // React/mobile enhancer rewrite it after hydration or delayed data loads.
-  if (window.__EHM_DESKTOP_HOME_EXACT) return;
-
   const THEME = '#06b6d4';
   const THEME_DARK = '#0891b2';
   const MOBILE_QUERY = '(max-width: 767px)';
@@ -961,11 +957,12 @@
       .ehm-desktop-category-select,.ehm-desktop-district-select,.ehm-desktop-city-select{height:46px;border:1.5px solid #dbe6ef;border-radius:14px;background-color:#fff;color:#334155;padding:0 44px 0 16px;font-size:15px;font-weight:600;outline:none;min-width:155px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 20 20'%3E%3Cpath d='M5 7.5l5 5 5-5' fill='none' stroke='%2364758b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 15px center;background-size:18px;}
       .ehm-desktop-category-select:focus,.ehm-desktop-district-select:focus,.ehm-desktop-city-select:focus{border-color:#06b6d4;box-shadow:0 0 0 3px rgba(6,182,212,.12);}
       .ehm-desktop-top-category{display:none!important;}
-      .ehm-desktop-top-location-hidden,.ehm-desktop-native-location-hidden{display:none!important;}
-      .ehm-desktop-hero-filterbar{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center;justify-content:center;margin:14px auto 0;width:min(100%,680px);max-width:680px;padding:0 6px;}
+      .ehm-desktop-top-location-hidden,.ehm-desktop-native-location-hidden,.ehm-desktop-native-category-hidden{display:none!important;}
+      .ehm-desktop-hero-filterbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:center;justify-content:center;margin:14px auto 0;width:min(100%,560px);max-width:560px;padding:0 4px;}
       .ehm-desktop-hero-filterbar select{width:100%;min-width:0;height:48px;border-radius:14px;font-size:15.5px;}
       .ehm-desktop-results{max-width:1180px;margin:34px auto 58px;padding:0 24px;}
       .ehm-desktop-hero-filterbar + .ehm-desktop-hero-filterbar{display:none!important;}
+      .ehm-olx-category-field .ehm-desktop-category-select,.ehm-olx-location-field .ehm-desktop-district-select{height:50px!important;min-width:0!important;width:100%!important;border:0!important;border-radius:0!important;box-shadow:none!important;background-color:transparent!important;padding:0 34px 0 0!important;font-size:15px!important;font-weight:600!important;color:#52606b!important;}
       @media(min-width:768px){
         #ehmDesktopHeroFilterbar{margin-top:18px!important;}
         #ehmDesktopHeroFilterbar.ehm-stats-balanced{margin-bottom:74px!important;}
@@ -1573,6 +1570,7 @@
 
     Array.from(document.querySelectorAll('select,button')).forEach((node) => {
       if (!isVisibleElement(node)) return;
+      if (node.closest?.('.ehm-olx-search-bar') || node.closest?.('.ehm-olx-category-field') || node.closest?.('.ehm-olx-location-field')) return;
 
       const rect = node.getBoundingClientRect();
       // Only hide small control elements, never page/header containers.
@@ -1611,7 +1609,7 @@
 
       // Hide only small original location controls. Never hide wrapper divs/sections.
       Array.from(wrapper.querySelectorAll('select,button')).forEach((node) => {
-        if (node === input || node.id?.startsWith('ehm')) return;
+        if (node === input || node.id?.startsWith('ehm') || node.closest?.('.ehm-olx-category-field') || node.closest?.('.ehm-olx-location-field')) return;
         const rect = node.getBoundingClientRect();
         if (rect.width > 280 || rect.height > 70) return;
         const txt = (node.textContent || node.value || '').replace(/\s+/g, ' ').trim();
@@ -1728,47 +1726,54 @@
     const heroInput = findDesktopInputs().find((input) => /search for anything/i.test(input.placeholder || ''));
     if (!heroInput) return;
 
-    const section = heroInput.closest('section') || heroInput.closest('div');
-    if (!section) return;
+    // Remove the older delayed overlay. It was injected after React/data hydration
+    // and caused the search filters to jump upward about a second after first paint.
+    document.getElementById('ehmDesktopHeroFilterbar')?.remove();
 
-    // Hide existing native/simple location select near hero search. Never
-    // re-hide the EheMehe replacement controls on later stabilization passes.
-    Array.from(section.querySelectorAll('select')).forEach((sel) => {
-      if (sel.id?.startsWith('ehm') || sel.closest('#ehmDesktopHeroFilterbar')) return;
-      const txt = Array.from(sel.options || []).map((o) => o.textContent).join(' ');
-      if (/All Locations|Colombo|Kandy|Galle|Gampaha|Matara/i.test(txt)) {
-        sel.classList.add('ehm-desktop-top-location-hidden');
-        // Hide the select's small icon/wrapper too. Hiding only the select left
-        // a dead location-pin control inside the search box.
-        const nativeWrap = sel.closest('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"]') || sel.parentElement;
-        if (nativeWrap && !nativeWrap.contains(heroInput)) nativeWrap.classList.add('ehm-desktop-native-location-hidden');
-      }
-    });
+    const heroForm = heroInput.closest('form');
+    const searchBar = heroInput.closest('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQ5OjEy"]')
+      || heroForm?.firstElementChild
+      || heroInput.parentElement?.parentElement;
+    if (!heroForm || !searchBar) return;
 
-    let bar = document.getElementById('ehmDesktopHeroFilterbar');
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.id = 'ehmDesktopHeroFilterbar';
-      bar.className = 'ehm-desktop-hero-filterbar';
-      const searchWrap = heroInput.closest('form') || heroInput.parentElement;
-      const heroSearchParent = searchWrap?.parentElement || searchWrap || heroInput;
-      heroSearchParent.insertAdjacentElement('afterend', bar);
+    heroForm.classList.add('ehm-olx-search-form');
+    searchBar.classList.add('ehm-olx-search-bar');
+    heroInput.parentElement?.classList.add('ehm-olx-query-field');
+
+    let locationField = searchBar.querySelector('.ehm-olx-location-field')
+      || searchBar.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"]');
+    if (locationField) {
+      locationField.classList.remove('ehm-desktop-native-location-hidden', 'ehm-desktop-top-location-hidden');
+      locationField.classList.add('ehm-olx-location-field');
     }
 
-    if (!bar.querySelector('#ehmDesktopHeroCategory') || !bar.querySelector('#ehmDesktopHeroLocation')) {
-      bar.innerHTML = `
-        <select class="ehm-desktop-category-select" id="ehmDesktopHeroCategory" aria-label="Category"></select>
-        <select class="ehm-desktop-district-select" id="ehmDesktopHeroLocation" aria-label="Location"></select>
-      `;
-    }
+    let location = locationField?.querySelector('select') || null;
+    if (!location) return;
+    location.classList.remove('ehm-desktop-native-location-hidden', 'ehm-desktop-top-location-hidden');
+    location.classList.add('ehm-desktop-district-select');
+    location.id = 'ehmDesktopHeroLocation';
+    location.setAttribute('aria-label', 'Location');
 
-    const cat = bar.querySelector('#ehmDesktopHeroCategory');
-    const location = bar.querySelector('#ehmDesktopHeroLocation');
+    let categoryField = searchBar.querySelector('.ehm-olx-category-field');
+    if (!categoryField) {
+      categoryField = document.createElement('div');
+      categoryField.className = 'ehm-olx-category-field';
+      const categorySelect = document.createElement('select');
+      categorySelect.setAttribute('aria-label', 'Category');
+      categoryField.appendChild(categorySelect);
+      searchBar.insertBefore(categoryField, locationField);
+    }
+    categoryField.classList.remove('ehm-desktop-native-category-hidden');
+
+    const cat = categoryField.querySelector('select');
+    if (!cat) return;
+    cat.classList.remove('ehm-desktop-native-category-hidden');
+    cat.classList.add('ehm-desktop-category-select');
+    cat.id = 'ehmDesktopHeroCategory';
+    cat.setAttribute('aria-label', 'Category');
+
     const catHtml = categoryOptionsHtml('');
     const locationHtml = desktopLocationOptionsHtml('');
-
-    // Keep the native selects stable. Replacing their HTML on every observer
-    // tick interrupted desktop interaction and caused unnecessary layout work.
     if (cat.__ehmOptionsHtml !== catHtml) {
       cat.innerHTML = catHtml;
       cat.__ehmOptionsHtml = catHtml;
@@ -1777,6 +1782,7 @@
       location.innerHTML = locationHtml;
       location.__ehmOptionsHtml = locationHtml;
     }
+
     cat.value = categoryValueFromState();
     location.value = desktopLocationValueFromState();
 
@@ -1799,8 +1805,6 @@
         renderDesktopResults(true);
       });
     }
-
-    balanceDesktopHeroStats();
   }
 
   function desktopHomeSectionByHeading(label) {
@@ -1874,15 +1878,15 @@
     if (isMobile() || !isHomeRoute() || desktopShellMutating) return false;
     desktopShellMutating = true;
     try {
-      document.documentElement.classList.add('ehm-desktop-home-prepaint');
+      document.documentElement.classList.remove('ehm-desktop-home-prepaint');
       document.body?.classList?.remove('ehm-ad-detail-route');
-      enhanceDesktopTopSearch();
       enhanceDesktopHeroControls();
+      enhanceDesktopTopSearch();
       syncDesktopCategorySelects();
       syncDesktopLocationSelects();
       balanceDesktopHeroStats();
       arrangeDesktopHomeSections();
-      return !!document.getElementById('ehmDesktopHeroFilterbar');
+      return !!document.getElementById('ehmDesktopHeroCategory') && !!document.getElementById('ehmDesktopHeroLocation');
     } finally {
       Promise.resolve().then(() => { desktopShellMutating = false; });
     }
@@ -2635,8 +2639,7 @@
   }
 
   function handleRouteChange() {
-    if (!isHomeRoute() || isMobile()) document.documentElement.classList.remove('ehm-desktop-home-prepaint');
-    else document.documentElement.classList.add('ehm-desktop-home-prepaint');
+    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
     refreshRouteObserver();
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
@@ -2742,7 +2745,7 @@
 
   function installDesktopHomePrepaintWatcher() {
     if (window.__ehmDesktopPrepaintObserver || isMobile() || !isHomeRoute()) return;
-    document.documentElement.classList.add('ehm-desktop-home-prepaint');
+    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
 
     const observer = new MutationObserver(() => {
       if (window.__ehmMutating || desktopShellMutating) return;

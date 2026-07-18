@@ -38,7 +38,7 @@ async function invoke(handler, body) {
     throw new Error('No external request should run before OTP validation.');
   };
 
-  const handler = require('./api/reset-phone-password');
+  const handler = require('./api-handlers/reset-phone-password');
   const result = await invoke(handler, {
     phone: '0771234567',
     password: 'newpassword123',

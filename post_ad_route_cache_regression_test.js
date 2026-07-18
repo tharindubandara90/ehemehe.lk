@@ -6,7 +6,7 @@ const index = fs.readFileSync('public/index.html', 'utf8');
 const helper = fs.readFileSync('public/post-ad-category-fields.js', 'utf8');
 const runtime = fs.readFileSync('public/post-ad-runtime.js', 'utf8');
 const bundle = fs.readFileSync('public/js/index-BsKly-Vj.js', 'utf8');
-const server = fs.readFileSync('server.js', 'utf8');
+const server = fs.readFileSync('local-server.js', 'utf8');
 
 assert(helper.includes('function isPostRoute()'));
 assert(!helper.includes("if (!['/post', '/post-ad'].includes(normalizedPath)) return;"));

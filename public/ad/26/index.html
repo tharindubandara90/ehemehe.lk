@@ -50,46 +50,16 @@
 })();
 </script>
 
-    <script id="ehm-desktop-home-exact-route">
-(function () {
-  var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
-  var nav = window.navigator || {};
-  var ua = String(nav.userAgent || '');
-  var uaDataMobile = !!(nav.userAgentData && nav.userAgentData.mobile === true);
-  var mobileUa = /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
-  var touch = ('ontouchstart' in window) || Number(nav.maxTouchPoints || 0) > 0;
-  var physicalShortSide = Math.min(Number(screen.width || 9999), Number(screen.height || 9999));
-  var touchPhoneOrTablet = touch && physicalShortSide <= 820;
-  var physicalMobile = uaDataMobile || mobileUa || touchPhoneOrTablet;
-  var desktopHome = path === '/' && !physicalMobile;
-
-  window.__EHM_DESKTOP_HOME_EXACT = desktopHome;
-  window.__EHM_DESKTOP_HOME_OWNER = desktopHome ? 'exact-compact-stable' : 'react';
-  if (desktopHome) {
-    document.documentElement.classList.add('ehm-desktop-home-exact');
-    document.documentElement.setAttribute('data-ehm-home-owner', 'exact-compact-stable');
-  }
-})();
-    </script>
-    <style id="ehm-desktop-home-owner-style">
-      html.ehm-desktop-home-exact #root{display:none!important}
-      html.ehm-desktop-home-exact #ehmDesktopHomeExact{display:block!important}
-    </style>
-    <link rel="stylesheet" href="/css/desktop-home-exact.css?v=fa355877e75921d4">
-
     <script id="ehm-desktop-home-prepaint-class">
 (function () {
   var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
-  if (!window.__EHM_DESKTOP_HOME_EXACT && path === '/' && window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
-    document.documentElement.classList.add('ehm-desktop-home-prepaint');
+  if (path === '/' && window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
+    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
   }
 })();
     </script>
     <style id="ehm-desktop-home-prepaint-style">
       @media (min-width: 768px) {
-        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"] {
-          display: none !important;
-        }
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDMxOjEw"],
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDM3OjEw"],
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQzOjEw"],
@@ -113,9 +83,9 @@
 })();
 </script>
 <script type="module">
-if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_HOME_EXACT) {
+if (!window.__EHM_AUTH_ONLY_ROUTE) {
   await window.EHM_SMS.whenReady();
-  await import('/js/index-BsKly-Vj.js?v=b0ffa00202a57fd2');
+  await import('/js/index-BsKly-Vj.js?v=1eb417282fdcaa4e');
 }
 </script>
     <link rel="stylesheet" crossorigin="" href="css/index-DcB2eYwd.css">
@@ -130,24 +100,13 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_HOME_EXACT) {
       }
     }
   </style>
-  <link rel="stylesheet" href="/post-ad-runtime.css?v=d5ad1b1df50bf7b2">
+  <link rel="stylesheet" href="/post-ad-runtime.css?v=9eda9deb97b5b012">
   <link rel="stylesheet" href="/post-ad-form-fixes.css?v=1fd3aae4f0032f69">
-  <link rel="stylesheet" href="/brand-theme.css?v=37e63beacb1d7fc5">
+  <link rel="stylesheet" href="/brand-theme.css?v=63cfdfdedc539682">
 <link rel="stylesheet" href="/auth-unified.css?v=6074283e9d8c1391">
 </head>
   <body>
-    <div id="ehmDesktopHomeExact" aria-label="EheMehe desktop marketplace" hidden></div>
     <div id="root"></div>
-    <script id="ehm-desktop-home-owner-lock">
-(function () {
-  if (!window.__EHM_DESKTOP_HOME_EXACT) return;
-  var host = document.getElementById('ehmDesktopHomeExact');
-  var root = document.getElementById('root');
-  if (host) host.hidden = false;
-  if (root) { root.hidden = true; root.setAttribute('aria-hidden', 'true'); }
-})();
-    </script>
-    <script src="/desktop-home-exact.min.js?v=b23c19a9c0d33fc4"></script>
   
 
 
@@ -156,11 +115,12 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_DESKTOP_HOME_EXACT) {
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/supabase.js?v=828b6b4eb6050614"></script>
-  <script src="/auth-session-bridge.js?v=3fbc48c04dd76ce2"></script>
+  <script src="/auth-session-bridge.js?v=f9f6f9665b885b41"></script>
+  <script src="/dashboard-profile.js?v=d789fd7bf91d31c5"></script>
 
   <script src="./post-ad-category-fields.js?v=725edf8c7526490c"></script>
-  <script src="./index-filters.js?v=e68cf48d6f24dbf4"></script>
-  <script src="/brand-theme.js?v=ce4c108af72e61f2"></script>
-<script src="/post-ad-runtime.js?v=466ab7a62cf95d79"></script>
-<script src="/auth-unified.js?v=7b32a64cd1e3497d"></script>
+  <script src="./index-filters.js?v=3a0fa330f4e82a06"></script>
+  <script src="/brand-theme.js?v=e1c080729b3f23a5"></script>
+<script src="/post-ad-runtime.js?v=2a5a5c562d1f42ef"></script>
+<script src="/auth-unified.js?v=53c1ce777c14b219"></script>
 </body></html>

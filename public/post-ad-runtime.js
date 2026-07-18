@@ -903,6 +903,20 @@
     } catch (_) {}
   }
 
+  function updateLocalAd(id, patch) {
+    try {
+      const rows = localAds();
+      let changed = false;
+      const next = rows.map((row) => {
+        const matches = [row.id, row.localId].some((value) => String(value || '') === String(id || ''));
+        if (!matches) return row;
+        changed = true;
+        return { ...row, ...patch };
+      });
+      if (changed) localStorage.setItem(LOCAL_ADS_KEY, JSON.stringify(next.slice(0, 100)));
+    } catch (_) {}
+  }
+
   async function session() {
     const client = window.supabaseClient || await window.waitForSupabaseClient?.().catch(() => null);
     if (!client?.auth) return null;
@@ -1109,11 +1123,279 @@
     return `<span class="ehm-dashboard-status ${esc(value)}">${esc(value)}</span>`;
   }
 
+  function dashboardNotice(text, type = 'success') {
+    let node = document.getElementById('ehm-dashboard-notice');
+    if (!node) {
+      node = document.createElement('div');
+      node.id = 'ehm-dashboard-notice';
+      node.className = 'ehm-dashboard-notice';
+      const heading = Array.from(document.querySelectorAll('h1,h2'))
+        .find((item) => labelKey(item.textContent) === 'my ads');
+      const section = heading?.parentElement?.parentElement || heading?.parentElement;
+      section?.prepend(node);
+    }
+    if (!node) return;
+    node.className = `ehm-dashboard-notice ${type}`;
+    node.textContent = text;
+    node.hidden = !text;
+    window.clearTimeout(dashboardNotice.timer);
+    if (text) dashboardNotice.timer = window.setTimeout(() => { if (node.isConnected) node.hidden = true; }, 6500);
+  }
+
+  function dashboardLocationMap() {
+    const source = window.EHM_POST_AD_FORM?.DISTRICT_CITIES;
+    return source && typeof source === 'object' ? source : {};
+  }
+
+  function option(value, selected, label = value) {
+    return `<option value="${esc(value)}" ${String(value) === String(selected) ? 'selected' : ''}>${esc(label)}</option>`;
+  }
+
+  function conditionOptions(current) {
+    const known = [
+      ['', 'Not specified'],
+      ['new', 'New'],
+      ['used', 'Used'],
+      ['reconditioned', 'Reconditioned']
+    ];
+    const normalized = String(current || '').toLowerCase();
+    if (normalized && !known.some(([value]) => value === normalized)) known.push([normalized, current]);
+    return known.map(([value, label]) => option(value, normalized, label)).join('');
+  }
+
+  function districtOptions(current) {
+    const map = dashboardLocationMap();
+    const names = Object.keys(map);
+    if (current && !names.includes(current)) names.unshift(current);
+    return names.map((name) => option(name, current)).join('');
+  }
+
+  function cityOptions(district, current) {
+    const map = dashboardLocationMap();
+    const names = Array.isArray(map[district]) ? [...map[district]] : [];
+    if (current && !names.includes(current)) names.unshift(current);
+    return names.map((name) => option(name, current)).join('');
+  }
+
+  function closeEditModal() {
+    document.getElementById('ehm-edit-ad-modal')?.remove();
+    document.body.classList.remove('ehm-modal-open');
+  }
+
+  function setEditPreview(source) {
+    const preview = document.querySelector('#ehm-edit-ad-modal .ehm-edit-preview');
+    if (!preview) return;
+    preview.innerHTML = source
+      ? `<img src="${esc(source)}" alt="Ad photo preview">`
+      : '<span>No photo</span>';
+  }
+
+  function fileToOptimizedImage(file) {
+    return new Promise((resolve, reject) => {
+      if (!file || !/^image\/(jpeg|jpg|png|webp)$/i.test(file.type || '')) {
+        reject(new Error('Choose a JPG, PNG or WebP image.'));
+        return;
+      }
+      if (file.size > 12 * 1024 * 1024) {
+        reject(new Error('The selected photo is too large. Choose an image under 12 MB.'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Could not read the selected photo.'));
+      reader.onload = () => {
+        const image = new Image();
+        image.onerror = () => reject(new Error('The selected photo could not be opened.'));
+        image.onload = () => {
+          const maxSide = 1600;
+          const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+          const context = canvas.getContext('2d');
+          if (!context) {
+            reject(new Error('Photo processing is unavailable in this browser.'));
+            return;
+          }
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        image.src = String(reader.result || '');
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function openEditModal(adId) {
+    const ad = runtime.dashboardAds.find((row) => String(row.id || row.localId || '') === String(adId || ''));
+    if (!ad?.id) {
+      dashboardNotice('This ad is still syncing. Reload the page and try again.', 'error');
+      return;
+    }
+
+    closeEditModal();
+    const custom = ad.custom_fields || {};
+    const district = ad.district || custom.district || '';
+    const city = ad.city || custom.city || '';
+    const image = ad.image_url || ad.images?.[0] || '';
+    const modal = document.createElement('div');
+    modal.id = 'ehm-edit-ad-modal';
+    modal.className = 'ehm-edit-ad-modal';
+    modal.innerHTML = `
+      <div class="ehm-edit-ad-dialog" role="dialog" aria-modal="true" aria-labelledby="ehm-edit-ad-title">
+        <div class="ehm-edit-ad-head">
+          <div>
+            <h2 id="ehm-edit-ad-title">Edit Ad</h2>
+            <p>After saving, this ad will move to Pending and remain hidden until an admin approves it again.</p>
+          </div>
+          <button type="button" class="ehm-edit-close" data-ehm-edit-close aria-label="Close">×</button>
+        </div>
+        <form id="ehm-edit-ad-form">
+          <input type="hidden" name="id" value="${esc(ad.id)}">
+          <div class="ehm-edit-grid">
+            <label class="ehm-edit-wide">Ad title
+              <input name="title" maxlength="160" required value="${esc(ad.title || '')}">
+            </label>
+            <label>Price (LKR)
+              <input name="price" type="number" min="0" step="1" required value="${esc(ad.price ?? '')}">
+            </label>
+            <label>Condition
+              <select name="condition">${conditionOptions(ad.condition || custom.condition || '')}</select>
+            </label>
+            <label>District
+              <select name="district" required>${districtOptions(district)}</select>
+            </label>
+            <label>City / Town
+              <select name="city" required>${cityOptions(district, city)}</select>
+            </label>
+            <label class="ehm-edit-wide">Description
+              <textarea name="description" rows="6" maxlength="10000" required>${esc(ad.description || '')}</textarea>
+            </label>
+            <div class="ehm-edit-wide ehm-edit-photo-row">
+              <div class="ehm-edit-preview">${image ? `<img src="${esc(image)}" alt="Current ad photo">` : '<span>No photo</span>'}</div>
+              <label>Change main photo <small>Optional. Existing photo stays unless you choose a new one.</small>
+                <input name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+              </label>
+            </div>
+          </div>
+          <div class="ehm-edit-review-warning">Saving always changes the ad status to Pending. It will be published only after admin approval.</div>
+          <div class="ehm-edit-error" aria-live="polite"></div>
+          <div class="ehm-edit-actions">
+            <button type="button" class="ehm-edit-cancel" data-ehm-edit-close>Cancel</button>
+            <button type="submit" class="ehm-edit-save">Save & Send for Review</button>
+          </div>
+        </form>
+      </div>`;
+    document.body.appendChild(modal);
+    document.body.classList.add('ehm-modal-open');
+
+    const districtField = modal.querySelector('[name="district"]');
+    const cityField = modal.querySelector('[name="city"]');
+    districtField?.addEventListener('change', () => {
+      cityField.innerHTML = cityOptions(districtField.value, '');
+    });
+    modal.querySelector('[name="photo"]')?.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        setEditPreview(image);
+        return;
+      }
+      const errorNode = modal.querySelector('.ehm-edit-error');
+      try {
+        errorNode.textContent = 'Preparing photo...';
+        errorNode.className = 'ehm-edit-error pending';
+        const optimized = await fileToOptimizedImage(file);
+        event.target.dataset.optimizedImage = optimized;
+        setEditPreview(optimized);
+        errorNode.textContent = '';
+        errorNode.className = 'ehm-edit-error';
+      } catch (error) {
+        event.target.value = '';
+        delete event.target.dataset.optimizedImage;
+        errorNode.textContent = error.message || 'Could not prepare the photo.';
+        errorNode.className = 'ehm-edit-error error';
+      }
+    });
+    modal.querySelector('[name="title"]')?.focus();
+  }
+
+  async function submitEditForm(form) {
+    const errorNode = form.querySelector('.ehm-edit-error');
+    const saveButton = form.querySelector('.ehm-edit-save');
+    const data = new FormData(form);
+    const authSession = await session();
+    if (!authSession?.access_token) throw new Error('Log in to edit your ad.');
+
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+    errorNode.textContent = '';
+    errorNode.className = 'ehm-edit-error';
+
+    try {
+      const photo = form.querySelector('[name="photo"]');
+      const payload = {
+        id: String(data.get('id') || ''),
+        title: String(data.get('title') || ''),
+        price: String(data.get('price') || ''),
+        condition: String(data.get('condition') || ''),
+        district: String(data.get('district') || ''),
+        city: String(data.get('city') || ''),
+        description: String(data.get('description') || '')
+      };
+      if (photo?.dataset.optimizedImage) payload.image = photo.dataset.optimizedImage;
+
+      const response = await fetch('/api/update-my-ad', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${authSession.access_token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.ok === false) {
+        throw new Error(result.message || `Could not update the ad (HTTP ${response.status}).`);
+      }
+
+      const updated = normalizeDashboardAd(result.ad || { ...payload, status: 'pending' });
+      updateLocalAd(payload.id, {
+        ...updated,
+        title: payload.title,
+        description: payload.description,
+        price: payload.price,
+        condition: payload.condition,
+        district: payload.district,
+        city: payload.city,
+        status: 'pending',
+        image_url: payload.image || updated.image_url,
+        images: payload.image ? [payload.image, ...(updated.images || []).slice(1)] : updated.images,
+        updated_at: result.ad?.updated_at || new Date().toISOString()
+      });
+
+      runtime.dashboardLoadedAt = 0;
+      closeEditModal();
+      await loadDashboardAds(true);
+      await renderDashboard();
+      dashboardNotice(result.message || 'Changes saved. The ad is pending admin approval.', 'success');
+    } catch (error) {
+      errorNode.textContent = error.message || 'Could not update the ad.';
+      errorNode.className = 'ehm-edit-error error';
+      throw error;
+    } finally {
+      if (saveButton.isConnected) {
+        saveButton.disabled = false;
+        saveButton.textContent = 'Save & Send for Review';
+      }
+    }
+  }
+
   function adCard(ad) {
     const image = ad.image_url || ad.images?.[0] || '';
     const locationText = [ad.city || ad.custom_fields?.city, ad.district || ad.custom_fields?.district]
       .filter(Boolean).join(', ');
     const price = Number(String(ad.price || '').replace(/[^\d.]/g, ''));
+    const id = ad.id || ad.localId || '';
+    const canEdit = Boolean(ad.id);
     return `
       <article class="ehm-dashboard-ad-card">
         <div class="ehm-dashboard-ad-image">
@@ -1126,7 +1408,10 @@
           </div>
           <strong>${Number.isFinite(price) ? `LKR ${Math.round(price).toLocaleString('en-LK')}` : 'Price on request'}</strong>
           <p>${esc(locationText || ad.location || '')}</p>
-          <small>Submitted ${new Date(ad.created_at || Date.now()).toLocaleDateString('en-LK')}</small>
+          <div class="ehm-dashboard-ad-footer">
+            <small>Submitted ${new Date(ad.created_at || Date.now()).toLocaleDateString('en-LK')}</small>
+            <button type="button" class="ehm-dashboard-edit" data-ehm-edit-ad="${esc(id)}" ${canEdit ? '' : 'disabled'}>Edit Ad</button>
+          </div>
         </div>
       </article>
     `;
@@ -1312,6 +1597,32 @@
   }, true);
 
   document.addEventListener('click', interceptNavigation, true);
+
+  document.addEventListener('click', (event) => {
+    const editButton = event.target?.closest?.('[data-ehm-edit-ad]');
+    if (editButton) {
+      event.preventDefault();
+      openEditModal(editButton.dataset.ehmEditAd);
+      return;
+    }
+    if (event.target?.closest?.('[data-ehm-edit-close]')) {
+      event.preventDefault();
+      closeEditModal();
+      return;
+    }
+    if (event.target?.id === 'ehm-edit-ad-modal') closeEditModal();
+  });
+
+  document.addEventListener('submit', (event) => {
+    const form = event.target?.closest?.('#ehm-edit-ad-form');
+    if (!form) return;
+    event.preventDefault();
+    submitEditForm(form).catch(() => {});
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && document.getElementById('ehm-edit-ad-modal')) closeEditModal();
+  });
 
   let runtimeTimer = 0;
   function scheduleRuntimeTick(delay = 40) {

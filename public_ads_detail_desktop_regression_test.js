@@ -4,7 +4,7 @@ const vm = require('vm');
 
 const helper = fs.readFileSync('public/index-filters.js', 'utf8');
 const bundle = fs.readFileSync('public/js/index-BsKly-Vj.js', 'utf8');
-const server = fs.readFileSync('server.js', 'utf8');
+const server = fs.readFileSync('local-server.js', 'utf8');
 
 // Root cause guard: the original React detail page still only knows bundled Ht ads.
 assert(bundle.includes('Ht.find(v=>v.id===i)'), 'Expected bundled-only React ad lookup was not found');

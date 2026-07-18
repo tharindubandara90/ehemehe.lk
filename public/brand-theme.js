@@ -1,8 +1,5 @@
 
 (() => {
-  // The compact desktop home has a single owner. This shared theme observer
-  // remains active on every other route, but must not rewrite desktop home.
-  if (window.__EHM_DESKTOP_HOME_EXACT) return;
   const LOGO = '/assets/ehemehe_logo_header.png';
   const FAVICON = '/assets/ehemehe_favicon.png';
   const GREEN = '#3DC697';
@@ -163,6 +160,177 @@
   }
 
 
+
+  function enhanceFooterAndSupportLinks() {
+    const newsletter = document.querySelector('footer [data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEA4OjY"]');
+    if (newsletter) newsletter.remove();
+
+    const emailNode = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEAxMTE6NzQ"]');
+    const phoneNode = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEAxMTI6NzU"]');
+    const addressNode = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEAxMTM6ODY"]');
+    if (emailNode) emailNode.textContent = ' ehemehe.lk@gmail.com';
+    if (phoneNode) phoneNode.textContent = ' +94 76 686 686 7';
+    if (addressNode) addressNode.textContent = ' Kandy Road, Hasalaka';
+
+    const staticRoutes = new Set(['/terms', '/privacy', '/safety', '/contact']);
+    document.querySelectorAll('a[href]').forEach((link) => {
+      let href = link.getAttribute('href') || '';
+      if (href === 'mailto:support@ehemehe.lk') link.setAttribute('href', 'mailto:ehemehe.lk@gmail.com');
+      if (href === 'tel:+94112345678') link.setAttribute('href', 'tel:+94766866867');
+      href = link.getAttribute('href') || '';
+      if (staticRoutes.has(href)) link.dataset.ehmStaticPage = '1';
+    });
+
+    if (!document.documentElement.dataset.ehmStaticNavigationBound) {
+      document.documentElement.dataset.ehmStaticNavigationBound = '1';
+      document.addEventListener('click', (event) => {
+        const link = event.target.closest?.('a[data-ehm-static-page="1"]');
+        if (!link || event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        location.assign(link.getAttribute('href'));
+      }, true);
+    }
+  }
+
+  function enhanceDesktopHomeOlx() {
+    const desktop = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
+    const path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
+    const active = desktop && path === '/';
+    document.body.classList.toggle('ehm-desktop-olx-home', active);
+    if (!active) return;
+
+    // The old prepaint helper hid part of the hero form. The new desktop layout is stable without it.
+    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
+
+    const byYw = (value) => document.querySelector(`[data-yw="${value}"]`);
+    const headerActions = byYw('c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMDQ6MTA');
+    const postLabel = byYw('c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTA6MTQ');
+    const postButton = postLabel?.closest('a');
+    postButton?.classList.add('ehm-desktop-post-button');
+
+    if (headerActions && !headerActions.querySelector('.ehm-desktop-favorites-link')) {
+      const favorite = document.createElement('a');
+      favorite.href = '/dashboard/favorites';
+      favorite.className = 'ehm-desktop-favorites-link';
+      favorite.textContent = 'Favorites';
+      headerActions.insertBefore(favorite, postButton || headerActions.firstChild);
+    }
+
+    const loggedOutWrap = byYw('c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMzk6MTQ');
+    const loginLink = loggedOutWrap?.querySelector('a[href="/login"]');
+    if (loginLink) {
+      loginLink.textContent = 'Account';
+      loginLink.classList.add('ehm-desktop-login-account');
+    }
+
+    const hero = byYw('c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDE3OjQ');
+    hero?.classList.add('ehm-olx-search-section');
+    const heroForm = byYw('c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQ4OjEw');
+    const searchBar = byYw('c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQ5OjEy');
+    const queryField = byYw('c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDUwOjE0');
+    const locationField = byYw('c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0');
+    const searchButton = byYw('c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDc1OjE0');
+    heroForm?.classList.add('ehm-olx-search-form');
+    searchBar?.classList.add('ehm-olx-search-bar');
+    queryField?.classList.add('ehm-olx-query-field');
+    locationField?.classList.add('ehm-olx-location-field');
+    searchButton?.classList.add('ehm-olx-search-button');
+
+    if (searchBar && locationField && !searchBar.querySelector('.ehm-olx-category-field')) {
+      const categoryField = document.createElement('div');
+      categoryField.className = 'ehm-olx-category-field';
+      const categorySelect = document.createElement('select');
+      categorySelect.setAttribute('aria-label', 'Category');
+      categorySelect.innerHTML = '<option value="">All categories</option>';
+
+      const categoryGrid = byYw('c3JjL2NvbXBvbmVudHMvQ2F0ZWdvcnlHcmlkLnRzeEAxMTo0');
+      const categoryLinks = Array.from(categoryGrid?.querySelectorAll(':scope > a') || []);
+      const fallback = [
+        ['vehicles','Vehicles'], ['property','Property'], ['mobile-phones','Mobile Phones'],
+        ['electronics','Electronics'], ['jobs','Jobs'], ['services','Services'],
+        ['home-garden','Home & Garden'], ['fashion','Fashion']
+      ];
+      const options = categoryLinks.length ? categoryLinks.map((link) => {
+        const href = link.getAttribute('href') || '';
+        return [href.split('/').filter(Boolean).pop() || '', (link.textContent || '').trim()];
+      }) : fallback;
+      options.forEach(([value, label]) => {
+        if (!value || !label) return;
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        categorySelect.appendChild(option);
+      });
+      categorySelect.value = heroForm?.dataset.ehmOlxCategory || '';
+      categorySelect.addEventListener('change', () => {
+        if (heroForm) heroForm.dataset.ehmOlxCategory = categorySelect.value;
+      });
+      categoryField.appendChild(categorySelect);
+      searchBar.insertBefore(categoryField, locationField);
+    }
+
+    if (heroForm && !heroForm.dataset.ehmOlxSubmitBound) {
+      heroForm.dataset.ehmOlxSubmitBound = '1';
+      heroForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const query = heroForm.querySelector('input[type="text"]')?.value?.trim() || '';
+        const selects = heroForm.querySelectorAll('select');
+        const category = heroForm.querySelector('.ehm-olx-category-field select')?.value || heroForm.dataset.ehmOlxCategory || '';
+        const district = Array.from(selects).find((select) => !select.closest('.ehm-olx-category-field'))?.value || '';
+        const params = new URLSearchParams();
+        if (query) params.set('q', query);
+        if (category) params.set('category', category);
+        if (district) params.set('district', district);
+        location.assign(`/search${params.toString() ? `?${params}` : ''}`);
+      }, true);
+    }
+
+    const categoriesSection = byYw('c3JjL3BhZ2VzL0hvbWVQYWdlLnRzeEAxOTo2');
+    const categoriesHeading = byYw('c3JjL3BhZ2VzL0hvbWVQYWdlLnRzeEAyMToxMA');
+    const categoryGrid = byYw('c3JjL2NvbXBvbmVudHMvQ2F0ZWdvcnlHcmlkLnRzeEAxMTo0');
+    categoriesSection?.classList.add('ehm-olx-categories-section');
+    categoriesHeading?.classList.add('ehm-olx-categories-heading');
+    categoryGrid?.classList.add('ehm-olx-category-grid');
+
+    byYw('c3JjL3BhZ2VzL0hvbWVQYWdlLnRzeEAzNTo2')?.classList.add('ehm-olx-featured-hidden');
+
+    const latestSection = byYw('c3JjL3BhZ2VzL0hvbWVQYWdlLnRzeEA1OTo2');
+    const latestHeadingRow = byYw('c3JjL3BhZ2VzL0hvbWVQYWdlLnRzeEA2MToxMA');
+    const latestTitle = byYw('c3JjL3BhZ2VzL0hvbWVQYWdlLnRzeEA2MzoxNA');
+    const latestGrid = byYw('c3JjL3BhZ2VzL0hvbWVQYWdlLnRzeEA3MDoxMA');
+    latestSection?.classList.add('ehm-olx-latest-section');
+    latestHeadingRow?.classList.add('ehm-olx-latest-heading');
+    latestGrid?.classList.add('ehm-olx-latest-grid');
+    if (latestTitle && latestTitle.textContent !== 'Fresh recommendations') {
+      latestTitle.textContent = 'Fresh recommendations';
+    }
+
+    byYw('c3JjL3BhZ2VzL0hvbWVQYWdlLnRzeEA3OTo2')?.classList.add('ehm-olx-cta-hidden');
+    byYw('c3JjL2NvbXBvbmVudHMvU3RhdHNTZWN0aW9uLnRzeEAxMzo0')?.classList.add('ehm-olx-stats-hidden');
+  }
+
+  function enhanceDesktopAccountButton() {
+    if (!window.matchMedia || !window.matchMedia('(min-width: 768px)').matches) return;
+
+    const accountWrap = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTQ6MTQ"]');
+    const accountButton = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTU6MTY"]');
+    const accountLabel = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMjI6MTg"]');
+    const postLabel = document.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVhZGVyLnRzeEAxMTA6MTQ"]');
+    const postButton = postLabel?.closest('a');
+
+    if (!accountWrap || !accountButton || !accountLabel) return;
+
+    accountWrap.classList.add('ehm-desktop-account-wrap');
+    accountButton.classList.add('ehm-desktop-account-button');
+    postButton?.classList.add('ehm-desktop-post-button');
+
+    if (accountLabel.textContent !== 'Account') accountLabel.textContent = 'Account';
+    accountLabel.classList.add('ehm-desktop-account-label');
+  }
+
+
   function enhanceDashboardMobile() {
     const path = location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
     if (!path.startsWith('/dashboard')) return;
@@ -204,6 +372,9 @@
   function tick() {
     applyMobileResponsiveMode();
     enhanceDashboardMobile();
+    enhanceDesktopHomeOlx();
+    enhanceDesktopAccountButton();
+    enhanceFooterAndSupportLinks();
     ensureFavicon();
     replaceHeaderLogos();
     replaceInlineCyan();
