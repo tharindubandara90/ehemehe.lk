@@ -14,9 +14,7 @@ assert(bundle.includes('Ad not found'), 'Expected React not-found branch was not
 assert(helper.includes('const href = `/ad/${encodeURIComponent(ad.id)}`'), 'Cards do not link with the database ad id');
 assert(helper.includes(".eq('id', cleanId)"), 'Detail route does not fetch the selected database ad id');
 assert(helper.includes(".eq('status', 'approved')"), 'Public detail query is not restricted to approved ads');
-assert(helper.includes(".select('*')"), 'Plain detail-table fallback query is missing');
-assert(helper.includes("fetch('/api/public-home'"), 'Public home does not use the consolidated API.');
-assert(helper.includes('.select(listColumns)'), 'Plain list fallback query is missing');
+assert(helper.includes(".select('*')"), 'Plain ads-table fallback query is missing');
 
 // Dynamic Supabase detail must replace only the React not-found content, preserving layout/header/footer.
 assert(helper.includes("String(node.textContent || '').trim() === 'Ad not found'"), 'Dynamic detail does not locate the React not-found state');
@@ -209,7 +207,7 @@ function queryClient({ relationshipError = false } = {}) {
   const rows = await listContext.__ehmPublicAdsTest.loadAds();
   assert.strictEqual(rows.length, 1, 'Plain ads fallback did not return the live listing');
   const counts = fallbackClient.counts();
-  assert.strictEqual(counts.relationshipAttempts, 0, 'The optimized list path should not attempt relationship queries');
+  assert.strictEqual(counts.relationshipAttempts, 1, 'Relationship query was not attempted once');
   assert.strictEqual(counts.plainAttempts, 1, 'Plain ads fallback was not attempted once');
 
   // Categories where condition is not relevant must not be forced to New.

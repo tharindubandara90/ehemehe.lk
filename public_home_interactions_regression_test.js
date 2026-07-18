@@ -135,7 +135,7 @@ function mockResponse() {
 }
 
 (async () => {
-  const handler = require('./server-routes/report-ad');
+  const handler = require('./api/report-ad');
 
   let req = mockRequest('GET', undefined, 'test-get');
   let res = mockResponse();

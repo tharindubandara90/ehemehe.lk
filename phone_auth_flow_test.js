@@ -9,7 +9,7 @@ function res(){return {statusCode:200,headers:{},setHeader(k,v){this.headers[k]=
 async function invoke(handler,body){const rq=req(body),rs=res();const done=new Promise(x=>rs.done=x);handler(rq,rs);await done;return {status:rs.statusCode,body:JSON.parse(rs.body)}}
 
 (async()=>{
-  const utils=require('./server-routes/_otp-utils');
+  const utils=require('./api/_otp-utils');
   const phone='94772866867', code='123456', nonce='n';
   const challenge=utils.makeToken({kind:'registration_sms_otp',phone,email:'',nonce,codeHash:utils.otpHash(phone,'register_account',code,nonce),expiresAt:Date.now()+60000});
   let users=[]; let createPayload=null; let tokenPayload=null;
@@ -24,7 +24,7 @@ async function invoke(handler,body){const rq=req(body),rs=res();const done=new P
     }
     throw new Error('Unexpected '+method+' '+url);
   };
-  const verify=require('./server-routes/verify-registration-otp');
+  const verify=require('./api/verify-registration-otp');
   const created=await invoke(verify,{challenge,code,name:'Test User',email:'',phone,password:'secret12'});
   if(created.status!==200) throw new Error(JSON.stringify(created));
   if(createPayload.phone) throw new Error('New user still depends on Supabase phone identity.');
@@ -33,7 +33,7 @@ async function invoke(handler,body){const rq=req(body),rs=res();const done=new P
   if(!created.body.session?.access_token) throw new Error('Session missing.');
 
   // Login by phone must find metadata phone and exchange password using email.
-  const login=require('./server-routes/login-user');
+  const login=require('./api/login-user');
   const logged=await invoke(login,{identifier:'0772866867',password:'secret12'});
   if(logged.status!==200||!logged.body.session?.refresh_token) throw new Error('Phone login failed '+JSON.stringify(logged));
 

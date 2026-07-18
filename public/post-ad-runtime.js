@@ -4,7 +4,6 @@
   const POST_ROUTES = new Set(['/post', '/post-ad']);
   const PHONE_STATE_KEY = 'ehemehe:reactPostPhones:v2';
   const IMAGE_STATE_KEY = 'ehemehe:reactPostImages:v2';
-  const THUMBNAIL_STATE_KEY = 'ehemehe:reactPostThumbnail:v1';
   const LOCAL_ADS_KEY = 'ehemehe:userSubmittedAds:v2';
   const POST_DRAFT_KEY = 'ehemehe:reactPostDraft:v1';
   const CATEGORY_FORM_KEY = 'ehemehe:postAdForm:v4';
@@ -15,7 +14,6 @@
   const runtime = {
     rows: [],
     images: [],
-    thumbnail: '',
     phoneProof: '',
     publishing: false,
     dashboardLoading: false,
@@ -86,9 +84,6 @@
     try {
       const encoded = JSON.stringify(runtime.images);
       if (encoded.length < 3_700_000) sessionStorage.setItem(IMAGE_STATE_KEY, encoded);
-      if (runtime.thumbnail && runtime.thumbnail.length < 450_000) {
-        sessionStorage.setItem(THUMBNAIL_STATE_KEY, runtime.thumbnail);
-      }
     } catch (_) {}
   }
 
@@ -98,7 +93,6 @@
     runtime.phoneProof = String(phoneState.phoneProof || '');
     runtime.images = readJsonStorage(sessionStorage, IMAGE_STATE_KEY, []);
     if (!Array.isArray(runtime.images)) runtime.images = [];
-    runtime.thumbnail = String(sessionStorage.getItem(THUMBNAIL_STATE_KEY) || '');
 
     runtime.rows.forEach((row) => {
       if (row.verifiedToken) {
@@ -241,20 +235,13 @@
         if (!files.length) return;
         message('Optimizing selected photos...', 'pending');
 
-        for (const [fileIndex, file] of files.entries()) {
+        for (const file of files) {
           let image = await optimizedImage(file, 1600, 0.88);
 
           // Keep the complete request within Vercel's practical request limit.
           const estimatedTotal = next.reduce((sum, value) => sum + String(value).length, 0) + image.length;
           if (estimatedTotal > 3_500_000) {
             image = await optimizedImage(file, 1200, 0.82);
-          }
-
-          // List pages use this compact thumbnail instead of downloading the
-          // full photo array. The full-resolution images remain available on
-          // the public ad-detail page.
-          if ((!current.length && fileIndex === 0) || !runtime.thumbnail) {
-            runtime.thumbnail = await optimizedImage(file, 480, 0.70);
           }
           next.push(image);
         }
@@ -988,7 +975,6 @@
         ...details,
         ...contact,
         images: runtime.images,
-        thumbnail: runtime.thumbnail || runtime.images[0] || '',
         phones,
         phoneProof: phoneValidation.proof,
         customFields: collectCustomFields()
@@ -1024,7 +1010,7 @@
         city: contact.city,
         phones,
         images: runtime.images,
-        image_url: runtime.thumbnail || runtime.images[0] || '',
+        image_url: runtime.images[0] || '',
         created_at: data.ad?.created_at || new Date().toISOString(),
         server: true
       };
@@ -1032,11 +1018,9 @@
 
       sessionStorage.removeItem(PHONE_STATE_KEY);
       sessionStorage.removeItem(IMAGE_STATE_KEY);
-      sessionStorage.removeItem(THUMBNAIL_STATE_KEY);
       sessionStorage.removeItem(POST_DRAFT_KEY);
       runtime.rows = [];
       runtime.images = [];
-      runtime.thumbnail = '';
       runtime.phoneProof = '';
 
       message('Ad submitted successfully. It is now visible in My Ads.', 'success');

@@ -6,8 +6,6 @@ const root = path.resolve(__dirname, '..');
 const node = process.execPath;
 const tests = [
   ['admin_dashboard_link_test.js', ['public/admin.html', 'public/admin.js']],
-  ['deployment_install_regression_test.js', []],
-  ['vercel_function_count_regression_test.js', []],
   ['category_taxonomy_uuid_regression_test.js', []],
   ['multi_phone_otp_test.js', []],
   ['otp_security_test.js', []],
@@ -20,15 +18,9 @@ const tests = [
   ['post_ad_route_cache_regression_test.js', []],
   ['unified_sms_service_test.js', []],
   ['performance_stability_regression_test.js', []],
-  ['performance_lcp_footer_regression_test.js', []],
   ['desktop_home_first_paint_regression_test.js', []],
-  ['desktop_home_route_ownership_regression_test.js', []],
-  ['desktop_theme_deployment_regression_test.js', []],
-  ['desktop_live_ads_delivery_regression_test.js', []],
-  ['original_font_restore_regression_test.js', []],
   ['public_ads_detail_desktop_regression_test.js', []],
   ['public_home_interactions_regression_test.js', []],
-  ['public_home_schema_compatibility_test.js', []],
   ['supabase_marketplace_schema_regression_test.js', []],
   ['scripts/http-regression-test.js', []]
 ];

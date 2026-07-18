@@ -8,22 +8,17 @@ const root = path.resolve(__dirname, '..');
 const port = 34000 + (process.pid % 20000);
 const base = `http://127.0.0.1:${port}`;
 
-function request(pathname, options = {}) {
+function request(pathname) {
   return new Promise((resolve, reject) => {
-    const req = http.request(`${base}${pathname}`, {
-      method: options.method || 'GET',
-      headers: options.headers || {}
-    }, (res) => {
+    const req = http.get(`${base}${pathname}`, (res) => {
       const chunks = [];
       res.on('data', (chunk) => chunks.push(chunk));
       res.on('end', () => resolve({
         status: res.statusCode,
         headers: res.headers,
-        body: Buffer.concat(chunks).toString('utf8'),
-        rawBody: Buffer.concat(chunks)
+        body: Buffer.concat(chunks).toString('utf8')
       }));
     });
-    req.end();
     req.setTimeout(5000, () => req.destroy(new Error(`Timeout: ${pathname}`)));
     req.on('error', reject);
   });
@@ -68,7 +63,7 @@ function waitForServer(child) {
 
     const home = await request('/');
     assert(home.body.includes('/post-ad-runtime.js?v='), 'Home shell is missing the Post Ad runtime.');
-    assert(home.body.includes('/index-filters.min.js?v=') || home.body.includes('./index-filters.min.js?v='), 'Home shell is missing the minified public route helper.');
+    assert(home.body.includes('/index-filters.js?v=') || home.body.includes('./index-filters.js?v='), 'Home shell is missing public route helpers.');
 
     const redirect = await request('/post-ad?returnTo=%2Fpost');
     assert.strictEqual(redirect.status, 308, 'Legacy Post Ad route is not redirected.');
@@ -93,25 +88,7 @@ function waitForServer(child) {
     assert.strictEqual(unversioned.status, 200, 'Unversioned asset did not load.');
     assert(/no-cache/i.test(unversioned.headers['cache-control'] || ''), 'Unversioned asset can become stale.');
 
-    const cssMatch = index.match(/\/css\/ehemehe-app\.min\.css\?v=([a-f0-9]{12,64})/i);
-    assert(cssMatch, 'Combined content-hashed CSS reference was not found.');
-    const compressedCss = await request(`/css/ehemehe-app.min.css?v=${cssMatch[1]}`, {
-      headers: { 'Accept-Encoding': 'br, gzip' }
-    });
-    assert.strictEqual(compressedCss.status, 200, 'Combined CSS did not load.');
-    assert.strictEqual(compressedCss.headers['content-encoding'], 'br', 'Combined CSS is not Brotli-compressed.');
-    assert(/immutable/i.test(compressedCss.headers['cache-control'] || ''), 'Combined CSS is not immutable.');
-
-    const etag = unversioned.headers.etag;
-    assert(etag, 'Static asset ETag is missing.');
-    const revalidated = await request('/post-ad-runtime.js', { headers: { 'If-None-Match': etag } });
-    assert.strictEqual(revalidated.status, 304, 'Static ETag revalidation did not return 304.');
-
-    const head = await request(`/css/ehemehe-app.min.css?v=${cssMatch[1]}`, { method: 'HEAD' });
-    assert.strictEqual(head.status, 200, 'Static HEAD request failed.');
-    assert.strictEqual(head.rawBody.length, 0, 'HEAD response unexpectedly contains a body.');
-
-    console.log('HTTP route, compression and cache regression checks passed.');
+    console.log('HTTP route and cache regression checks passed.');
   } finally {
     child.kill('SIGTERM');
   }

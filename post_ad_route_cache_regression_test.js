@@ -32,16 +32,12 @@ const requiredAssets = [
   '/auth-unified.js'
 ];
 for (const url of requiredAssets) {
-  const candidates = url === '/post-ad-category-fields.js'
-    ? ['./post-ad-category-fields.js', '/post-ad-category-fields.js']
-    : [url];
-  const match = candidates
-    .map((htmlUrl) => index.match(new RegExp(htmlUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=([a-f0-9]{16})')))
-    .find(Boolean);
-  assert(match, `${url} is not content-hash versioned`);
+  const htmlUrl = url === '/post-ad-category-fields.js' ? './post-ad-category-fields.js' : url;
+  const match = index.match(new RegExp(htmlUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=([a-f0-9]{16})'));
+  assert(match, `${htmlUrl} is not content-hash versioned`);
   const file = `public/${url.replace(/^\//, '')}`;
   const expected = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').slice(0, 16);
-  assert.strictEqual(match[1], expected, `${url} version does not match its content`);
+  assert.strictEqual(match[1], expected, `${htmlUrl} version does not match its content`);
 }
 
 assert(server.includes('const contentHashedVersion = /^[a-f0-9]{12,64}$/i.test(assetVersion);'));

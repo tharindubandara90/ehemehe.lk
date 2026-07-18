@@ -2,26 +2,31 @@ const assert = require('assert');
 const fs = require('fs');
 
 const html = fs.readFileSync('public/index.html', 'utf8');
-const desktop = fs.readFileSync('public/desktop-home-exact.js', 'utf8');
-const desktopMin = fs.readFileSync('public/desktop-home-exact.min.js', 'utf8');
-const css = fs.readFileSync('public/css/ehemehe-app.min.css', 'utf8');
+const filters = fs.readFileSync('public/index-filters.js', 'utf8');
 
-const routeIndex = html.indexOf('id="ehm-desktop-home-exact-route"');
-const moduleIndex = html.indexOf("import('/js/index-BsKly-Vj.js");
-const hostIndex = html.indexOf('id="ehmDesktopHomeExact"');
-assert(routeIndex >= 0, 'Exact desktop route guard is missing.');
-assert(hostIndex >= 0, 'Exact desktop host is missing.');
-assert(moduleIndex >= 0, 'Shared React application import was removed from other routes.');
-assert(routeIndex < moduleIndex, 'Desktop route must be decided before React can start.');
-assert(html.includes('!window.__EHM_DESKTOP_HOME_EXACT'), 'React is not skipped on the desktop home route.');
-assert(html.includes("script('/desktop-home-exact.min.js"), 'Exact desktop helper is not loaded.');
-assert(!html.includes('desktop-olx-home.js'), 'Obsolete demo desktop shell still loads.');
-assert(desktop.includes("fetchJson('/api/public-home'"), 'Desktop home does not load live ads.');
-assert(desktop.includes("fetchJson('/api/public-meta'"), 'Desktop home does not load live filters.');
-assert(desktop.includes('Latest Ads'), 'Latest Ads heading is missing.');
-assert(desktop.includes('grid-template-columns') === false, 'Layout CSS should not be duplicated inside the desktop JavaScript.');
-assert(css.includes('.ehdx-searchbar'), 'Compact one-row desktop search styling is missing.');
-assert(css.includes('.ehdx-categories'), 'Circular category row styling is missing.');
-assert(css.includes('.ehdx-grid'), 'Four-column live-ad grid styling is missing.');
-assert(desktopMin.length < desktop.length, 'Desktop helper was not minified.');
+const prepaintClassIndex = html.indexOf('id="ehm-desktop-home-prepaint-class"');
+const appModuleIndex = html.indexOf("await import('/js/index-BsKly-Vj.js");
+assert(prepaintClassIndex >= 0, 'Desktop home pre-paint class script is missing.');
+assert(appModuleIndex >= 0, 'React application module import is missing.');
+assert(prepaintClassIndex < appModuleIndex, 'Pre-paint setup must run before the React application module.');
+
+assert(
+  html.includes('html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"]'),
+  'The native hero location wrapper is not hidden during first paint.'
+);
+assert(html.includes('animation: none !important;'), 'Desktop hero entrance animation reset is missing.');
+assert(html.includes('opacity: 1 !important;'), 'Desktop hero first-paint opacity reset is missing.');
+
+assert(filters.includes('function installDesktopHomePrepaintWatcher()'), 'Early desktop pre-paint observer is missing.');
+assert(filters.includes('installDesktopHomePrepaintWatcher();\n  beginDynamicDetailPending();'), 'Early desktop observer is not installed before normal init.');
+assert(filters.includes('return isHomeRoute() || isAdRoute();'), 'Desktop home is not covered by the route observer.');
+assert(filters.includes('stabilizeDesktopHomeShell();\n    renderDesktopResults(true, false);'), 'Desktop final shell is not rendered before network work.');
+assert(filters.includes('Promise.allSettled(['), 'Desktop data requests are not parallelized.');
+assert(!filters.includes('setTimeout(ensureDesktopHome, 500)'), 'Old delayed desktop rewrite is still present.');
+assert(!filters.includes('setTimeout(ensureDesktopHome, 1400)'), 'Old second delayed desktop rewrite is still present.');
+
+const immediateShell = filters.indexOf('// Render the final desktop shell immediately');
+const dataLoad = filters.indexOf('desktopDataPromise = Promise.allSettled', immediateShell);
+assert(immediateShell >= 0 && dataLoad > immediateShell, 'Desktop shell must be stabilized before Supabase requests begin.');
+
 console.log('DESKTOP_HOME_FIRST_PAINT_REGRESSION_TEST_PASSED');
