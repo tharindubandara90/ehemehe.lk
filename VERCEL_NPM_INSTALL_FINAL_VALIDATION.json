@@ -1,0 +1,25 @@
+{
+  "source": "ehemehe-vercel-npm-install-fixed-full.zip",
+  "root_cause": [
+    "package-lock.json contained private environment-specific registry URLs inaccessible from Vercel",
+    "legacy vercel.json builds configuration caused modern installCommand and project build settings to be ignored",
+    "package Node 22 override did not match the Vercel project Node 24 setting"
+  ],
+  "fixed": {
+    "private_registry_urls_remaining": false,
+    "lockfile_resolved_fields_remaining": false,
+    "legacy_builds_present": false,
+    "legacy_routes_present": false,
+    "install_command": "npm ci --include=dev --no-audit --no-fund --prefer-online",
+    "build_command": "npm run build",
+    "node_engine": "24.x",
+    "npm_registry": "registry=https://registry.npmjs.org/"
+  },
+  "validation": {
+    "clean_install_build_test_passes": 3,
+    "regression_tests_per_pass": 20,
+    "category_count": 13,
+    "subcategory_count": 62,
+    "live_vercel_deployment_executed": false
+  }
+}

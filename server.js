@@ -196,7 +196,7 @@ async function handler(req, res) {
 
 module.exports = handler;
 
-if (require.main === module) {
+function startHttpServer() {
   const port = Number(process.env.PORT || 3000);
   const server = http.createServer((req, res) => {
     Promise.resolve(handler(req, res)).catch((error) => {
@@ -211,7 +211,16 @@ if (require.main === module) {
   });
 
   server.listen(port, () => {
-    console.log(`ehemehe.lk local server running at http://localhost:${port}`);
-    console.log(`Admin: http://localhost:${port}/admin`);
+    if (!process.env.VERCEL) {
+      console.log(`ehemehe.lk local server running at http://localhost:${port}`);
+      console.log(`Admin: http://localhost:${port}/admin`);
+    }
   });
+  return server;
 }
+
+// Vercel's current Node.js runtime detects a root server.js by observing a
+// top-level server.listen() call. Local tests import the exported handler
+// without opening a port; local development and Vercel runtime start the HTTP
+// server through this guarded entry point.
+if (require.main === module || process.env.VERCEL) startHttpServer();

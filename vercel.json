@@ -1,17 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
-  "installCommand": "npm ci --include=dev --no-audit --no-fund",
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/server.js"
-    }
-  ]
+  "installCommand": "npm ci --include=dev --no-audit --no-fund --prefer-online",
+  "buildCommand": "npm run build"
 }
