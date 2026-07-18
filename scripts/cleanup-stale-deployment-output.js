@@ -25,13 +25,16 @@ for (const relative of staleDirectories) {
 
 // A root-level index.html/assets tree belonged to an old static deployment.
 // The current application source of truth is public/** plus server.js.
-const staleRootFiles = ['index.html'];
+const staleRootFiles = [
+  'index.html',
+  path.join('public', 'desktop-home-critical-v4.js')
+];
 for (const relative of staleRootFiles) {
   const target = path.join(root, relative);
   if (!fs.existsSync(target)) continue;
   fs.rmSync(target, { force: true });
   removed += 1;
-  console.log(`Removed stale root frontend file: ${relative}`);
+  console.log(`Removed stale/competing frontend file: ${relative}`);
 }
 
 console.log(`Stale deployment cleanup complete (${removed} item${removed === 1 ? '' : 's'} removed).`);

@@ -7,7 +7,7 @@ call npm run cleanup:deployment
 if errorlevel 1 goto :error
 
 echo.
-echo Rebuilding the current desktop theme...
+echo Rebuilding the OLX-style desktop marketplace...
 call npm run build
 if errorlevel 1 goto :error
 
@@ -17,7 +17,7 @@ call npm test
 if errorlevel 1 goto :error
 
 echo.
-echo SUCCESS: Current desktop theme is ready.
+echo SUCCESS: OLX-style desktop marketplace is ready.
 echo Now run the Git commands shown by ChatGPT.
 pause
 exit /b 0

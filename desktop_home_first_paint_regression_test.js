@@ -2,32 +2,25 @@ const assert = require('assert');
 const fs = require('fs');
 
 const html = fs.readFileSync('public/index.html', 'utf8');
-const filters = fs.readFileSync('public/index-filters.js', 'utf8');
+const desktop = fs.readFileSync('public/desktop-olx-home.js', 'utf8');
+const css = fs.readFileSync('public/css/desktop-olx-home.css', 'utf8');
 
-const prepaintClassIndex = html.indexOf('id="ehm-desktop-home-prepaint-class"');
-const appModuleIndex = html.indexOf("import('/js/index-BsKly-Vj.js");
-assert(prepaintClassIndex >= 0, 'Desktop home pre-paint class script is missing.');
-assert(appModuleIndex >= 0, 'React application module import is missing.');
-assert(prepaintClassIndex < appModuleIndex, 'Pre-paint setup must run before the React application module.');
-
-assert(
-  html.includes('html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"]'),
-  'The native hero location wrapper is not hidden during first paint.'
-);
-assert(html.includes('animation: none !important;'), 'Desktop hero entrance animation reset is missing.');
-assert(html.includes('opacity: 1 !important;'), 'Desktop hero first-paint opacity reset is missing.');
-
-assert(filters.includes('function installDesktopHomePrepaintWatcher()'), 'Early desktop pre-paint observer is missing.');
-assert(filters.includes('installDesktopHomePrepaintWatcher();\n  beginDynamicDetailPending();'), 'Early desktop observer is not installed before normal init.');
-assert(filters.includes('return isHomeRoute() || isAdRoute();'), 'Desktop home is not covered by the route observer.');
-assert(filters.includes('stabilizeDesktopHomeShell();\n    renderDesktopResults(true, false);'), 'Desktop final shell is not rendered before network work.');
-assert(filters.includes('desktopDataPromise = loadAds()'), 'Desktop critical data request is missing.');
-assert(filters.includes('schedulePublicMetaRefresh();'), 'Non-critical public metadata is not deferred.');
-assert(!filters.includes('setTimeout(ensureDesktopHome, 500)'), 'Old delayed desktop rewrite is still present.');
-assert(!filters.includes('setTimeout(ensureDesktopHome, 1400)'), 'Old second delayed desktop rewrite is still present.');
-
-const immediateShell = filters.indexOf('// Render the final desktop shell immediately');
-const dataLoad = filters.indexOf('desktopDataPromise = loadAds()', immediateShell);
-assert(immediateShell >= 0 && dataLoad > immediateShell, 'Desktop shell must be stabilized before Supabase requests begin.');
-
+const prepaintIndex = html.indexOf('id="ehm-desktop-olx-prepaint"');
+const shellIndex = html.indexOf('id="ehmDesktopOlxHome"');
+const moduleIndex = html.indexOf("import('/js/index-BsKly-Vj.js");
+assert(prepaintIndex >= 0, 'OLX-style desktop pre-paint script is missing.');
+assert(shellIndex >= 0, 'Independent desktop marketplace shell is missing.');
+assert(moduleIndex >= 0, 'React application import is missing for non-desktop-home routes.');
+assert(prepaintIndex < moduleIndex, 'Desktop pre-paint setup must run before React.');
+assert(html.includes('!window.__EHM_DESKTOP_OLX_HOME'), 'React is not gated off on the desktop home route.');
+assert(html.includes('ehm-olx-search'), 'Desktop home search bar markup is missing.');
+assert(html.includes('ehmOlxCategories'), 'Desktop category shortcut row is missing.');
+assert(html.includes('Fresh recommendations'), 'Fresh recommendations section is missing.');
+assert(desktop.includes("if (initialWasHome) markHomeActive();"), 'Desktop home is not activated before normal initialization.');
+assert(desktop.includes('location.reload();'), 'SPA return-to-home does not clear the competing React home implementation.');
+assert(desktop.includes("fetch('/api/public-home'"), 'Desktop shell does not load live public ads.');
+assert(desktop.includes("fetch('/api/public-meta'"), 'Desktop shell does not load category/location metadata.');
+assert(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'Desktop listing grid is not four columns.');
+assert(css.includes('grid-template-columns:minmax(280px,1.65fr)'), 'Desktop search/category/location bar layout is missing.');
+assert(css.includes('html.ehm-desktop-olx-home-active #root{display:none!important}'), 'Competing React root is not hidden on desktop home.');
 console.log('DESKTOP_HOME_FIRST_PAINT_REGRESSION_TEST_PASSED');
