@@ -181,7 +181,7 @@ const dateText = (v) => {
 const statusBadge = (s) => `<span class="badge ${html(String(s || "pending").toLowerCase())}">${html(s || "pending")}</span>`;
 const toast = (msg) => alert(msg);
 function toggleSidebar(){ el('sidebar')?.classList.toggle('open'); }
-function closeModal(){ el('modal').classList.add('hidden'); el('modalBody').innerHTML=''; }
+function closeModal(){ el('modal').classList.add('hidden'); el('modalBody').innerHTML=''; el('modal')?.querySelector('.modal-card')?.classList.remove('ehm-quick-promo-modal'); }
 function openModal(title, body){ el('modalTitle').innerText=title; el('modalBody').innerHTML=body; el('modal').classList.remove('hidden'); }
 function setLoading(target, msg="Loading..."){ if(el(target)) el(target).innerHTML = `<div class="empty">${html(msg)}</div>`; }
 
@@ -844,7 +844,30 @@ function adImages(a){
   }
   return output.slice(0,10);
 }
+function promotionMatchesAdminAd(p,a){
+  const adId=String(a?.id || '');
+  const rawId=adId.replace(/^static-/, '');
+  const promoAd=String(p?.ad_id || '');
+  const promoStatic=String(p?.static_id || '');
+  return promoAd === adId || promoAd === rawId || promoStatic === rawId;
+}
+function adminPromotionRowsForAd(a){
+  return AD_PROMOTIONS.filter(p => promotionMatchesAdminAd(p,a)).sort((x,y) => new Date(y.updated_at || y.created_at || 0) - new Date(x.updated_at || x.created_at || 0));
+}
+function activeAdminPromotionForAd(a,types=['featured','promoted','top']){
+  const accepted=new Set(types.map(v=>String(v).toLowerCase()));
+  return adminPromotionRowsForAd(a).find(p => accepted.has(String(p.promotion_type || '').toLowerCase()) && isActiveWindow(p)) || null;
+}
 function adPlacement(a){
+  const timedRows=adminPromotionRowsForAd(a);
+  const activeTimed=activeAdminPromotionForAd(a);
+  if(activeTimed){
+    const timedType=String(activeTimed.promotion_type || '').toLowerCase();
+    return timedType === 'top' ? 'promoted' : timedType;
+  }
+  // An expired/disabled timed record is the source of truth and must not fall
+  // back to stale permanent flags on the ads row.
+  if(timedRows.length) return '';
   const type=String(a?.promotion_type || a?.promotionType || '').toLowerCase();
   if(a?.is_promoted || a?.promoted || a?.isPromoted || ['promoted','top'].includes(type)) return 'promoted';
   if(a?.is_featured || a?.featured || a?.isFeatured || type === 'featured') return 'featured';
@@ -881,6 +904,7 @@ function installAdminAdManagementStyles(){
     .listing-card[data-admin-preview-id]{cursor:pointer}.listing-card[data-admin-preview-id]:focus{outline:3px solid rgba(16,185,129,.28);outline-offset:3px}
     .ehm-admin-images{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin:8px 0 12px}.ehm-admin-edit-image{position:relative;border:1px solid #dbe5ea;border-radius:14px;padding:8px;background:#f8fafc}.ehm-admin-edit-image img{width:100%;height:92px;object-fit:cover;border-radius:10px;display:block;margin-bottom:8px}.ehm-admin-image-empty{padding:18px;border:1px dashed #cbd5e1;border-radius:12px;color:#64748b;text-align:center}
     .ehm-admin-preview-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}.ehm-admin-preview-gallery img{width:100%;height:150px;object-fit:cover;border-radius:14px;border:1px solid #dbe5ea}.ehm-admin-preview-title{font-size:24px;font-weight:800;margin:0 0 8px}.ehm-admin-preview-price{font-size:22px;font-weight:800;color:#059669;margin-bottom:14px}.ehm-admin-preview-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.ehm-admin-preview-chip{padding:6px 10px;border-radius:999px;background:#eef2f7;color:#334155;font-size:12px;font-weight:700}.ehm-admin-preview-description{white-space:pre-wrap;line-height:1.65;color:#475569}
+    .modal-card.ehm-quick-promo-modal{width:min(440px,calc(100vw - 28px));max-width:440px}.ehm-promo-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.ehm-promo-note{padding:12px;border-radius:10px;background:#f0f9ff;color:#075985;font-size:12px;line-height:1.55;margin-bottom:14px}.ehm-promo-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}.ehm-promo-actions .btn{width:100%}.btn.promote{background:#8b5cf6!important;color:#fff!important}.ehm-promo-expired{color:#b45309;font-weight:800}
   `;
   document.head.appendChild(style);
 }
@@ -1051,10 +1075,106 @@ function renderAdCard(a){
         <button class="btn ok small" onclick="approveAd('${html(a.id)}')" ${can('can_approve_ads')?'':'disabled'}>Approve</button>
         <button class="btn warn small" onclick="rejectAd('${html(a.id)}')" ${can('can_approve_ads')?'':'disabled'}>Reject</button>
         <button class="btn danger small" onclick="deleteAd('${html(a.id)}')" ${can('can_delete_ads')?'':'disabled'}>Delete</button>
+        <button class="btn promote small" onclick="openQuickPromotion('${html(a.id)}')" ${can('can_edit_ads')?'':'disabled'}>Promote</button>
       </div>
     </div>
   </article>`;
 }
+function promotionRecordIdForAd(ad){
+  const raw=String(ad?.id || ad?.static_id || 'ad').replace(/[^a-zA-Z0-9_-]+/g,'-');
+  return `quick-promo-${raw}`;
+}
+function currentPromotionForAdminAd(ad){
+  return activeAdminPromotionForAd(ad) || adminPromotionRowsForAd(ad)[0] || null;
+}
+function openQuickPromotion(id){
+  if(!requirePermission('can_edit_ads')) return;
+  const ad=ADS.find(x=>String(x.id)===String(id));
+  if(!ad) return;
+  const row=currentPromotionForAdminAd(ad);
+  const currentType=String(row?.promotion_type || adPlacement(ad) || 'featured').toLowerCase();
+  const type=currentType === 'top' ? 'promoted' : (['featured','promoted'].includes(currentType) ? currentType : 'featured');
+  const days=Math.min(365,Math.max(1,Number(row?.days || 7)));
+  const status=row ? (isActiveWindow(row) ? `Active until ${dateText(row.end_at)}` : `Expired ${dateText(row.end_at)}`) : 'No timed promotion is active.';
+  openModal('Promote Listing', `
+    <div class="ehm-promo-summary"><span class="ehm-admin-preview-chip">${html(ad.title||'Untitled listing')}</span><span class="ehm-admin-preview-chip">${html(adCategoryName(ad))}</span></div>
+    <div class="ehm-promo-note">Featured ads appear first inside their category. Promoted ads appear first on the home page. The placement ends automatically after the selected number of days.<br><strong class="${row && !isActiveWindow(row)?'ehm-promo-expired':''}">${html(status)}</strong></div>
+    <div class="field"><label>Promotion type</label><select id="quickPromotionType"><option value="featured" ${type==='featured'?'selected':''}>Featured — top of this category</option><option value="promoted" ${type==='promoted'?'selected':''}>Promoted — top of home page</option></select></div>
+    <div class="field"><label>Duration (days)</label><input class="input" id="quickPromotionDays" type="number" min="1" max="365" step="1" value="${html(days)}"></div>
+    <div class="ehm-promo-actions"><button class="btn primary" onclick="saveQuickPromotion('${html(ad.id)}')">Apply Promotion</button><button class="btn ghost" onclick="removeQuickPromotion('${html(ad.id)}')">Remove Promotion</button></div>
+  `);
+  el('modal')?.querySelector('.modal-card')?.classList.add('ehm-quick-promo-modal');
+}
+function replaceLocalPromotionForAd(ad,payload){
+  const rows=localRead(AD_PROMOTIONS_KEY,[]).filter(p=>!promotionMatchesAdminAd(p,ad));
+  if(payload) rows.unshift(payload);
+  localWrite(AD_PROMOTIONS_KEY,rows);
+}
+async function deleteRemotePromotionRowsForAd(ad){
+  if(typeof supabaseClient === 'undefined') throw new Error('Supabase is not connected.');
+  const ids=Array.from(new Set([String(ad.id||''),String(ad.id||'').replace(/^static-/,'')].filter(Boolean)));
+  for(const adId of ids){
+    const {error}=await supabaseClient.from('ad_promotions').delete().eq('ad_id',adId);
+    if(error) throw error;
+  }
+  if(ad.static_id){
+    const {error}=await supabaseClient.from('ad_promotions').delete().eq('static_id',String(ad.static_id));
+    if(error) throw error;
+  }
+}
+async function persistPromotionFlags(ad,type){
+  const patch={promotion_type:type || null,is_featured:type==='featured',is_promoted:type==='promoted',updated_at:new Date().toISOString()};
+  if(ad.source==='site_static'){
+    updateStaticAdOverrideFor(ad,{promotion_type:type||'',isFeatured:type==='featured',isPromoted:type==='promoted',is_featured:type==='featured',is_promoted:type==='promoted'});
+  }else{
+    try{ await safeUpdate('ads',ad.id,patch); }catch(e){ console.warn('Promotion flags could not be mirrored to ads row:',e.message||e); }
+  }
+  Object.assign(ad,patch,{isFeatured:type==='featured',isPromoted:type==='promoted'});
+}
+async function saveQuickPromotion(id){
+  if(!requirePermission('can_edit_ads')) return;
+  const ad=ADS.find(x=>String(x.id)===String(id));
+  if(!ad) return;
+  const type=String(el('quickPromotionType')?.value || '').toLowerCase();
+  const days=Math.floor(Number(el('quickPromotionDays')?.value || 0));
+  if(!['featured','promoted'].includes(type)){ toast('Select Featured or Promoted.'); return; }
+  if(!Number.isFinite(days) || days < 1 || days > 365){ toast('Duration must be between 1 and 365 days.'); return; }
+  const now=new Date().toISOString();
+  const previous=currentPromotionForAdminAd(ad);
+  const payload={
+    id:promotionRecordIdForAd(ad),promotion_type:type,ad_id:String(ad.id),static_id:ad.static_id||null,
+    category_id:categoryOfAd(ad)||null,days,start_at:now,end_at:addDaysISO(days),is_active:true,
+    created_at:previous?.created_at||now,updated_at:now
+  };
+  try{
+    if(ad.source!=='site_static'){
+      await deleteRemotePromotionRowsForAd(ad);
+      const {error}=await supabaseClient.from('ad_promotions').upsert(payload,{onConflict:'id'});
+      if(error) throw error;
+    }
+    replaceLocalPromotionForAd(ad,payload);
+    AD_PROMOTIONS=[payload,...AD_PROMOTIONS.filter(p=>!promotionMatchesAdminAd(p,ad))];
+    await persistPromotionFlags(ad,type);
+    closeModal(); renderAds(); renderPromotions();
+    toast(`${type==='featured'?'Featured':'Promoted'} placement applied for ${days} day${days===1?'':'s'}.`);
+  }catch(e){
+    toast(`Promotion could not be saved: ${e.message||e}`);
+  }
+}
+async function removeQuickPromotion(id){
+  if(!requirePermission('can_edit_ads')) return;
+  const ad=ADS.find(x=>String(x.id)===String(id));
+  if(!ad) return;
+  try{
+    if(ad.source!=='site_static') await deleteRemotePromotionRowsForAd(ad);
+    replaceLocalPromotionForAd(ad,null);
+    AD_PROMOTIONS=AD_PROMOTIONS.filter(p=>!promotionMatchesAdminAd(p,ad));
+    await persistPromotionFlags(ad,'');
+    closeModal(); renderAds(); renderPromotions();
+    toast('Promotion removed.');
+  }catch(e){ toast(`Promotion could not be removed: ${e.message||e}`); }
+}
+
 async function approveAd(id){
   if(!requirePermission('can_approve_ads')) return;
   const current = ADS.find(x => String(x.id) === String(id));

@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-07-18T16:09:53.539385+00:00",
+  "feature": "admin quick promotion type and duration",
+  "files": {
+    "public/admin.js": {
+      "sha256": "77a04c813c9e8a0cbfedeab6c17e1b816e65d0739f326eb7d3158f0910760242",
+      "bytes": 120377
+    },
+    "public/admin/admin.js": {
+      "sha256": "77a04c813c9e8a0cbfedeab6c17e1b816e65d0739f326eb7d3158f0910760242",
+      "bytes": 120377
+    },
+    "public/index-filters.js": {
+      "sha256": "b2e64c8a4905d9018e8ce2b3741e85b96970ed66d75a7b0a74564da3640bb3ec",
+      "bytes": 158390
+    },
+    "promotion_featured_admin_regression_test.js": {
+      "sha256": "788aa3a4dcdf72708ec625af734e8c38352c1aec879125a3d93b8aa7860ac75d",
+      "bytes": 8431
+    }
+  },
+  "tests": {
+    "regression_passes": 3,
+    "tests_per_pass": 28,
+    "status": "passed"
+  }
+}

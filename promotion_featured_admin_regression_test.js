@@ -26,13 +26,15 @@ assert(css.includes('Admin-managed promoted/featured ads inside'), 'Desktop live
 assert(css.includes('aspect-ratio: 16 / 9 !important'), 'Fresh recommendations image ratio changed');
 
 // Execute the actual public sort functions in isolation.
-const sortStart = publicJs.indexOf('  function isPromotedPlacement(ad)');
+const sortStart = publicJs.indexOf('  function promotionRowsForAd(ad)');
 const sortEnd = publicJs.indexOf('  function getDistrictCities(district)', sortStart);
 assert(sortStart >= 0 && sortEnd > sortStart, 'Could not isolate public promotion sort implementation');
 const sortContext = {
   state: { category: null },
+  adPromotions: [],
   hasActiveFilters: () => false,
-  topPromotionForAd: () => null,
+  adCategoryMatchesPromotion: () => true,
+  isActivePromo: (row) => row.is_active !== false && (!row.end_at || new Date(row.end_at).getTime() >= Date.now()),
   allAds: () => [], adMatchesSearch: () => true, adMatchesLocation: () => true, adMatchesCategory: () => true
 };
 vm.createContext(sortContext);
@@ -50,6 +52,21 @@ sorted = sortContext.sortAdsForPlacement([
   {id:'new-normal',postedAt:'2026-07-19T10:00:00Z'}
 ]);
 assert.strictEqual(sorted[0].id,'old-featured','Category must put featured ads before promoted/normal ads');
+// Timed promotion records must expire automatically instead of falling back to stale flags.
+sortContext.state.category = null;
+sortContext.hasActiveFilters = () => false;
+sortContext.adPromotions = [{id:'expired',ad_id:'expired-promoted',promotion_type:'promoted',end_at:'2020-01-01T00:00:00Z',is_active:true}];
+sorted = sortContext.sortAdsForPlacement([
+  {id:'new-normal',postedAt:'2026-07-18T10:00:00Z'},
+  {id:'expired-promoted',postedAt:'2026-07-01T10:00:00Z',isPromoted:true}
+]);
+assert.strictEqual(sorted[0].id,'new-normal','Expired timed promotion must not stay above normal ads');
+sortContext.adPromotions = [{id:'active',ad_id:'active-promoted',promotion_type:'promoted',end_at:'2099-01-01T00:00:00Z',is_active:true}];
+sorted = sortContext.sortAdsForPlacement([
+  {id:'new-normal',postedAt:'2026-07-18T10:00:00Z'},
+  {id:'active-promoted',postedAt:'2026-07-01T10:00:00Z'}
+]);
+assert.strictEqual(sorted[0].id,'active-promoted','Active timed promoted ad must be first on home');
 
 assert(adminJs.includes('Featured Ad — top of its category'), 'Admin Featured option missing');
 assert(adminJs.includes('Promoted Ad — top of home page'), 'Admin Promoted option missing');
@@ -59,6 +76,14 @@ assert(adminJs.includes('function previewAd(id,event)'), 'Admin preview action m
 assert(adminJs.includes('data-admin-preview-id'), 'Admin cards are not previewable by click');
 assert(adminJs.includes('function removeEditAdImage(index)'), 'Admin image removal action missing');
 assert(adminJs.includes("image_url:images[0] || null, images"), 'Admin image removals are not persisted');
+assert(adminJs.includes('>Promote</button>'), 'Admin ad card Promote button missing');
+assert(adminJs.includes('function openQuickPromotion(id)'), 'Quick promotion popup missing');
+assert(adminJs.includes('id="quickPromotionType"'), 'Featured/Promoted selector missing from quick popup');
+assert(adminJs.includes('id="quickPromotionDays"'), 'Promotion duration input missing from quick popup');
+assert(adminJs.includes('end_at:addDaysISO(days)'), 'Promotion expiry date is not saved');
+assert(adminJs.includes("promotion_type:type"), 'Quick promotion type is not saved');
+assert(publicJs.includes("from('ad_promotions').select('*').order"), 'Public client does not load all timed promotion types');
+assert(publicJs.includes('function activePromotionForAd(ad, acceptedTypes)'), 'Expiry-aware public promotion resolver missing');
 assert.strictEqual(adminJs,adminNested,'Duplicate admin implementations are no longer synchronized');
 
 // Execute the actual admin image helpers and preview renderer in isolation.
@@ -70,6 +95,8 @@ let previewBody = '';
 const adminContext = {
   EDIT_AD_IMAGES: [],
   ADS: [],
+  AD_PROMOTIONS: [],
+  isActiveWindow: () => true,
   el: (id) => elements[id] || null,
   html: (v) => String(v ?? ''),
   toast: () => {},

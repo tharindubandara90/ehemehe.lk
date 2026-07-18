@@ -538,7 +538,7 @@
     try {
       if (window.supabaseClient) {
         const [pRes, bRes] = await Promise.all([
-          window.supabaseClient.from('ad_promotions').select('*').eq('promotion_type','top').order('created_at', { ascending:false }),
+          window.supabaseClient.from('ad_promotions').select('*').order('created_at', { ascending:false }),
           window.supabaseClient.from('banner_ads').select('*').order('created_at', { ascending:false })
         ]);
         if (Array.isArray(pRes.data)) remotePromos = pRes.data;
@@ -549,7 +549,9 @@
     [...remotePromos, ...localPromos].forEach((p) => promoMap.set(String(p.id || `${p.ad_id}|${p.end_at}`), p));
     const bannerMap = new Map();
     [...remoteBanners, ...localBanners].forEach((b) => bannerMap.set(String(b.id || `${b.image_url}|${b.end_at}`), b));
-    adPromotions = Array.from(promoMap.values()).filter(isActivePromo);
+    // Keep expired promotion rows as well. Their presence prevents stale
+    // is_featured/is_promoted flags on the ads table from becoming permanent.
+    adPromotions = Array.from(promoMap.values());
     bannerAds = Array.from(bannerMap.values()).filter(isActivePromo);
     return { adPromotions, bannerAds };
   }
@@ -893,22 +895,34 @@
     state.category = oldCategory;
     return ok;
   }
-  function topPromotionForAd(ad) {
+  function promotionRowsForAd(ad) {
     const rawId = String(ad.id || '').replace(/^static-/, '');
-    return adPromotions.find((promo) => {
-      const promoAd = String(promo.ad_id || '').replace(/^static-/, '');
+    return adPromotions.filter((promo) => {
+      const promoAdRaw = String(promo.ad_id || '');
+      const promoAd = promoAdRaw.replace(/^static-/, '');
       const promoStatic = String(promo.static_id || '').replace(/^static-/, '');
-      const idOk = promoAd === String(ad.id) || promoAd === rawId || promoStatic === rawId;
+      const idOk = promoAdRaw === String(ad.id) || promoAd === rawId || promoStatic === rawId;
       return idOk && adCategoryMatchesPromotion(ad, promo);
     });
   }
+  function activePromotionForAd(ad, acceptedTypes) {
+    const types = new Set((acceptedTypes || []).map((type) => String(type).toLowerCase()));
+    return promotionRowsForAd(ad).find((promo) => types.has(String(promo.promotion_type || '').toLowerCase()) && isActivePromo(promo)) || null;
+  }
+  function topPromotionForAd(ad) {
+    return activePromotionForAd(ad, ['top']);
+  }
   function isPromotedPlacement(ad) {
+    const timedRows = promotionRowsForAd(ad);
+    if (timedRows.length) return !!activePromotionForAd(ad, ['promoted', 'top']);
     const type = String(ad?.promotionType || ad?.promotion_type || '').toLowerCase();
-    return !!ad?.isPromoted || ['promoted', 'top'].includes(type) || !!topPromotionForAd(ad);
+    return !!ad?.isPromoted || ['promoted', 'top'].includes(type);
   }
   function isFeaturedPlacement(ad) {
+    const timedRows = promotionRowsForAd(ad);
+    if (timedRows.length) return !!activePromotionForAd(ad, ['featured']);
     const type = String(ad?.promotionType || ad?.promotion_type || '').toLowerCase();
-    return !!ad?.isFeatured || type === 'featured' || !!topPromotionForAd(ad);
+    return !!ad?.isFeatured || type === 'featured';
   }
   function adPostedTime(ad) {
     const value = new Date(ad?.postedAt || ad?.created_at || 0).getTime();
@@ -1276,7 +1290,7 @@
       <a class="ehm-ad-card" href="${esc(href)}" data-ehm-ad-id="${esc(ad.id)}">
         <div class="ehm-ad-img-wrap">
           ${ad.image ? `<img class="ehm-ad-img" src="${esc(ad.image)}" alt="${esc(ad.title)}" loading="lazy">` : ''}
-          <div class="ehm-badges">${topPromotionForAd(ad) ? '<span class="ehm-badge top">Top Ad</span>' : (ad.isFeatured ? '<span class="ehm-badge featured">Featured</span>' : '<span></span>')}${ad.isPromoted ? '<span class="ehm-badge promoted">Promoted</span>' : ''}</div>
+          <div class="ehm-badges">${topPromotionForAd(ad) ? '<span class="ehm-badge top">Top Ad</span>' : (isFeaturedPlacement(ad) ? '<span class="ehm-badge featured">Featured</span>' : '<span></span>')}${isPromotedPlacement(ad) && !topPromotionForAd(ad) ? '<span class="ehm-badge promoted">Promoted</span>' : ''}</div>
           <button type="button" class="ehm-heart${isFavoriteId(ad.id) ? ' active' : ''}" data-ehm-favorite-id="${esc(ad.id)}" aria-label="Add to favourites" aria-pressed="${isFavoriteId(ad.id) ? 'true' : 'false'}"><span data-ehm-heart-icon>${isFavoriteId(ad.id) ? '♥' : '♡'}</span></button>
         </div>
         <div class="ehm-ad-body">
