@@ -116,6 +116,18 @@
     ]}
   ];
 
+  function buildFallbackCityRows() {
+    return FALLBACK_DISTRICTS.flatMap((district) =>
+      (FALLBACK_CITIES[district.slug] || []).map((name) => ({
+        id: `${district.id}__${slugify(name)}`,
+        name,
+        district_id: district.id,
+        districtName: district.name,
+        source: 'fallback'
+      }))
+    );
+  }
+
   const state = {
     district: null,
     city: null,
@@ -126,10 +138,14 @@
 
   let lookups = {
     districts: FALLBACK_DISTRICTS,
-    cities: [],
+    cities: buildFallbackCityRows(),
     categories: CATEGORY_TREE
   };
   let lookupsLoaded = false;
+  let publicMetaLoaded = false;
+  let publicMetaAttempted = false;
+  let publicMetaScheduled = false;
+  let publicMetaLoadPromise = null;
   let adsLoaded = false;
   let adsLoadPromise = null;
   let supabaseAds = [];
@@ -416,7 +432,11 @@
   }
 
   function allAds() {
-    const combined = [...supabaseAds, ...allStaticAds()];
+    // Never start image downloads for bundled demo listings while the real
+    // marketplace request is still in flight. Live approved ads are the
+    // production source; bundled listings are an offline/error fallback only.
+    if (!adsLoaded) return [];
+    const combined = supabaseAds.length ? [...supabaseAds] : allStaticAds();
     const seen = new Set();
     return combined.filter((ad) => {
       const key = `${slugify(ad.title)}|${slugify(ad.location)}|${ad.price}`;
@@ -429,95 +449,164 @@
   async function loadLookups() {
     if (lookupsLoaded) return lookups;
     lookupsLoaded = true;
+    await loadPublicMeta();
+    return lookups;
+  }
 
-    const fallbackCities = FALLBACK_DISTRICTS.flatMap((district) => {
-      const names = FALLBACK_CITIES[district.slug] || [];
-      return names.map((name) => ({
-        id: `${district.id}__${slugify(name)}`,
-        name,
-        district_id: district.id,
-        districtName: district.name,
-        source: 'fallback'
-      }));
-    });
+  function applyPublicHomePayload(payload) {
+    if (!payload || typeof payload !== 'object') return;
 
-    let districts = [...FALLBACK_DISTRICTS];
-    let cities = [...fallbackCities];
-    let categories = JSON.parse(JSON.stringify(CATEGORY_TREE));
-
-    try {
-      if (!window.supabaseClient) throw new Error('No Supabase client');
-      const [dRes, cRes, cityRes] = await Promise.all([
-        window.supabaseClient.from('districts').select('id,name,slug,is_active').eq('is_active', true).order('name'),
-        window.supabaseClient.from('categories').select('id,name,slug,is_active').eq('is_active', true).order('name'),
-        window.supabaseClient.from('cities').select('id,name,district_id,is_active').eq('is_active', true).order('name')
-      ]);
-
-      if (Array.isArray(dRes.data) && dRes.data.length) {
-        const bySlug = new Map(districts.map((d) => [slugify(d.slug || d.name), d]));
-        dRes.data.forEach((d) => {
-          const slug = slugify(d.slug || d.name);
-          bySlug.set(slug, { id: d.id, name: d.name, slug, source: 'supabase' });
-        });
-        districts = Array.from(bySlug.values()).sort((a, b) => a.name.localeCompare(b.name));
-      }
-
-      if (Array.isArray(cityRes.data) && cityRes.data.length) {
-        const cityKey = (c) => `${String(c.district_id).toLowerCase()}|${slugify(c.name)}`;
-        const map = new Map(cities.map((c) => [cityKey(c), c]));
-        cityRes.data.forEach((c) => map.set(cityKey(c), { ...c, source: 'supabase' }));
-        cities = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-      }
-
-      if (Array.isArray(cRes.data) && cRes.data.length) {
-        const known = new Map(categories.map((c) => [slugify(c.id || c.slug || c.name), c]));
-        cRes.data.forEach((c) => {
-          const slug = slugify(c.slug || c.name);
-          if (!known.has(slug)) known.set(slug, { id: c.id, slug, name: c.name, children: [], source: 'supabase' });
-        });
-        categories = Array.from(known.values());
-      }
-    } catch (e) {
-      // Fallback data is enough for the current static site.
+    if (Array.isArray(payload.ads)) {
+      supabaseAds = payload.ads.map((ad) => normalizeAd(ad, 'supabase'));
+      supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
     }
 
-    lookups = { districts, cities, categories };
-    return lookups;
+    if (Array.isArray(payload.settings)) {
+      const values = {
+        vehicle_downpayment_percent: VEHICLE_FINANCE_DEFAULTS.downPaymentPercent,
+        vehicle_annual_rate_percent: VEHICLE_FINANCE_DEFAULTS.annualRatePercent,
+        vehicle_finance_months: VEHICLE_FINANCE_DEFAULTS.months,
+        vehicle_finance_company_phone: VEHICLE_FINANCE_DEFAULTS.companyPhone
+      };
+      payload.settings.forEach((row) => {
+        if (row && row.key in values) values[row.key] = row.value;
+      });
+      financeSettings = {
+        downPaymentPercent: Number(values.vehicle_downpayment_percent) || VEHICLE_FINANCE_DEFAULTS.downPaymentPercent,
+        annualRatePercent: Number(values.vehicle_annual_rate_percent) || VEHICLE_FINANCE_DEFAULTS.annualRatePercent,
+        months: Math.max(1, Math.round(Number(values.vehicle_finance_months) || VEHICLE_FINANCE_DEFAULTS.months)),
+        companyPhone: String(values.vehicle_finance_company_phone || VEHICLE_FINANCE_DEFAULTS.companyPhone)
+      };
+      financeSettingsLoaded = true;
+    }
+
+    if (Array.isArray(payload.promotions) || Array.isArray(payload.banners)) {
+      const promoMap = new Map();
+      [...(payload.promotions || []), ...readLocalArray(AD_PROMOTIONS_KEY)]
+        .forEach((row) => promoMap.set(String(row.id || `${row.ad_id}|${row.end_at}`), row));
+      const bannerMap = new Map();
+      [...(payload.banners || []), ...readLocalArray(BANNER_ADS_KEY)]
+        .forEach((row) => bannerMap.set(String(row.id || `${row.image_url}|${row.end_at}`), row));
+      adPromotions = Array.from(promoMap.values()).filter(isActivePromo);
+      bannerAds = Array.from(bannerMap.values()).filter(isActivePromo);
+      promotionsLoaded = true;
+    }
+
+    if (Array.isArray(payload.categories) || Array.isArray(payload.districts) || Array.isArray(payload.cities)) {
+      const categories = JSON.parse(JSON.stringify(CATEGORY_TREE));
+      const known = new Map(categories.map((row) => [slugify(row.id || row.slug || row.name), row]));
+      (payload.categories || []).forEach((row) => {
+        const key = slugify(row.slug || row.name);
+        if (!known.has(key)) known.set(key, { id: row.id, slug: key, name: row.name, children: [], source: 'supabase' });
+      });
+
+      const fallbackCities = FALLBACK_DISTRICTS.flatMap((district) =>
+        (FALLBACK_CITIES[district.slug] || []).map((name) => ({
+          id: `${district.id}__${slugify(name)}`,
+          name,
+          district_id: district.id,
+          districtName: district.name,
+          source: 'fallback'
+        }))
+      );
+      const districtMap = new Map(FALLBACK_DISTRICTS.map((row) => [slugify(row.slug || row.name), row]));
+      (payload.districts || []).forEach((row) => {
+        const key = slugify(row.slug || row.name);
+        districtMap.set(key, { id: row.id, name: row.name, slug: key, source: 'supabase' });
+      });
+      const districts = Array.from(districtMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+      const cityKey = (row) => `${String(row.district_id || '').toLowerCase()}|${slugify(row.name)}`;
+      const cityMap = new Map(fallbackCities.map((row) => [cityKey(row), row]));
+      (payload.cities || []).forEach((row) => cityMap.set(cityKey(row), { ...row, source: 'supabase' }));
+      const cities = Array.from(cityMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+      lookups = { categories: Array.from(known.values()), districts, cities };
+      lookupsLoaded = true;
+    }
+  }
+
+  async function loadPublicMeta() {
+    if (publicMetaLoaded || (publicMetaAttempted && !publicMetaLoadPromise)) return lookups;
+    if (publicMetaLoadPromise) return publicMetaLoadPromise;
+    publicMetaAttempted = true;
+
+    publicMetaLoadPromise = (async () => {
+      try {
+        const response = await fetch('/api/public-meta', {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin'
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.ok === false) throw new Error(payload.message || 'Marketplace metadata request failed.');
+        applyPublicHomePayload(payload);
+        publicMetaLoaded = true;
+      } catch (_) {
+        // Complete bundled category/district/city fallbacks remain available.
+      } finally {
+        publicMetaLoadPromise = null;
+      }
+      return lookups;
+    })();
+
+    return publicMetaLoadPromise;
+  }
+
+  function schedulePublicMetaRefresh() {
+    if (publicMetaLoaded || publicMetaScheduled) return;
+    publicMetaScheduled = true;
+    const refresh = () => loadPublicMeta().then(() => {
+      if (!isHomeRoute()) return;
+      updatePills();
+      if (isMobile()) {
+        createFilterBar();
+        renderResults();
+      } else {
+        stabilizeDesktopHomeShell();
+        renderDesktopResults(true, false);
+      }
+    });
+    if ('requestIdleCallback' in window) requestIdleCallback(refresh, { timeout: 1600 });
+    else setTimeout(refresh, 650);
   }
 
   async function loadAds() {
     if (adsLoaded) return supabaseAds;
     if (adsLoadPromise) return adsLoadPromise;
-    if (!window.supabaseClient) return supabaseAds;
 
     adsLoadPromise = (async () => {
       try {
-        let result = await window.supabaseClient
-          .from('ads')
-          .select('*, categories(name,slug), cities(id,name,district_id)')
-          .eq('status', 'approved')
-          .order('created_at', { ascending: false });
-
-        // Some existing projects do not yet have relationship metadata in the
-        // PostgREST schema cache. The ads themselves are still public, so fall
-        // back to a plain table query instead of hiding every live listing.
-        if (result.error) {
-          result = await window.supabaseClient
+        const response = await fetch('/api/public-home', {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin'
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.ok === false) throw new Error(payload.message || 'Public marketplace request failed.');
+        applyPublicHomePayload(payload);
+        adsLoaded = true;
+      } catch (publicError) {
+        try {
+          if (!window.supabaseClient) throw publicError;
+          const listColumns = [
+            'id','title','description','price','currency','phone','condition','status',
+            'category_id','city_id','image_url','custom_fields','is_featured','is_promoted',
+            'promotion_type','view_count','finance_enabled','finance_downpayment',
+            'finance_monthly_payment','finance_company_phone','created_at','updated_at'
+          ].join(',');
+          const result = await window.supabaseClient
             .from('ads')
-            .select('*')
+            .select(listColumns)
             .eq('status', 'approved')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(60);
+          if (result.error) throw result.error;
+          supabaseAds = (result.data || []).map((ad) => normalizeAd(ad, 'supabase'));
+          supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
+          adsLoaded = true;
+        } catch (_) {
+          supabaseAds = [];
+          adsLoaded = true;
         }
-
-        if (result.error) throw result.error;
-        supabaseAds = (result.data || []).map((ad) => normalizeAd(ad, 'supabase'));
-        supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
-        adsLoaded = true;
-      } catch (e) {
-        supabaseAds = [];
-        // Mark this pass complete to avoid a network-error retry loop from the
-        // route observer. A normal page reload can attempt the query again.
-        adsLoaded = true;
       } finally {
         adsLoadPromise = null;
       }
@@ -945,7 +1034,7 @@
   }
 
   function installStyles() {
-    if (document.getElementById('ehm-final-mobile-styles')) return;
+    if (document.getElementById('ehm-final-mobile-styles') || document.getElementById('ehm-site-enhancements')) return;
     const style = document.createElement('style');
     style.id = 'ehm-final-mobile-styles';
     style.textContent = `
@@ -957,12 +1046,11 @@
       .ehm-desktop-category-select,.ehm-desktop-district-select,.ehm-desktop-city-select{height:46px;border:1.5px solid #dbe6ef;border-radius:14px;background-color:#fff;color:#334155;padding:0 44px 0 16px;font-size:15px;font-weight:600;outline:none;min-width:155px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 20 20'%3E%3Cpath d='M5 7.5l5 5 5-5' fill='none' stroke='%2364758b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 15px center;background-size:18px;}
       .ehm-desktop-category-select:focus,.ehm-desktop-district-select:focus,.ehm-desktop-city-select:focus{border-color:#06b6d4;box-shadow:0 0 0 3px rgba(6,182,212,.12);}
       .ehm-desktop-top-category{display:none!important;}
-      .ehm-desktop-top-location-hidden,.ehm-desktop-native-location-hidden,.ehm-desktop-native-category-hidden{display:none!important;}
-      .ehm-desktop-hero-filterbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:center;justify-content:center;margin:14px auto 0;width:min(100%,560px);max-width:560px;padding:0 4px;}
+      .ehm-desktop-top-location-hidden,.ehm-desktop-native-location-hidden{display:none!important;}
+      .ehm-desktop-hero-filterbar{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center;justify-content:center;margin:14px auto 0;width:min(100%,680px);max-width:680px;padding:0 6px;}
       .ehm-desktop-hero-filterbar select{width:100%;min-width:0;height:48px;border-radius:14px;font-size:15.5px;}
       .ehm-desktop-results{max-width:1180px;margin:34px auto 58px;padding:0 24px;}
       .ehm-desktop-hero-filterbar + .ehm-desktop-hero-filterbar{display:none!important;}
-      .ehm-olx-category-field .ehm-desktop-category-select,.ehm-olx-location-field .ehm-desktop-district-select{height:50px!important;min-width:0!important;width:100%!important;border:0!important;border-radius:0!important;box-shadow:none!important;background-color:transparent!important;padding:0 34px 0 0!important;font-size:15px!important;font-weight:600!important;color:#52606b!important;}
       @media(min-width:768px){
         #ehmDesktopHeroFilterbar{margin-top:18px!important;}
         #ehmDesktopHeroFilterbar.ehm-stats-balanced{margin-bottom:74px!important;}
@@ -1220,6 +1308,14 @@
     return bannerHtmlForPlacement('home_mobile_between_filters_ads', 'ehm-home-banner');
   }
 
+  function listingSkeletonHtml(count = 4) {
+    return `<div class="ehm-results-skeleton" aria-label="Loading listings">${Array.from({ length: count }, () => `
+      <div class="ehm-skeleton-card" aria-hidden="true">
+        <div class="ehm-skeleton-image"></div>
+        <div class="ehm-skeleton-lines"><span></span><span></span><span></span></div>
+      </div>`).join('')}</div>`;
+  }
+
   function renderResults() {
     if (!isMobile() || !isHomeRoute()) return;
     const host = createResultsHost();
@@ -1232,7 +1328,7 @@
         ${active ? '<h2>Search Results</h2>' : ''}
         <p>${rows.length ? (active ? `${rows.length} matching ads found` : 'Recently added listings') : 'No matching ads found'}</p>
       </div>
-      ${rows.length ? `<div class="ehm-results-grid ${state.view}">${rows.map(renderAdCard).join('')}</div>` : '<div class="ehm-empty">No matching ads<br>found.</div>'}
+      ${!adsLoaded ? listingSkeletonHtml(4) : (rows.length ? `<div class="ehm-results-grid ${state.view}">${rows.map((ad, index) => renderAdCard(ad, index, 'mobile')).join('')}</div>` : '<div class="ehm-empty">No matching ads<br>found.</div>')}
     `;
     if (host.__ehmRenderedHtml !== html) {
       host.__ehmRenderedHtml = html;
@@ -1244,14 +1340,32 @@
     hideOriginalHomeContent();
   }
 
-  function renderAdCard(ad) {
+  function listImageUrl(value) {
+    const raw = String(value || '');
+    if (!raw) return '';
+    try {
+      const url = new URL(raw, window.location.origin);
+      if (url.hostname === 'images.unsplash.com') {
+        url.searchParams.set('w', '480');
+        url.searchParams.set('h', '360');
+        url.searchParams.set('fit', 'crop');
+        url.searchParams.set('auto', 'format');
+        url.searchParams.set('q', '68');
+      }
+      return url.origin === window.location.origin ? `${url.pathname}${url.search}` : url.toString();
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  function renderAdCard(ad, index = 999, layout = 'mobile') {
     const href = `/ad/${encodeURIComponent(ad.id)}`;
     const location = ad.location || ad.cityName || '';
     const price = formatPrice(ad.price, ad.currency);
     return `
       <a class="ehm-ad-card" href="${esc(href)}" data-ehm-ad-id="${esc(ad.id)}">
         <div class="ehm-ad-img-wrap">
-          ${ad.image ? `<img class="ehm-ad-img" src="${esc(ad.image)}" alt="${esc(ad.title)}" loading="lazy">` : ''}
+          ${ad.image ? `<img class="ehm-ad-img" src="${esc(listImageUrl(ad.image))}" alt="${esc(ad.title)}" width="480" height="360" loading="${index === 0 ? 'eager' : 'lazy'}" fetchpriority="${index === 0 ? 'high' : 'low'}" decoding="async">` : ''}
           <div class="ehm-badges">${topPromotionForAd(ad) ? '<span class="ehm-badge top">Top Ad</span>' : (ad.isFeatured ? '<span class="ehm-badge featured">Featured</span>' : '<span></span>')}${ad.isPromoted ? '<span class="ehm-badge promoted">Promoted</span>' : ''}</div>
           <button type="button" class="ehm-heart${isFavoriteId(ad.id) ? ' active' : ''}" data-ehm-favorite-id="${esc(ad.id)}" aria-label="Add to favourites" aria-pressed="${isFavoriteId(ad.id) ? 'true' : 'false'}"><span data-ehm-heart-icon>${isFavoriteId(ad.id) ? '♥' : '♡'}</span></button>
         </div>
@@ -1570,7 +1684,6 @@
 
     Array.from(document.querySelectorAll('select,button')).forEach((node) => {
       if (!isVisibleElement(node)) return;
-      if (node.closest?.('.ehm-olx-search-bar') || node.closest?.('.ehm-olx-category-field') || node.closest?.('.ehm-olx-location-field')) return;
 
       const rect = node.getBoundingClientRect();
       // Only hide small control elements, never page/header containers.
@@ -1609,7 +1722,7 @@
 
       // Hide only small original location controls. Never hide wrapper divs/sections.
       Array.from(wrapper.querySelectorAll('select,button')).forEach((node) => {
-        if (node === input || node.id?.startsWith('ehm') || node.closest?.('.ehm-olx-category-field') || node.closest?.('.ehm-olx-location-field')) return;
+        if (node === input || node.id?.startsWith('ehm')) return;
         const rect = node.getBoundingClientRect();
         if (rect.width > 280 || rect.height > 70) return;
         const txt = (node.textContent || node.value || '').replace(/\s+/g, ' ').trim();
@@ -1726,54 +1839,47 @@
     const heroInput = findDesktopInputs().find((input) => /search for anything/i.test(input.placeholder || ''));
     if (!heroInput) return;
 
-    // Remove the older delayed overlay. It was injected after React/data hydration
-    // and caused the search filters to jump upward about a second after first paint.
-    document.getElementById('ehmDesktopHeroFilterbar')?.remove();
+    const section = heroInput.closest('section') || heroInput.closest('div');
+    if (!section) return;
 
-    const heroForm = heroInput.closest('form');
-    const searchBar = heroInput.closest('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQ5OjEy"]')
-      || heroForm?.firstElementChild
-      || heroInput.parentElement?.parentElement;
-    if (!heroForm || !searchBar) return;
+    // Hide existing native/simple location select near hero search. Never
+    // re-hide the EheMehe replacement controls on later stabilization passes.
+    Array.from(section.querySelectorAll('select')).forEach((sel) => {
+      if (sel.id?.startsWith('ehm') || sel.closest('#ehmDesktopHeroFilterbar')) return;
+      const txt = Array.from(sel.options || []).map((o) => o.textContent).join(' ');
+      if (/All Locations|Colombo|Kandy|Galle|Gampaha|Matara/i.test(txt)) {
+        sel.classList.add('ehm-desktop-top-location-hidden');
+        // Hide the select's small icon/wrapper too. Hiding only the select left
+        // a dead location-pin control inside the search box.
+        const nativeWrap = sel.closest('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"]') || sel.parentElement;
+        if (nativeWrap && !nativeWrap.contains(heroInput)) nativeWrap.classList.add('ehm-desktop-native-location-hidden');
+      }
+    });
 
-    heroForm.classList.add('ehm-olx-search-form');
-    searchBar.classList.add('ehm-olx-search-bar');
-    heroInput.parentElement?.classList.add('ehm-olx-query-field');
-
-    let locationField = searchBar.querySelector('.ehm-olx-location-field')
-      || searchBar.querySelector('[data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"]');
-    if (locationField) {
-      locationField.classList.remove('ehm-desktop-native-location-hidden', 'ehm-desktop-top-location-hidden');
-      locationField.classList.add('ehm-olx-location-field');
+    let bar = document.getElementById('ehmDesktopHeroFilterbar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'ehmDesktopHeroFilterbar';
+      bar.className = 'ehm-desktop-hero-filterbar';
+      const searchWrap = heroInput.closest('form') || heroInput.parentElement;
+      const heroSearchParent = searchWrap?.parentElement || searchWrap || heroInput;
+      heroSearchParent.insertAdjacentElement('afterend', bar);
     }
 
-    let location = locationField?.querySelector('select') || null;
-    if (!location) return;
-    location.classList.remove('ehm-desktop-native-location-hidden', 'ehm-desktop-top-location-hidden');
-    location.classList.add('ehm-desktop-district-select');
-    location.id = 'ehmDesktopHeroLocation';
-    location.setAttribute('aria-label', 'Location');
-
-    let categoryField = searchBar.querySelector('.ehm-olx-category-field');
-    if (!categoryField) {
-      categoryField = document.createElement('div');
-      categoryField.className = 'ehm-olx-category-field';
-      const categorySelect = document.createElement('select');
-      categorySelect.setAttribute('aria-label', 'Category');
-      categoryField.appendChild(categorySelect);
-      searchBar.insertBefore(categoryField, locationField);
+    if (!bar.querySelector('#ehmDesktopHeroCategory') || !bar.querySelector('#ehmDesktopHeroLocation')) {
+      bar.innerHTML = `
+        <select class="ehm-desktop-category-select" id="ehmDesktopHeroCategory" aria-label="Category"></select>
+        <select class="ehm-desktop-district-select" id="ehmDesktopHeroLocation" aria-label="Location"></select>
+      `;
     }
-    categoryField.classList.remove('ehm-desktop-native-category-hidden');
 
-    const cat = categoryField.querySelector('select');
-    if (!cat) return;
-    cat.classList.remove('ehm-desktop-native-category-hidden');
-    cat.classList.add('ehm-desktop-category-select');
-    cat.id = 'ehmDesktopHeroCategory';
-    cat.setAttribute('aria-label', 'Category');
-
+    const cat = bar.querySelector('#ehmDesktopHeroCategory');
+    const location = bar.querySelector('#ehmDesktopHeroLocation');
     const catHtml = categoryOptionsHtml('');
     const locationHtml = desktopLocationOptionsHtml('');
+
+    // Keep the native selects stable. Replacing their HTML on every observer
+    // tick interrupted desktop interaction and caused unnecessary layout work.
     if (cat.__ehmOptionsHtml !== catHtml) {
       cat.innerHTML = catHtml;
       cat.__ehmOptionsHtml = catHtml;
@@ -1782,7 +1888,6 @@
       location.innerHTML = locationHtml;
       location.__ehmOptionsHtml = locationHtml;
     }
-
     cat.value = categoryValueFromState();
     location.value = desktopLocationValueFromState();
 
@@ -1805,6 +1910,8 @@
         renderDesktopResults(true);
       });
     }
+
+    balanceDesktopHeroStats();
   }
 
   function desktopHomeSectionByHeading(label) {
@@ -1869,7 +1976,7 @@
           <p>${rows.length ? `${rows.length} matching ads found` : 'No matching ads found'}</p>
         </div>
       </div>
-      ${rows.length ? `<div class="ehm-desktop-grid">${rows.map(renderAdCard).join('')}</div>` : '<div class="ehm-desktop-empty">No matching ads found.</div>'}
+      ${!adsLoaded ? listingSkeletonHtml(8) : (rows.length ? `<div class="ehm-desktop-grid">${rows.map((ad, index) => renderAdCard(ad, index, 'desktop')).join('')}</div>` : '<div class="ehm-desktop-empty">No matching ads found.</div>')}
     `;
     if (shouldScroll) host.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -1878,15 +1985,15 @@
     if (isMobile() || !isHomeRoute() || desktopShellMutating) return false;
     desktopShellMutating = true;
     try {
-      document.documentElement.classList.remove('ehm-desktop-home-prepaint');
+      document.documentElement.classList.add('ehm-desktop-home-prepaint');
       document.body?.classList?.remove('ehm-ad-detail-route');
-      enhanceDesktopHeroControls();
       enhanceDesktopTopSearch();
+      enhanceDesktopHeroControls();
       syncDesktopCategorySelects();
       syncDesktopLocationSelects();
       balanceDesktopHeroStats();
       arrangeDesktopHomeSections();
-      return !!document.getElementById('ehmDesktopHeroCategory') && !!document.getElementById('ehmDesktopHeroLocation');
+      return !!document.getElementById('ehmDesktopHeroFilterbar');
     } finally {
       Promise.resolve().then(() => { desktopShellMutating = false; });
     }
@@ -1902,18 +2009,16 @@
     renderDesktopResults(true, false);
 
     if (!desktopDataPromise) {
-      desktopDataPromise = Promise.allSettled([
-        loadLookups(),
-        loadFinanceSettings(),
-        loadAds(),
-        loadPromotions()
-      ]).finally(() => { desktopDataPromise = null; });
+      // One same-origin, edge-cacheable request supplies the public home data.
+      // This replaces the previous seven-request browser fan-out.
+      desktopDataPromise = loadAds().finally(() => { desktopDataPromise = null; });
     }
     await desktopDataPromise;
 
     if (isMobile() || !isHomeRoute()) return;
     stabilizeDesktopHomeShell();
     renderDesktopResults(true, false);
+    schedulePublicMetaRefresh();
   }
 
   async function ensureHomeMobile() {
@@ -1934,22 +2039,20 @@
     renderResults();
     hideOriginalHomeContent();
 
-    // Load live data in the background and refresh the same Latest Ads grid.
-    await Promise.all([
-      loadLookups(),
-      loadFinanceSettings(),
-      loadAds(),
-      loadPromotions()
-    ]);
+    // Load all public home data through one same-origin cacheable endpoint.
+    // Category/location fallback data is already usable before this request.
+    await loadAds();
 
     attachSearchHandlers();
     updatePills();
     renderResults();
     hideOriginalHomeContent();
 
-    // Keep the managed mobile UI pinned right under the header.
+    // Keep the managed mobile UI pinned right under the header. Non-critical
+    // filters/promotions/settings refresh after the first listing paint.
     createFilterBar();
     createResultsHost();
+    schedulePublicMetaRefresh();
     return true;
   }
 
@@ -2239,6 +2342,22 @@
     const cached = readPublicDetailAd(cleanId);
     if (cached) return cached;
     if (/^\d+$/.test(cleanId)) return null;
+
+    try {
+      const response = await fetch(`/api/public-ad?id=${encodeURIComponent(cleanId)}`, {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin'
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && payload?.ad) {
+        const normalized = normalizeAd(payload.ad, 'supabase');
+        cachePublicDetailAd(normalized);
+        if (!supabaseAds.some((ad) => String(ad.id) === String(normalized.id))) {
+          supabaseAds = [normalized, ...supabaseAds];
+        }
+        return normalized;
+      }
+    } catch (_) {}
 
     let client = window.supabaseClient;
     if (!client && typeof window.waitForSupabaseClient === 'function') {
@@ -2639,7 +2758,10 @@
   }
 
   function handleRouteChange() {
-    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
+    if (isHomeRoute()) document.documentElement.classList.add('ehm-home-route-prepaint');
+    else document.documentElement.classList.remove('ehm-home-route-prepaint');
+    if (!isHomeRoute() || isMobile()) document.documentElement.classList.remove('ehm-desktop-home-prepaint');
+    else document.documentElement.classList.add('ehm-desktop-home-prepaint');
     refreshRouteObserver();
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
@@ -2745,7 +2867,7 @@
 
   function installDesktopHomePrepaintWatcher() {
     if (window.__ehmDesktopPrepaintObserver || isMobile() || !isHomeRoute()) return;
-    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
+    document.documentElement.classList.add('ehm-desktop-home-prepaint');
 
     const observer = new MutationObserver(() => {
       if (window.__ehmMutating || desktopShellMutating) return;

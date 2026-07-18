@@ -1,6 +1,7 @@
 <!DOCTYPE html><html lang="en"><head><base href="/">
     <meta charset="UTF-8">
-    <link rel="icon" type="image/png" href="/assets/ehemehe_favicon.png">
+    <link rel="icon" type="image/png" href="/assets/ehemehe_favicon_64.png?v=3cd3cc5132c199ad">
+    <link rel="preload" as="image" type="image/webp" href="/assets/ehemehe_logo_header.webp?v=eeb21c8b6d956e1a" fetchpriority="high">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script id="ehm-mobile-viewport-fix">
@@ -53,13 +54,19 @@
     <script id="ehm-desktop-home-prepaint-class">
 (function () {
   var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
-  if (path === '/' && window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
-    document.documentElement.classList.remove('ehm-desktop-home-prepaint');
+  if (path === '/') {
+    document.documentElement.classList.add('ehm-home-route-prepaint');
+    if (window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
+      document.documentElement.classList.add('ehm-desktop-home-prepaint');
+    }
   }
 })();
     </script>
     <style id="ehm-desktop-home-prepaint-style">
       @media (min-width: 768px) {
+        html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDYwOjE0"] {
+          display: none !important;
+        }
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDMxOjEw"],
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDM3OjEw"],
         html.ehm-desktop-home-prepaint [data-yw="c3JjL2NvbXBvbmVudHMvSGVyb1NlY3Rpb24udHN4QDQzOjEw"],
@@ -75,52 +82,128 @@
     <meta name="description" content="ehemehe.lk - Sri Lanka's #1 Modern Marketplace. Buy, sell, and discover amazing deals.">
     <meta name="theme-color" content="#3DC697">
     <title>ehemehe.lk - Sri Lanka's Marketplace</title>
-    <script src="/sms-verification-service.js?v=06eb7d2a20d4c31b" data-ehm-unified-sms="primary"></script>
-    <script id="ehm-auth-route-isolation">
+    <link id="ehm-site-enhancements" rel="stylesheet" href="/css/ehemehe-app.min.css?v=39be73d114bd350a">
+    <script id="ehm-route-head-assets">
 (function () {
   var path = location.pathname.replace(/\/+$/, '') || '/';
-  window.__EHM_AUTH_ONLY_ROUTE = path === '/login' || path === '/signup';
+  var authOnly = path === '/login' || path === '/signup';
+  window.__EHM_AUTH_ONLY_ROUTE = authOnly;
+
+  function addPreload(rel, href, asValue) {
+    var link = document.createElement('link');
+    link.rel = rel;
+    link.href = href;
+    if (asValue) link.as = asValue;
+    document.head.appendChild(link);
+  }
+
+  if (!authOnly) addPreload('modulepreload', '/js/index-BsKly-Vj.js?v=078944741ea31c09');
+  if (path === '/' || path.indexOf('/ad/') === 0) addPreload('preload', '/index-filters.min.js?v=74d3bfe931be64d8', 'script');
+
+  var styles = [];
+  if (path === '/post' || path.indexOf('/dashboard') === 0) {
+    styles.push('/post-ad-runtime.css?v=d5ad1b1df50bf7b2', '/post-ad-form-fixes.css?v=1fd3aae4f0032f69');
+  }
+  if (authOnly) styles.push('/auth-unified.css?v=6074283e9d8c1391');
+  styles.forEach(function (href) {
+    document.write('<link rel="stylesheet" href="' + href + '">');
+  });
 })();
-</script>
+    </script>
 <script type="module">
 if (!window.__EHM_AUTH_ONLY_ROUTE) {
-  await window.EHM_SMS.whenReady();
-  await import('/js/index-BsKly-Vj.js?v=1eb417282fdcaa4e');
+  import('/js/index-BsKly-Vj.js?v=078944741ea31c09').catch(function (error) {
+    console.error('Could not start EheMehe application.', error);
+  });
 }
-</script>
-    <link rel="stylesheet" crossorigin="" href="css/index-DcB2eYwd.css">
-  
-  <style id="mobile-footer-hide">
-    @media (max-width: 767px) {
-      footer {
-        display: none !important;
-      }
-      body {
-        padding-bottom: 76px !important;
-      }
-    }
-  </style>
-  <link rel="stylesheet" href="/post-ad-runtime.css?v=9eda9deb97b5b012">
-  <link rel="stylesheet" href="/post-ad-form-fixes.css?v=1fd3aae4f0032f69">
-  <link rel="stylesheet" href="/brand-theme.css?v=63cfdfdedc539682">
-<link rel="stylesheet" href="/auth-unified.css?v=6074283e9d8c1391">
+    </script>
 </head>
   <body>
     <div id="root"></div>
-  
+    <script id="ehm-route-core-loader">
+(function () {
+  var path = location.pathname.replace(/\/+$/, '') || '/';
+  var authCritical = path === '/login' || path === '/signup' || path === '/post' ||
+    path.indexOf('/dashboard') === 0 || path.indexOf('/profile') === 0 || path.indexOf('/messages') === 0;
 
+  function writeScript(src) {
+    document.write('<script src="' + src + '"><\/script>');
+  }
+  function appendScript(src, done) {
+    var node = document.createElement('script');
+    node.src = src;
+    node.async = true;
+    node.onload = done || null;
+    node.onerror = done || null;
+    document.head.appendChild(node);
+  }
 
+  if (authCritical) {
+    writeScript('/supabase.js?v=828b6b4eb6050614');
+    writeScript('/auth-session-bridge.js?v=3fbc48c04dd76ce2');
+  } else {
+    window.addEventListener('load', function () {
+      appendScript('/supabase.js?v=828b6b4eb6050614', function () {
+        appendScript('/auth-session-bridge.js?v=3fbc48c04dd76ce2');
+      });
+    }, { once: true });
+  }
+})();
+    </script>
+    <script id="ehm-route-body-assets">
+(function () {
+  var path = location.pathname.replace(/\/+$/, '') || '/';
+  function script(src, loadMode) {
+    var attr = loadMode === 'async' ? ' async' : (loadMode === 'defer' ? ' defer' : '');
+    document.write('<script src="' + src + '"' + attr + '><\/script>');
+  }
 
+  if (path === '/' || path.indexOf('/ad/') === 0) {
+    script('/index-filters.min.js?v=74d3bfe931be64d8', 'defer');
+  }
+  script('/brand-theme.js?v=a0232680779565ef', 'async');
 
-  
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/supabase.js?v=828b6b4eb6050614"></script>
-  <script src="/auth-session-bridge.js?v=f9f6f9665b885b41"></script>
-  <script src="/dashboard-profile.js?v=d789fd7bf91d31c5"></script>
+  var needsSms = path === '/login' || path === '/signup' || path === '/post' || path.indexOf('/dashboard') === 0;
+  if (needsSms) script('/sms-verification-service.js?v=06eb7d2a20d4c31b');
 
-  <script src="./post-ad-category-fields.js?v=725edf8c7526490c"></script>
-  <script src="./index-filters.js?v=3a0fa330f4e82a06"></script>
-  <script src="/brand-theme.js?v=e1c080729b3f23a5"></script>
-<script src="/post-ad-runtime.js?v=2a5a5c562d1f42ef"></script>
-<script src="/auth-unified.js?v=53c1ce777c14b219"></script>
+  if (path === '/post') {
+    script('/post-ad-category-fields.js?v=725edf8c7526490c');
+    script('/post-ad-runtime.js?v=10c469eac5431d20');
+  } else if (path.indexOf('/dashboard') === 0) {
+    script('/post-ad-runtime.js?v=10c469eac5431d20');
+  }
+
+  if (path === '/login' || path === '/signup') {
+    script('/auth-unified.js?v=7b32a64cd1e3497d');
+  }
+})();
+    </script>
+    <script id="ehm-lazy-supabase-sdk">
+(function () {
+  var started = false;
+  var path = location.pathname.replace(/\/+$/, '') || '/';
+  var authCritical = path === '/login' || path === '/signup' || path === '/post' ||
+    path.indexOf('/dashboard') === 0 || path.indexOf('/profile') === 0 || path.indexOf('/messages') === 0;
+
+  function start() {
+    if (started || window.supabase) return;
+    started = true;
+    var sdk = document.createElement('script');
+    sdk.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    sdk.async = true;
+    sdk.crossOrigin = 'anonymous';
+    sdk.onload = function () { window.getSupabaseClient && window.getSupabaseClient(); };
+    document.head.appendChild(sdk);
+  }
+
+  if (authCritical) {
+    start();
+  } else {
+    window.addEventListener('load', function () {
+      if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 1800 });
+      else setTimeout(start, 900);
+    }, { once: true });
+  }
+})();
+    </script>
 </body></html>

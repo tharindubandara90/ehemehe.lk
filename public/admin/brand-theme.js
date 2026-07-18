@@ -1,7 +1,7 @@
 
 (() => {
-  const LOGO = '/assets/ehemehe_logo_header.png';
-  const FAVICON = '/assets/ehemehe_favicon.png';
+  const LOGO = '/assets/ehemehe_logo_header.webp?v=eeb21c8b6d956e1a';
+  const FAVICON = '/assets/ehemehe_favicon_64.png?v=3cd3cc5132c199ad';
   const GREEN = '#3DC697';
 
   function ensureFavicon() {

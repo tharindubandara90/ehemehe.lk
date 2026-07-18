@@ -6,7 +6,7 @@ const index = fs.readFileSync('public/index.html', 'utf8');
 const helper = fs.readFileSync('public/post-ad-category-fields.js', 'utf8');
 const runtime = fs.readFileSync('public/post-ad-runtime.js', 'utf8');
 const bundle = fs.readFileSync('public/js/index-BsKly-Vj.js', 'utf8');
-const server = fs.readFileSync('local-server.js', 'utf8');
+const server = fs.readFileSync('server.js', 'utf8');
 
 assert(helper.includes('function isPostRoute()'));
 assert(!helper.includes("if (!['/post', '/post-ad'].includes(normalizedPath)) return;"));
@@ -32,12 +32,16 @@ const requiredAssets = [
   '/auth-unified.js'
 ];
 for (const url of requiredAssets) {
-  const htmlUrl = url === '/post-ad-category-fields.js' ? './post-ad-category-fields.js' : url;
-  const match = index.match(new RegExp(htmlUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=([a-f0-9]{16})'));
-  assert(match, `${htmlUrl} is not content-hash versioned`);
+  const candidates = url === '/post-ad-category-fields.js'
+    ? ['./post-ad-category-fields.js', '/post-ad-category-fields.js']
+    : [url];
+  const match = candidates
+    .map((htmlUrl) => index.match(new RegExp(htmlUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=([a-f0-9]{16})')))
+    .find(Boolean);
+  assert(match, `${url} is not content-hash versioned`);
   const file = `public/${url.replace(/^\//, '')}`;
   const expected = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').slice(0, 16);
-  assert.strictEqual(match[1], expected, `${htmlUrl} version does not match its content`);
+  assert.strictEqual(match[1], expected, `${url} version does not match its content`);
 }
 
 assert(server.includes('const contentHashedVersion = /^[a-f0-9]{12,64}$/i.test(assetVersion);'));

@@ -1,0 +1,69 @@
+{
+  "project": "EheMehe.lk marketplace",
+  "validationDate": "2026-07-18",
+  "sourceOfTruth": "ehemehe-desktop-first-paint-stable-full.zip",
+  "scope": [
+    "responsive footer grid",
+    "mobile LCP critical path",
+    "render-blocking resources",
+    "network dependency chain",
+    "listing image delivery",
+    "static compression and caching"
+  ],
+  "footer": {
+    "actualContentColumns": 4,
+    "mobileColumns": 2,
+    "tabletColumns": 3,
+    "desktopColumns": 4,
+    "guardedBreakpoint": "1024px-1147px",
+    "phantomFifthColumnRemoved": true
+  },
+  "criticalAssets": {
+    "unconditionalStylesheets": 1,
+    "combinedCssRawBytes": 90827,
+    "combinedCssBrotliBytes": 12916,
+    "publicHelperRawBytes": 107659,
+    "publicHelperBrotliBytes": 24390,
+    "mainBundleBrotliBytes": 77222,
+    "headerLogoBytes": 12544,
+    "faviconBytes": 2087,
+    "googleFontsRemoved": true,
+    "publicHelperDeferred": true
+  },
+  "lcpPath": {
+    "browserCriticalHomeRequests": 1,
+    "listingDataExcludesFullImages": true,
+    "firstThumbnailFetchedInParallelServerSide": true,
+    "firstThumbnailIncludedInHomeResponse": true,
+    "firstImageFormat": "WebP 480x360 when conversion is needed",
+    "firstImagePriority": "eager/high",
+    "remainingImages": "lazy/low through cached image endpoint",
+    "staticDemoImagesBlockedBeforeLiveData": true,
+    "stableSkeleton": true
+  },
+  "network": {
+    "publicMetadataDeferred": true,
+    "smsScriptsRouteScoped": true,
+    "supabaseSdkDeferredOnPublicRoutes": true,
+    "unusedUnsplashPreconnectRemoved": true,
+    "brotliAndGzip": true,
+    "etag304": true,
+    "contentHashImmutableCaching": true,
+    "permanentSetIntervalLoops": 0
+  },
+  "coverage": {
+    "mainCategories": 13,
+    "subcategories": 62,
+    "staticAdShells": 100,
+    "staticAdShellsIdentical": 100,
+    "regressionTestsPerPass": 19,
+    "requiredFullPasses": 3
+  },
+  "productionVerification": {
+    "liveVercelDeploymentPerformed": false,
+    "livePageSpeedRunPerformed": false,
+    "targetLcpSeconds": 2.5,
+    "targetGuaranteed": false,
+    "note": "Re-run PageSpeed Insights after deployment; production latency, cold starts and historical image data affect the measured value."
+  }
+}

@@ -12,7 +12,6 @@
       name: metadata.name || metadata.full_name || user.email?.split('@')[0] || user.phone || 'User',
       email: metadata.contact_email || metadata.email || (String(user.email || '').endsWith('@auth.ehemehe.lk') ? '' : (user.email || '')) || metadata.phone || '',
       phone: metadata.phone || user.phone || '',
-      avatarUrl: metadata.avatar_url || metadata.avatarUrl || '',
       memberSince: user.created_at || new Date().toISOString()
     };
   }
@@ -40,15 +39,9 @@
     if (currentSession?.user) {
       const user = normalizedUser(currentSession.user);
       const latest = store.getState();
-      const existing = latest.currentUser || {};
-      const profileChanged =
-        !latest.isAuthenticated ||
-        existing.id !== user.id ||
-        existing.name !== user.name ||
-        existing.email !== user.email ||
-        existing.phone !== user.phone ||
-        existing.avatarUrl !== user.avatarUrl;
-      if (profileChanged) latest.login(user);
+      if (!latest.isAuthenticated || latest.currentUser?.id !== user.id) {
+        latest.login(user);
+      }
     } else {
       const latest = store.getState();
       if (latest.isAuthenticated) latest.logout();

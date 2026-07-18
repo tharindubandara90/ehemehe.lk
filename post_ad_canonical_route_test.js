@@ -3,7 +3,7 @@ const fs = require('fs');
 
 const bundle = fs.readFileSync('public/js/index-BsKly-Vj.js', 'utf8');
 const brand = fs.readFileSync('public/brand-theme.js', 'utf8');
-const server = fs.readFileSync('local-server.js', 'utf8');
+const server = fs.readFileSync('server.js', 'utf8');
 const adminHtml = fs.readFileSync('public/admin.html', 'utf8');
 const nestedAdminHtml = fs.readFileSync('public/admin/index.html', 'utf8');
 const nestedBrand = fs.readFileSync('public/admin/brand-theme.js', 'utf8');

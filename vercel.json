@@ -1,74 +1,15 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "builds": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "public"
-      }
-    },
-    {
-      "src": "api/index.js",
+      "src": "server.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/post-ad(?:\\.html)?",
-      "headers": {
-        "Location": "/post"
-      },
-      "status": 308
-    },
-    {
-      "src": "/terms(?:/)?",
-      "dest": "/terms.html"
-    },
-    {
-      "src": "/privacy(?:/)?",
-      "dest": "/privacy.html"
-    },
-    {
-      "src": "/safety(?:/)?",
-      "dest": "/safety.html"
-    },
-    {
-      "src": "/contact(?:/)?",
-      "dest": "/contact.html"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.js?__api_route=$1"
-    },
-    {
-      "src": "/assets/(.*)",
-      "headers": {
-        "Cache-Control": "public, max-age=86400"
-      },
-      "continue": true
-    },
-    {
-      "src": "/(.*)\\.html",
-      "headers": {
-        "Cache-Control": "no-cache, max-age=0, must-revalidate"
-      },
-      "continue": true
-    },
-    {
-      "src": "/(.*)\\.(?:js|css)",
-      "headers": {
-        "Cache-Control": "no-cache, max-age=0, must-revalidate"
-      },
-      "continue": true
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/server.js"
     }
   ]
 }

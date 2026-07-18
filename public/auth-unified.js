@@ -55,7 +55,7 @@
 
   let settings = null;
   let mode = 'login';
-  let loginMethod = 'auto';
+  let loginMethod = 'email';
   const verifyMethod = 'sms';
   let registrationChallenge = '';
   let smsVerificationId = '';
@@ -175,9 +175,14 @@
           </div>
 
           <section id="ehmLoginFields">
+            <div class="ehm-method-tabs">
+              <button type="button" data-login-method="email">Email</button>
+              <button type="button" data-login-method="phone">Phone number</button>
+            </div>
+
             <div class="ehm-auth-field">
-              <label id="ehmLoginIdentifierLabel">Email address or phone number</label>
-              <input id="ehmLoginIdentifier" type="text" inputmode="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="name@example.com or 0771234567">
+              <label id="ehmLoginIdentifierLabel">Email</label>
+              <input id="ehmLoginIdentifier" autocomplete="username">
             </div>
 
             <div class="ehm-auth-field">
@@ -296,6 +301,10 @@
     document.querySelectorAll('[data-auth-mode]').forEach((button) => {
       button.classList.toggle('active', button.dataset.authMode === mode);
     });
+    document.querySelectorAll('[data-login-method]').forEach((button) => {
+      button.classList.toggle('active', button.dataset.loginMethod === loginMethod);
+    });
+
     const isReset = mode === 'reset';
     $('ehmAuthTabs')?.classList.toggle('ehm-hidden', isReset);
     $('ehmLoginFields')?.classList.toggle('ehm-hidden', mode !== 'login');
@@ -322,14 +331,13 @@
 
     const loginIdentifier = $('ehmLoginIdentifier');
     if (loginIdentifier) {
-      loginIdentifier.type = 'text';
-      loginIdentifier.inputMode = 'text';
-      loginIdentifier.placeholder = 'name@example.com or 0771234567';
-      loginIdentifier.autocapitalize = 'none';
-      loginIdentifier.spellcheck = false;
+      loginIdentifier.type = loginMethod === 'email' ? 'email' : 'tel';
+      loginIdentifier.placeholder = loginMethod === 'email' ? 'name@example.com' : '0771234567';
     }
     if ($('ehmLoginIdentifierLabel')) {
-      $('ehmLoginIdentifierLabel').textContent = 'Email address or phone number';
+      $('ehmLoginIdentifierLabel').textContent = loginMethod === 'email'
+        ? 'Email address'
+        : 'Mobile number';
     }
 
     const main = $('ehmMainButton');
@@ -502,7 +510,7 @@
     resetPasswordState();
     mode = 'reset';
 
-    if (validPhone(loginValue)) {
+    if (loginMethod === 'phone' && validPhone(loginValue)) {
       resetPhone = normalizePhone(loginValue);
     }
 
@@ -519,7 +527,7 @@
     const verifiedPhone = resetPhone;
     resetPasswordState();
     mode = 'login';
-    loginMethod = 'auto';
+    loginMethod = 'phone';
     render();
 
     const loginInput = $('ehmLoginIdentifier');
@@ -648,14 +656,13 @@
       };
     });
 
-    const loginIdentifierInput = $('ehmLoginIdentifier');
-    if (loginIdentifierInput) {
-      loginIdentifierInput.addEventListener('input', () => {
-        const value = String(loginIdentifierInput.value || '').trim();
-        loginMethod = value.includes('@') ? 'email' : (validPhone(value) || /^[+\d][\d\s()-]*$/.test(value) ? 'phone' : 'auto');
-        loginIdentifierInput.dataset.detectedMethod = loginMethod;
-      });
-    }
+    document.querySelectorAll('[data-login-method]').forEach((button) => {
+      button.onclick = () => {
+        loginMethod = button.dataset.loginMethod;
+        render();
+      };
+    });
+
 
     $('ehmSendOtp').onclick = sendRegistrationOtp;
     $('ehmMainButton').onclick = () => {

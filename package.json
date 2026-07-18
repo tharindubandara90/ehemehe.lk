@@ -3,19 +3,27 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node local-server.js",
-    "start": "node local-server.js",
-    "serve": "node local-server.js",
-    "deploy": "npm run prepare-assets && npx vercel --prod",
+    "dev": "node server.js",
+    "start": "node server.js",
+    "serve": "node server.js",
+    "deploy": "npm run prepare-assets && vercel --prod",
     "sync-ad-shells": "node scripts/sync-ad-route-shells.js",
     "validate-supabase": "node scripts/validate-supabase-config.js",
     "version-assets": "node scripts/version-assets.js",
-    "prepare-assets": "node scripts/version-assets.js && node scripts/sync-ad-route-shells.js",
+    "prepare-assets": "npm run build-css && npm run build-public-js && node scripts/version-assets.js && node scripts/sync-ad-route-shells.js",
     "build": "npm run prepare-assets",
     "test": "node scripts/run-regression-tests.js",
-    "test:http": "node scripts/http-regression-test.js"
+    "test:http": "node scripts/http-regression-test.js",
+    "build-css": "node scripts/build-css.js",
+    "build-public-js": "node scripts/build-public-js.js"
   },
-  "engines": {
-    "node": "22.x"
+  "devDependencies": {
+    "clean-css": "^5.3.3",
+    "serve": "^14.2.4",
+    "terser": "^5.43.1",
+    "vercel": "latest"
+  },
+  "dependencies": {
+    "sharp": "^0.34.1"
   }
 }
