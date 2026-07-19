@@ -12,6 +12,15 @@ const htmlFiles = [
   path.join('admin', 'index.html'),
   'browse.html',
   path.join('browse', 'index.html'),
+  'terms.html',
+  path.join('terms', 'index.html'),
+  'privacy.html',
+  path.join('privacy', 'index.html'),
+  'safety.html',
+  path.join('safety', 'index.html'),
+  'contact.html',
+  path.join('contact', 'index.html'),
+  'ad-detail.html',
   '404.html'
 ].map((name) => path.join(publicDir, name)).filter(fs.existsSync);
 
@@ -34,7 +43,9 @@ const assetUrls = [
   '/post-ad-runtime.js',
   '/auth-unified.js',
   '/post-ad.js',
-  '/admin.js'
+  '/admin.js',
+  '/report-fixes.css',
+  '/report-fixes.js'
 ];
 
 function assetPath(url) {

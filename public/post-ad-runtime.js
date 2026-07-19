@@ -10,6 +10,7 @@
   const CATEGORY_SELECTION_KEY = 'ehemehe:postAdSelection:v1';
   const MAX_PHONES = 5;
   const MAX_IMAGES = 10;
+  const AD_PLACEHOLDER = '/assets/ad-placeholder.svg';
 
   const runtime = {
     rows: [],
@@ -1502,6 +1503,31 @@
     }
   }
 
+  async function deleteDashboardAd(adId) {
+    const ad = runtime.dashboardAds.find((row) => String(row.id || row.localId || '') === String(adId || ''));
+    if (!ad?.id) throw new Error('This ad is still syncing. Reload once and try again.');
+    if (!window.confirm(`Permanently delete "${ad.title || 'this ad'}"? This cannot be undone.`)) return false;
+    const authSession = await session();
+    if (!authSession?.access_token) throw new Error('Log in to delete your ad.');
+    dashboardNotice('Deleting ad...', 'pending');
+    const response = await fetch('/api/delete-my-ad', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${authSession.access_token}` },
+      body: JSON.stringify({ id: ad.id })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.ok === false) throw new Error(result.message || 'Could not delete the ad.');
+    runtime.dashboardAds = runtime.dashboardAds.filter((row) => String(row.id || row.localId || '') !== String(ad.id));
+    runtime.dashboardLoadedAt = Date.now();
+    try {
+      const local = localAds().filter((row) => String(row.id || row.localId || '') !== String(ad.id));
+      localStorage.setItem('ehemeheLocalAds', JSON.stringify(local));
+    } catch (_) {}
+    await renderDashboard();
+    dashboardNotice(result.message || 'Ad deleted.', 'success');
+    return true;
+  }
+
   function adCard(ad) {
     const image = ad.image_url || ad.images?.[0] || '';
     const locationText = [ad.city || ad.custom_fields?.city, ad.district || ad.custom_fields?.district]
@@ -1512,7 +1538,7 @@
     return `
       <article class="ehm-dashboard-ad-card">
         <div class="ehm-dashboard-ad-image">
-          ${image ? `<img src="${esc(image)}" alt="">` : '<span>No photo</span>'}
+          <img src="${esc(image || AD_PLACEHOLDER)}" alt="${esc(ad.title || 'Ad image')}" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'">
         </div>
         <div class="ehm-dashboard-ad-content">
           <div class="ehm-dashboard-ad-top">
@@ -1523,7 +1549,10 @@
           <p>${esc(locationText || ad.location || '')}</p>
           <div class="ehm-dashboard-ad-footer">
             <small>Submitted ${new Date(ad.created_at || Date.now()).toLocaleDateString('en-LK')}</small>
-            <button type="button" class="ehm-dashboard-edit" data-ehm-edit-ad="${esc(id)}" ${canEdit ? '' : 'disabled'}>Edit Ad</button>
+            <div class="ehm-dashboard-actions">
+              <button type="button" class="ehm-dashboard-edit" data-ehm-edit-ad="${esc(id)}" ${canEdit ? '' : 'disabled'}>Edit Ad</button>
+              <button type="button" class="ehm-dashboard-delete" data-ehm-delete-ad="${esc(id)}" ${canEdit ? '' : 'disabled'}>Delete</button>
+            </div>
           </div>
         </div>
       </article>
@@ -1589,6 +1618,21 @@
     }
   }
 
+  function updateDashboardOverview(ads) {
+    const rows = Array.isArray(ads) ? ads : [];
+    const values = {
+      'my ads': rows.length,
+      'views': rows.reduce((sum, ad) => sum + Number(ad.view_count ?? ad.viewCount ?? 0), 0)
+    };
+    Array.from(document.querySelectorAll('div')).forEach((node) => {
+      const label = clean(node.textContent).toLowerCase();
+      if (!(label in values)) return;
+      const card = node.closest('.bg-white');
+      const number = card?.querySelector('.font-bold');
+      if (number && /^\d[\d,]*$/.test(clean(number.textContent))) number.textContent = Number(values[label]).toLocaleString('en-LK');
+    });
+  }
+
   function updateDashboardCount(count) {
     Array.from(document.querySelectorAll('div')).forEach((node) => {
       if (clean(node.textContent) !== 'My Ads') return;
@@ -1604,6 +1648,7 @@
     if (!route().startsWith('/dashboard')) return;
     const ads = await loadDashboardAds();
     updateDashboardCount(ads.length);
+    updateDashboardOverview(ads);
     wireNativeDashboardEditButtons(ads);
 
     const myAdsHeading = Array.from(document.querySelectorAll('h1,h2'))
@@ -1716,6 +1761,16 @@
   document.addEventListener('click', interceptNavigation, true);
 
   document.addEventListener('click', (event) => {
+    const deleteButton = event.target?.closest?.('[data-ehm-delete-ad]');
+    if (deleteButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      deleteButton.disabled = true;
+      deleteDashboardAd(deleteButton.dataset.ehmDeleteAd).catch((error) => {
+        dashboardNotice(error?.message || 'Could not delete the ad.', 'error');
+      }).finally(() => { if (deleteButton.isConnected) deleteButton.disabled = false; });
+      return;
+    }
     const editButton = event.target?.closest?.(
       `[data-ehm-edit-ad],button[data-yw="${NATIVE_DASHBOARD_EDIT_MARKER}"]`
     );

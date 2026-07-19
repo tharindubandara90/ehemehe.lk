@@ -1,0 +1,31 @@
+{
+  "report_pages_reviewed": 16,
+  "source_project": "ehemehe-my-ads-edit-mobile-home-fixed-full.zip",
+  "issues": {
+    "unified_footer": "fixed",
+    "unified_ad_detail_style": "fixed",
+    "permanent_account_deletion": "fixed",
+    "phone_plus_94_format": "fixed",
+    "profile_save_changes": "fixed",
+    "new_account_sample_ads": "fixed",
+    "my_ads_edit_delete": "fixed",
+    "real_view_count": "fixed",
+    "favorites_remove_button": "fixed",
+    "dashboard_link_routing": "fixed",
+    "favorites_persistence": "fixed",
+    "ad_detail_images": "fixed",
+    "missing_image_placeholder": "fixed",
+    "alignment_cleanup": "fixed",
+    "favorite_color_consistency": "fixed",
+    "live_search_while_typing": "fixed",
+    "social_links": "configured",
+    "all_categories_return": "fixed",
+    "mobile_favorites": "fixed",
+    "mobile_nav_active_style": "fixed",
+    "mobile_filtering_responsive": "preserved_and_validated"
+  },
+  "tests_per_pass": 34,
+  "passes": 10,
+  "total_regression_test_executions": 340,
+  "production_tested": false
+}

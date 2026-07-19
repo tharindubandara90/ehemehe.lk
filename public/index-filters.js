@@ -144,6 +144,7 @@
   const AD_PROMOTIONS_KEY = 'ehemeheAdPromotions';
   const BANNER_ADS_KEY = 'ehemeheBannerAds';
   const FAVORITES_STORAGE_KEY = 'ehemehe:favorites:v2';
+  const AD_PLACEHOLDER = '/assets/ad-placeholder.svg';
   const REPORT_REASON_LABELS = {
     scam: 'Scam or fraud', spam: 'Spam or misleading', duplicate: 'Duplicate listing',
     sold: 'Already sold or unavailable', category: 'Wrong category', inappropriate: 'Inappropriate content', other: 'Other'
@@ -492,7 +493,7 @@
 
   function relativeDate(dateText) {
     if (!dateText) return 'Today';
-    const today = new Date('2026-06-21T00:00:00');
+    const today = new Date();
     const posted = new Date(dateText);
     if (Number.isNaN(posted.getTime())) return String(dateText);
     const days = Math.max(0, Math.floor((today - posted) / 86400000));
@@ -502,7 +503,14 @@
   }
 
   function normalizeAd(raw, source = 'static') {
-    const image = raw.image_url || raw.image || (Array.isArray(raw.images) ? raw.images[0] : '');
+    let images = raw.images || raw.image_urls || raw.photos || [];
+    if (typeof images === 'string') {
+      try { images = JSON.parse(images); } catch (_) { images = images ? [images] : []; }
+    }
+    if (!Array.isArray(images)) images = [];
+    images = images.map((value) => String(value || '').trim()).filter(Boolean);
+    const image = String(raw.image_url || raw.image || raw.thumbnail_url || images[0] || '').trim();
+    if (image && !images.includes(image)) images.unshift(image);
     let customFields = raw.custom_fields || raw.customFields || {};
     if (typeof customFields === 'string') { try { customFields = JSON.parse(customFields); } catch (_) { customFields = {}; } }
     const categoryName = raw.categoryName || raw.categories?.name || raw.category || customFields.subcategory_name || customFields.category_name || '';
@@ -532,8 +540,8 @@
       cityId: raw.city_id || raw.cityId || raw.cities?.id || '',
       cityName,
       districtId,
-      image,
-      images: Array.isArray(raw.images) ? raw.images : (image ? [image] : []),
+      image: image || AD_PLACEHOLDER,
+      images: images.length ? images : [AD_PLACEHOLDER],
       condition: raw.condition || '',
       postedAt: raw.created_at || raw.postedAt || raw.updated_at || '',
       promotionType: String(raw.promotion_type || raw.promotionType || '').toLowerCase(),
@@ -1412,7 +1420,8 @@
         }
       }, true);
       input.addEventListener('input', () => {
-        if (!input.value.trim()) renderResults();
+        window.clearTimeout(input.__ehmLiveSearchTimer);
+        input.__ehmLiveSearchTimer = window.setTimeout(() => renderResults(), 180);
       });
     }
     const wrapper = input.closest('form') || input.closest('div');
@@ -1482,7 +1491,7 @@
     return `
       <a class="ehm-ad-card" href="${esc(href)}" data-ehm-ad-id="${esc(ad.id)}">
         <div class="ehm-ad-img-wrap">
-          ${ad.image ? `<img class="ehm-ad-img" src="${esc(ad.image)}" alt="${esc(ad.title)}" loading="lazy">` : ''}
+          <img class="ehm-ad-img" src="${esc(ad.image || AD_PLACEHOLDER)}" alt="${esc(ad.title)}" loading="lazy" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'">
           <div class="ehm-badges">${topPromotionForAd(ad) ? '<span class="ehm-badge top">Top Ad</span>' : (isFeaturedPlacement(ad) ? '<span class="ehm-badge featured">Featured</span>' : '<span></span>')}${isPromotedPlacement(ad) && !topPromotionForAd(ad) ? '<span class="ehm-badge promoted">Promoted</span>' : ''}</div>
           <button type="button" class="ehm-heart${isFavoriteId(ad.id) ? ' active' : ''}" data-ehm-favorite-id="${esc(ad.id)}" aria-label="Add to favourites" aria-pressed="${isFavoriteId(ad.id) ? 'true' : 'false'}"><span data-ehm-heart-icon>${isFavoriteId(ad.id) ? '♥' : '♡'}</span></button>
         </div>
@@ -1878,7 +1887,11 @@
         }, true);
         input.addEventListener('input', () => {
           state.query = (input.value || '').trim();
-          if (!state.query) renderDesktopResults(false, false);
+          if (state.query) state.category = null;
+          window.clearTimeout(input.__ehmLiveSearchTimer);
+          input.__ehmLiveSearchTimer = window.setTimeout(() => {
+            renderDesktopResults(Boolean(state.query), false);
+          }, 180);
         });
       }
     });
@@ -2628,7 +2641,7 @@
 
   function dynamicDetailHtml(ad) {
     const images = Array.from(new Set((Array.isArray(ad.images) ? ad.images : [ad.image]).filter(Boolean)));
-    const mainImage = images[0] || '';
+    const mainImage = images[0] || AD_PLACEHOLDER;
     const location = detailLocation(ad);
     const phones = Array.from(new Set([
       ...(Array.isArray(ad.contactPhones) ? ad.contactPhones : []), ad.contactPhone, ad.seller?.phone
@@ -2644,14 +2657,14 @@
       <div class="ehm-dynamic-layout">
         <div class="ehm-dynamic-main">
           <section class="ehm-dynamic-gallery">
-            <div class="ehm-dynamic-main-image">${mainImage ? `<img id="ehmDynamicMainImage" src="${esc(mainImage)}" alt="${esc(ad.title)}">` : '<div class="ehm-dynamic-no-image">No photo available</div>'}</div>
-            ${images.length > 1 ? `<div class="ehm-dynamic-thumbs">${images.map((src, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-ehm-detail-image="${esc(src)}"><img src="${esc(src)}" alt=""></button>`).join('')}</div>` : ''}
+            <div class="ehm-dynamic-main-image"><img id="ehmDynamicMainImage" src="${esc(mainImage)}" alt="${esc(ad.title)}" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'"></div>
+            ${images.length > 1 ? `<div class="ehm-dynamic-thumbs">${images.map((src, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-ehm-detail-image="${esc(src)}"><img src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'"></button>`).join('')}</div>` : ''}
           </section>
           <section class="ehm-dynamic-card ehm-dynamic-summary">
             <div class="ehm-dynamic-title-row"><h1>${esc(ad.title)}</h1><button type="button" class="ehm-dynamic-heart${isFavoriteId(ad.id) ? ' active' : ''}" data-ehm-favorite-id="${esc(ad.id)}" aria-label="Save ad" aria-pressed="${isFavoriteId(ad.id) ? 'true' : 'false'}"><span data-ehm-heart-icon>${isFavoriteId(ad.id) ? '♥' : '♡'}</span></button></div>
             <div class="ehm-dynamic-price">${esc(formatPrice(ad.price, ad.currency || 'LKR'))}</div>
             ${finance ? `<div class="ehm-dynamic-finance"><div><span>Down Payment</span><strong>${esc(formatPrice(finance.downPayment, ad.currency || 'LKR'))}</strong></div><div><span>Monthly Payment</span><strong>${esc(formatPrice(finance.monthlyPayment, ad.currency || 'LKR'))}</strong></div><div><span>Finance Company</span><strong>${esc(finance.companyPhone || '')}</strong></div></div>` : ''}
-            <div class="ehm-dynamic-meta">${ad.condition ? `<span>${esc(String(ad.condition).toLowerCase() === 'used' ? 'Used' : 'New')}</span>` : ''}<span>⌖ ${esc(location)}</span><span>◷ ${esc(relativeDate(ad.postedAt))}</span></div>
+            <div class="ehm-dynamic-meta">${ad.condition ? `<span>${esc(String(ad.condition).replace(/(^|[-_\s])\w/g, (match) => match.toUpperCase()).replace(/[-_]/g, ' '))}</span>` : ''}<span>⌖ ${esc(location)}</span><span>◷ ${esc(relativeDate(ad.postedAt))}</span>${Number(ad.viewCount || 0) > 0 ? `<span>◉ ${esc(Number(ad.viewCount).toLocaleString('en-LK'))} views</span>` : ''}</div>
             <div class="ehm-dynamic-description"><h2>Description</h2><p>${esc(ad.description || 'No description provided.').replace(/\n/g, '<br>')}</p></div>
           </section>
           ${customRows.length ? `<section class="ehm-dynamic-card"><h2>Category Details</h2><div class="ehm-dynamic-specs">${customRows.map(([key, value]) => `<div><span>${esc(detailFieldLabel(key))}</span><strong>${esc(Array.isArray(value) ? value.join(', ') : value)}</strong></div>`).join('')}</div></section>` : ''}
@@ -2702,7 +2715,7 @@
   }
 
   function renderDynamicAdDetail(ad) {
-    if (!isAdRoute() || !ad || ad.source !== 'supabase') return false;
+    if (!isAdRoute() || !ad) return false;
     installDynamicDetailStyles();
     const signature = JSON.stringify([
       ad.id, ad.title, ad.price, ad.description, ad.images, ad.customFields, ad.contactPhones,
@@ -2716,8 +2729,10 @@
 
     if (!host) {
       const notFoundHeading = Array.from(document.querySelectorAll('#root h1,#root h2,#root h3')).find((node) => String(node.textContent || '').trim() === 'Ad not found');
-      const target = notFoundHeading?.closest('.section-container') || notFoundHeading?.parentElement;
+      const nativeMain = document.querySelector('#root main');
+      const target = notFoundHeading?.closest('.section-container') || notFoundHeading?.parentElement || nativeMain;
       if (!target) return false;
+      if (target === nativeMain) target.innerHTML = '';
       target.id = 'ehmDynamicAdDetail';
       target.className = 'ehm-dynamic-detail';
       host = target;
@@ -2859,7 +2874,7 @@
         Promise.allSettled([loadFinanceSettings(), loadPromotions(), loadAds()]).then(() => {
           if (!isAdRoute()) return;
           const latest = readPublicDetailAd(currentRouteAdId()) || currentAdForDetail();
-          if (latest?.source === 'supabase') renderDynamicAdDetail(latest);
+          if (latest) renderDynamicAdDetail(latest);
           injectAdDetailBanner();
           injectAdDetailFinance();
           injectSellerPhoneAboveCall();
