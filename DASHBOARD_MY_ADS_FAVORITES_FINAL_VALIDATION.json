@@ -1,0 +1,10 @@
+{
+  "scope": ["dashboard View Favorites quick action", "My Ads immediate rendering and load speed"],
+  "full_regression_tests": 38,
+  "full_suite_passes": 3,
+  "targeted_passes": 10,
+  "my_ads_query": "compact user-filtered projection",
+  "image_strategy": "lazy /api/ad-image proxy",
+  "cache": "user-specific 15-minute local cache",
+  "permanent_polling_added": false
+}

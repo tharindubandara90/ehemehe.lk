@@ -42,34 +42,66 @@ function missingColumnOrTable(data, message) {
 }
 
 async function readOwnedAds(url, key, userId) {
-  // Current EheMehe publishing always stores user_id. Filtering at PostgREST
-  // avoids downloading every marketplace image and every other user's ad.
-  const fastUrl = `${url}/rest/v1/ads?select=*&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=200`;
-  let response = await fetch(fastUrl, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
-  });
-  let data = await response.json().catch(() => []);
+  // Keep the dashboard response compact. Full Base64 image arrays are loaded
+  // lazily through /api/ad-image, so My Ads can paint without downloading
+  // every photo before the list becomes visible.
+  const selects = [
+    'id,user_id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
+    'id,user_id,title,description,price,status,condition,city,district,created_at,updated_at,view_count,views,custom_fields',
+    'id,user_id,title,description,price,status,condition,created_at,custom_fields',
+    'id,user_id,title,description,price,status,created_at,custom_fields',
+    'id,user_id,title,price,status,created_at'
+  ];
 
-  if (response.ok) {
-    return (Array.isArray(data) ? data : []).filter((row) => belongsToUser(row, userId));
+  let lastError = null;
+  for (const select of selects) {
+    const params = new URLSearchParams({
+      select,
+      user_id: `eq.${userId}`,
+      order: 'created_at.desc',
+      limit: '200'
+    });
+    const response = await fetch(`${url}/rest/v1/ads?${params.toString()}`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
+    });
+    const data = await response.json().catch(() => []);
+
+    if (response.ok) {
+      return (Array.isArray(data) ? data : [])
+        .filter((row) => belongsToUser(row, userId))
+        .map((row) => ({
+          ...row,
+          image_url: `/api/ad-image?id=${encodeURIComponent(String(row.id || ''))}&index=0`,
+          images: []
+        }));
+    }
+
+    const message = data.message || data.details || 'Could not read your ads.';
+    lastError = new Error(message);
+    if (!missingColumnOrTable(data, message)) throw lastError;
   }
 
-  const message = data.message || data.details || 'Could not read your ads.';
-  if (!missingColumnOrTable(data, message)) throw new Error(message);
-
-  // Compatibility fallback for an older database that predates user_id.
-  response = await fetch(
-    `${url}/rest/v1/ads?select=*&order=created_at.desc&limit=500`,
+  // Compatibility fallback for an older database. This path is only used when
+  // compact projections cannot be resolved from the schema cache.
+  const response = await fetch(
+    `${url}/rest/v1/ads?select=*&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=200`,
     { headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' } }
   );
-  data = await response.json().catch(() => []);
+  const data = await response.json().catch(() => []);
   if (!response.ok) {
-    const fallbackMessage = data.message || data.details || 'Could not read your ads.';
+    const fallbackMessage = data.message || data.details || lastError?.message || 'Could not read your ads.';
     if (missingColumnOrTable(data, fallbackMessage)) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
     throw new Error(fallbackMessage);
   }
-  return (Array.isArray(data) ? data : []).filter((row) => belongsToUser(row, userId));
+  return (Array.isArray(data) ? data : [])
+    .filter((row) => belongsToUser(row, userId))
+    .map((row) => ({
+      ...row,
+      image_url: `/api/ad-image?id=${encodeURIComponent(String(row.id || ''))}&index=0`,
+      images: []
+    }));
 }
+
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { ok: false, message: 'Method not allowed' });

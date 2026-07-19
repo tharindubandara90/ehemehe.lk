@@ -16,6 +16,7 @@
     overview: '/dashboard',
     'my ads': '/dashboard/ads',
     favorites: '/dashboard/favorites',
+    'view favorites': '/dashboard/favorites',
     messages: '/dashboard/messages',
     settings: '/dashboard/settings',
     dashboard: '/dashboard'

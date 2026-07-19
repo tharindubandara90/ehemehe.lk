@@ -11,6 +11,8 @@
   const MAX_PHONES = 5;
   const MAX_IMAGES = 10;
   const AD_PLACEHOLDER = '/assets/ad-placeholder.svg';
+  const DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v2:';
+  const DASHBOARD_ADS_CACHE_TTL_MS = 15 * 60 * 1000;
 
   const runtime = {
     rows: [],
@@ -21,6 +23,7 @@
     dashboardPromise: null,
     dashboardLoadedAt: 0,
     dashboardAds: [],
+    dashboardCacheUserId: '',
     authChecking: false,
     authAllowed: false,
     authRedirected: false,
@@ -1573,29 +1576,88 @@
       try { images = JSON.parse(images); } catch (_) { images = []; }
     }
     if (!Array.isArray(images)) images = [];
+    const remoteId = String(row.id || '');
+    const proxyImage = remoteId ? `/api/ad-image?id=${encodeURIComponent(remoteId)}&index=0` : '';
 
     return {
       ...row,
       custom_fields: custom,
       images,
-      image_url: row.image_url || images[0] || '',
+      image_url: row.image_url || images[0] || proxyImage,
       city: row.city || custom.city || '',
       district: row.district || custom.district || ''
     };
   }
 
-  async function loadDashboardAds(force = false) {
+  function dashboardCacheKey(userId) {
+    return `${DASHBOARD_ADS_CACHE_PREFIX}${String(userId || '')}`;
+  }
+
+  function readDashboardAdsCache(userId) {
+    if (!userId) return [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(dashboardCacheKey(userId)) || 'null');
+      const age = Date.now() - Number(parsed?.savedAt || 0);
+      if (!Array.isArray(parsed?.ads) || !Number.isFinite(age) || age < 0 || age > DASHBOARD_ADS_CACHE_TTL_MS) return [];
+      return parsed.ads.map(normalizeDashboardAd);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveDashboardAdsCache(userId, ads) {
+    if (!userId) return;
+    try {
+      const compact = (Array.isArray(ads) ? ads : []).map((ad) => ({
+        id: ad.id,
+        localId: ad.localId,
+        user_id: ad.user_id,
+        userId: ad.userId,
+        title: ad.title,
+        description: ad.description,
+        price: ad.price,
+        status: ad.status,
+        condition: ad.condition,
+        city: ad.city,
+        district: ad.district,
+        created_at: ad.created_at,
+        updated_at: ad.updated_at,
+        view_count: ad.view_count,
+        views: ad.views,
+        custom_fields: ad.custom_fields,
+        image_url: String(ad.image_url || '').startsWith('data:') ? '' : ad.image_url
+      }));
+      localStorage.setItem(dashboardCacheKey(userId), JSON.stringify({ savedAt: Date.now(), ads: compact }));
+    } catch (_) {}
+  }
+
+  function hydrateDashboardAdsCache(userId) {
+    const normalizedId = String(userId || '');
+    if (!normalizedId || runtime.dashboardCacheUserId === normalizedId) return runtime.dashboardAds;
+    runtime.dashboardCacheUserId = normalizedId;
+    const cached = readDashboardAdsCache(normalizedId);
+    if (cached.length) {
+      runtime.dashboardAds = cached;
+      runtime.dashboardLoadedAt = Date.now();
+    }
+    return runtime.dashboardAds;
+  }
+
+  async function loadDashboardAds(force = false, providedSession = null) {
     if (!force && Date.now() - runtime.dashboardLoadedAt < 5000) return runtime.dashboardAds;
     if (runtime.dashboardPromise) return runtime.dashboardPromise;
 
     runtime.dashboardLoading = true;
     runtime.dashboardPromise = (async () => {
-      const authSession = await session();
+      const authSession = providedSession?.user ? providedSession : await session();
       if (!authSession?.user || !authSession.access_token) return runtime.dashboardAds;
+
+      hydrateDashboardAdsCache(authSession.user.id);
 
       let remote = [];
       try {
-        const response = await fetch('/api/my-ads', {
+        // The same authenticated account API is used in compact mode: fetch('/api/my-ads')
+        const response = await fetch('/api/my-ads?summary=1', {
           headers: {
             'Accept': 'application/json',
             'Authorization': `Bearer ${authSession.access_token}`
@@ -1617,6 +1679,7 @@
       runtime.dashboardAds = Array.from(byId.values())
         .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       runtime.dashboardLoadedAt = Date.now();
+      saveDashboardAdsCache(authSession.user.id, runtime.dashboardAds);
       return runtime.dashboardAds;
     })().finally(() => {
       runtime.dashboardLoading = false;
@@ -1671,37 +1734,48 @@
           </div>`;
   }
 
+  function ensureDashboardAdsPanel() {
+    if (route() !== '/dashboard/ads') return null;
+    const myAdsHeading = Array.from(document.querySelectorAll('h1,h2'))
+      .find((node) => labelKey(node.textContent) === 'my ads' && node.offsetParent !== null);
+    if (!myAdsHeading) return null;
+
+    const main = myAdsHeading.closest('main') || myAdsHeading.parentElement?.parentElement || myAdsHeading.parentElement;
+    if (!main) return null;
+
+    main.querySelectorAll('.space-y-4').forEach((list) => {
+      if (list.querySelector('button, article, img')) list.style.display = 'none';
+    });
+
+    let panel = main.querySelector('#ehm-real-my-ads');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'ehm-real-my-ads';
+      panel.className = 'ehm-real-my-ads';
+      panel.setAttribute('aria-live', 'polite');
+      const headerRow = myAdsHeading.parentElement;
+      if (headerRow?.parentElement === main) headerRow.insertAdjacentElement('afterend', panel);
+      else main.appendChild(panel);
+    }
+    paintDashboardAds(panel, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
+    return panel;
+  }
+
   async function renderDashboard() {
     if (!route().startsWith('/dashboard')) return;
 
-    const myAdsHeading = Array.from(document.querySelectorAll('h1,h2'))
-      .find((node) => labelKey(node.textContent) === 'my ads' && node.offsetParent !== null);
-    let panel = null;
-
-    if (myAdsHeading) {
-      const section = myAdsHeading.parentElement?.parentElement || myAdsHeading.parentElement;
-      if (section) {
-        const oldList = Array.from(section.children)
-          .find((child) => child.classList?.contains('space-y-4'));
-        if (oldList) oldList.style.display = 'none';
-
-        panel = section.querySelector('#ehm-real-my-ads');
-        if (!panel) {
-          panel = document.createElement('div');
-          panel.id = 'ehm-real-my-ads';
-          panel.className = 'ehm-real-my-ads';
-          panel.setAttribute('aria-live', 'polite');
-          section.appendChild(panel);
-        }
-        paintDashboardAds(panel, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
-      }
+    const panel = ensureDashboardAdsPanel();
+    const authSession = window.__EHM_AUTH_SESSION?.user ? window.__EHM_AUTH_SESSION : null;
+    if (authSession?.user) {
+      const cached = hydrateDashboardAdsCache(authSession.user.id);
+      if (panel?.isConnected && cached.length) paintDashboardAds(panel, cached, false);
     }
 
-    const ads = await loadDashboardAds();
+    const ads = await loadDashboardAds(false, authSession);
     updateDashboardCount(ads.length);
     updateDashboardOverview(ads);
     wireNativeDashboardEditButtons(ads);
-    if (panel?.isConnected && route().startsWith('/dashboard')) paintDashboardAds(panel, ads, true);
+    if (panel?.isConnected && route() === '/dashboard/ads') paintDashboardAds(panel, ads, true);
   }
 
   // -------------------------- Lifecycle -----------------------------------
@@ -1854,7 +1928,9 @@
   function prefetchDashboardAds(event) {
     const authSession = event?.detail?.session || window.__EHM_AUTH_SESSION;
     if (!route().startsWith('/dashboard') || !authSession?.user) return;
-    loadDashboardAds(true).then(() => scheduleRuntimeTick(0)).catch(() => {});
+    hydrateDashboardAdsCache(authSession.user.id);
+    scheduleRuntimeTick(0);
+    loadDashboardAds(true, authSession).then(() => scheduleRuntimeTick(0)).catch(() => {});
   }
 
   window.addEventListener('ehemehe:auth-ready', prefetchDashboardAds);
