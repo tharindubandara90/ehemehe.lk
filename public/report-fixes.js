@@ -462,6 +462,19 @@
   }
 
   document.addEventListener('click', (event) => {
+    const mobileFavoriteLink = event.target.closest?.('.ehm-mobile-favorites-link, .ehm-mobile-bottom-nav a[href="/dashboard/favorites"]');
+    if (mobileFavoriteLink) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation?.();
+      if (cleanPath() === '/dashboard/favorites') {
+        queue();
+      } else {
+        window.location.assign('/dashboard/favorites');
+      }
+      return;
+    }
+
     const remove = event.target.closest?.('[data-ehm-remove-favorite]');
     if (remove) {
       event.preventDefault();

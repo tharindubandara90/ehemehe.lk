@@ -1330,7 +1330,7 @@
       if (managed.has(node) || Array.from(managed).some((m) => m && (m.contains(node) || node.contains(m)))) return;
       const txt = (node.textContent || '').replace(/\s+/g, ' ').trim();
       if (!txt) return;
-      if (/Latest Ads|Featured Ads|Browse Categories|Got something to sell|Trusted by thousands|What are you looking for|Sri Lanka's #1 Modern Marketplace/i.test(txt) || node.tagName.toLowerCase() === 'footer') {
+      if (/Latest Ads|Fresh recommendations|Featured Ads|Browse Categories|Got something to sell|Trusted by thousands|What are you looking for|Sri Lanka's #1 Modern Marketplace/i.test(txt) || node.tagName.toLowerCase() === 'footer') {
         if (node.dataset.ehmMobileHidden === '1') return;
         node.setAttribute('data-ehm-mobile-hidden', '1');
         node.style.setProperty('display', 'none', 'important');
