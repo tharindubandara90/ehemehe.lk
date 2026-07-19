@@ -1177,6 +1177,119 @@
     return names.map((name) => option(name, current)).join('');
   }
 
+
+  const NATIVE_DASHBOARD_LIST_MARKER = 'c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEzNzoxNg';
+  const NATIVE_DASHBOARD_CARD_MARKER = 'c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEzOToyMA';
+  const NATIVE_DASHBOARD_EDIT_MARKER = 'c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDE0NzoyNA';
+
+  function dashboardComparableText(value) {
+    return clean(value).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  }
+
+  function dashboardNumericPrice(value) {
+    const parsed = Number(String(value || '').replace(/[^\d.]/g, ''));
+    return Number.isFinite(parsed) ? Math.round(parsed) : null;
+  }
+
+  function nativeDashboardList() {
+    return document.querySelector(`[data-yw="${NATIVE_DASHBOARD_LIST_MARKER}"]`) ||
+      Array.from(document.querySelectorAll('.space-y-4')).find((node) =>
+        node.closest('div')?.querySelector('h1,h2')?.textContent?.trim() === 'My Ads'
+      ) || null;
+  }
+
+  function nativeDashboardIdentity(card) {
+    const titleLink = card?.querySelector('a[href^="/ad/"]');
+    const rawHref = String(titleLink?.getAttribute('href') || '');
+    const routeId = rawHref ? decodeURIComponent(rawHref.replace(/^\/ad\//, '').split(/[?#]/)[0]) : '';
+    const title = clean(titleLink?.textContent || card?.querySelector('h3')?.textContent || '');
+    const image = String(card?.querySelector('img')?.getAttribute('src') || '').trim();
+    const priceNode = Array.from(card?.querySelectorAll('div,strong,span') || [])
+      .find((node) => /\bLKR\b/i.test(clean(node.textContent)));
+    return {
+      routeId,
+      title,
+      titleKey: dashboardComparableText(title),
+      image,
+      price: dashboardNumericPrice(priceNode?.textContent || '')
+    };
+  }
+
+  function matchNativeDashboardAd(card, ads = runtime.dashboardAds) {
+    const identity = nativeDashboardIdentity(card);
+    const rows = Array.isArray(ads) ? ads : [];
+    if (!rows.length) return null;
+
+    if (identity.routeId) {
+      const exactId = rows.find((ad) =>
+        [ad.id, ad.localId].some((value) => String(value || '') === String(identity.routeId))
+      );
+      if (exactId) return exactId;
+    }
+
+    if (identity.titleKey) {
+      const exactTitle = rows.find((ad) =>
+        dashboardComparableText(ad.title) === identity.titleKey
+      );
+      if (exactTitle) return exactTitle;
+    }
+
+    if (identity.image) {
+      const imageMatch = rows.find((ad) => {
+        const source = String(ad.image_url || ad.images?.[0] || '');
+        return source && (source === identity.image || source.split('?')[0] === identity.image.split('?')[0]);
+      });
+      if (imageMatch) return imageMatch;
+    }
+
+    if (identity.price !== null) {
+      const candidates = rows.filter((ad) => dashboardNumericPrice(ad.price) === identity.price);
+      if (candidates.length === 1) return candidates[0];
+    }
+
+    return null;
+  }
+
+  function wireNativeDashboardEditButtons(ads = runtime.dashboardAds) {
+    const list = nativeDashboardList();
+    if (!list) return 0;
+    const cards = Array.from(list.children).filter((node) =>
+      node.matches?.(`[data-yw="${NATIVE_DASHBOARD_CARD_MARKER}"]`) ||
+      node.querySelector?.(`button[data-yw="${NATIVE_DASHBOARD_EDIT_MARKER}"]`)
+    );
+    let wired = 0;
+    cards.forEach((card) => {
+      const button = card.querySelector(`button[data-yw="${NATIVE_DASHBOARD_EDIT_MARKER}"]`) ||
+        card.querySelector('button');
+      if (!button) return;
+      const ad = matchNativeDashboardAd(card, ads);
+      button.dataset.ehmNativeEdit = '1';
+      button.setAttribute('aria-label', 'Edit ad');
+      button.title = 'Edit ad';
+      if (ad?.id) {
+        button.dataset.ehmEditAd = String(ad.id);
+        button.disabled = false;
+        wired += 1;
+      }
+    });
+    return wired;
+  }
+
+  async function openNativeDashboardEdit(button) {
+    const card = button?.closest?.(`[data-yw="${NATIVE_DASHBOARD_CARD_MARKER}"]`) ||
+      button?.closest?.('.bg-white.rounded-2xl');
+    dashboardNotice('Loading your ad details...', 'pending');
+    const ads = await loadDashboardAds(true);
+    wireNativeDashboardEditButtons(ads);
+    const ad = matchNativeDashboardAd(card, ads);
+    if (!ad?.id) {
+      dashboardNotice('This ad could not be matched to your account. Reload once and try again.', 'error');
+      return;
+    }
+    dashboardNotice('', 'success');
+    openEditModal(ad.id);
+  }
+
   function closeEditModal() {
     document.getElementById('ehm-edit-ad-modal')?.remove();
     document.body.classList.remove('ehm-modal-open');
@@ -1491,6 +1604,7 @@
     if (!route().startsWith('/dashboard')) return;
     const ads = await loadDashboardAds();
     updateDashboardCount(ads.length);
+    wireNativeDashboardEditButtons(ads);
 
     const myAdsHeading = Array.from(document.querySelectorAll('h1,h2'))
       .find((node) => labelKey(node.textContent) === 'my ads');
@@ -1544,7 +1658,10 @@
         saveNativeLocationFromContactStep();
       }
 
-      if (route().startsWith('/dashboard')) await renderDashboard();
+      if (route().startsWith('/dashboard')) {
+        wireNativeDashboardEditButtons(runtime.dashboardAds);
+        await renderDashboard();
+      }
     } finally {
       runtime.tickRunning = false;
       if (runtime.tickQueued) {
@@ -1599,10 +1716,16 @@
   document.addEventListener('click', interceptNavigation, true);
 
   document.addEventListener('click', (event) => {
-    const editButton = event.target?.closest?.('[data-ehm-edit-ad]');
+    const editButton = event.target?.closest?.(
+      `[data-ehm-edit-ad],button[data-yw="${NATIVE_DASHBOARD_EDIT_MARKER}"]`
+    );
     if (editButton) {
       event.preventDefault();
-      openEditModal(editButton.dataset.ehmEditAd);
+      event.stopPropagation();
+      if (editButton.dataset.ehmEditAd) openEditModal(editButton.dataset.ehmEditAd);
+      else openNativeDashboardEdit(editButton).catch((error) => {
+        dashboardNotice(error?.message || 'Could not open this ad for editing.', 'error');
+      });
       return;
     }
     if (event.target?.closest?.('[data-ehm-edit-close]')) {

@@ -34,6 +34,7 @@ const tests = [
   ['public_home_interactions_regression_test.js', []],
   ['supabase_marketplace_schema_regression_test.js', []],
   ['user_ad_edit_regression_test.js', []],
+  ['dashboard_edit_mobile_home_navigation_regression_test.js', []],
   ['vercel_function_startup_regression_test.js', []],
   ['scripts/http-regression-test.js', []]
 ];

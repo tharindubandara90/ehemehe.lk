@@ -305,6 +305,40 @@
     return path === '/' || path === '';
   }
 
+
+  function mobileHomeNavigationLink(target) {
+    if (!isMobile() || isHomeRoute()) return null;
+    const link = target?.closest?.('a[href]');
+    if (!link) return null;
+    let url;
+    try { url = new URL(link.href, location.href); } catch (_) { return null; }
+    if (url.origin !== location.origin) return null;
+    const path = url.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
+    if (path !== '/') return null;
+
+    const label = String(link.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const nav = link.closest('nav');
+    const fixedMobileNav = nav && (
+      /home/.test(label) ||
+      /bottom|fixed|mobile/i.test(String(nav.className || ''))
+    );
+    return fixedMobileNav && label === 'home' ? link : null;
+  }
+
+  let mobileHomeRecoveryTimers = [];
+  function scheduleMobileHomeRecovery() {
+    mobileHomeRecoveryTimers.forEach((timer) => clearTimeout(timer));
+    mobileHomeRecoveryTimers = [];
+    if (!isMobile() || !isHomeRoute()) return;
+
+    mobileHomeRecoveryTimers = [0, 60, 160, 350, 700, 1200].map((delay) =>
+      setTimeout(() => {
+        if (!isMobile() || !isHomeRoute()) return;
+        scheduleSync(0);
+      }, delay)
+    );
+  }
+
   function isAdRoute() {
     return /^\/ad\//.test(window.location.pathname);
   }
@@ -2932,6 +2966,7 @@
   function handleRouteChange() {
     document.documentElement.classList.remove('ehm-desktop-home-prepaint');
     refreshRouteObserver();
+    scheduleMobileHomeRecovery();
     if (isAdRoute()) {
       window.__ehmAdTopRoute = '';
       beginDynamicDetailPending();
@@ -2949,6 +2984,18 @@
     window.__ehmFinalWatchers = true;
 
     document.addEventListener('click', (event) => {
+      const homeLink = mobileHomeNavigationLink(event.target);
+      if (homeLink) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        // The React dashboard and the managed mobile home use different DOM
+        // owners. A clean document navigation avoids the half-mounted white
+        // home state that occurred only after SPA navigation.
+        window.location.assign('/');
+        return;
+      }
+
       const favoriteButton = event.target?.closest?.('[data-ehm-favorite-id]');
       if (favoriteButton) {
         event.preventDefault();
@@ -3027,6 +3074,7 @@
     });
 
     refreshRouteObserver();
+    scheduleMobileHomeRecovery();
 
     // The main route observer is now active, so the early pre-paint watcher can
     // be retired without leaving a gap where React could restore the old hero.
