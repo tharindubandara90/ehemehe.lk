@@ -1,0 +1,14 @@
+{
+  "source_zip": "ehemehe-mobile-favorites-fixed-full.zip",
+  "scope": [
+    "dashboard favorites immediate render",
+    "dashboard route synchronization",
+    "my ads request prefetch",
+    "my ads in-flight promise sharing",
+    "database-level owner filtering"
+  ],
+  "full_regression_tests_per_pass": 37,
+  "full_regression_complete_passes": 3,
+  "targeted_regression_passes": 10,
+  "permanent_polling_added": false
+}

@@ -3,6 +3,8 @@
 
   const FAVORITES_KEY = 'ehemehe:favorites:v2';
   const PLACEHOLDER = '/assets/ad-placeholder.svg';
+  const HOME_SNAPSHOT_KEY = 'ehemehe:desktopHomeLiveSnapshot:v1';
+  const HOME_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000;
   const DASHBOARD_TABS = Object.freeze({
     overview: 'Overview',
     ads: 'My Ads',
@@ -24,7 +26,9 @@
   let running = false;
   let dirty = false;
   let publicAdsPromise = null;
+  let publicAdsCache = [];
   let dashboardSyncing = false;
+  let dashboardRouteTimer = 0;
 
   const cleanPath = () => location.pathname
     .replace(/\/index\.html$/i, '/')
@@ -128,42 +132,67 @@
     if (a !== b) store.setState({ favorites: storedIds });
   }
 
-  async function loadPublicAds() {
-    if (publicAdsPromise) return publicAdsPromise;
-    publicAdsPromise = (async () => {
-      let rows = [];
-      try {
-        const response = await fetch('/api/public-home?limit=250', { headers: { Accept: 'application/json' } });
-        const payload = await response.json();
-        if (response.ok && Array.isArray(payload.ads)) rows = payload.ads;
-      } catch (_) {}
-      try {
-        const response = await fetch('/static-ads.json');
-        const payload = await response.json();
-        if (response.ok && Array.isArray(payload)) rows = [...rows, ...payload];
-      } catch (_) {}
-
-      const map = new Map();
-      rows.forEach((raw) => {
-        const id = String(raw.id || raw.ad_id || '');
-        if (!id) return;
-        let images = raw.images || [];
-        if (typeof images === 'string') {
-          try { images = JSON.parse(images); } catch (_) { images = []; }
-        }
-        if (!Array.isArray(images)) images = [];
-        map.set(id, {
-          ...raw,
-          id,
-          title: raw.title || 'Untitled Ad',
-          price: raw.price,
-          image: raw.image_url || raw.image || images[0] || PLACEHOLDER,
-          location: raw.city || raw.location || raw.district || '',
-          postedAt: raw.created_at || raw.postedAt || ''
-        });
+  function normalizePublicAds(rows) {
+    const map = new Map();
+    (Array.isArray(rows) ? rows : []).forEach((raw) => {
+      const id = String(raw?.id || raw?.ad_id || '');
+      if (!id) return;
+      let images = raw.images || [];
+      if (typeof images === 'string') {
+        try { images = JSON.parse(images); } catch (_) { images = []; }
+      }
+      if (!Array.isArray(images)) images = [];
+      map.set(id, {
+        ...raw,
+        id,
+        title: raw.title || 'Untitled Ad',
+        price: raw.price,
+        image: raw.image_url || raw.image || images[0] || PLACEHOLDER,
+        location: raw.city || raw.location || raw.district || '',
+        postedAt: raw.created_at || raw.postedAt || ''
       });
-      return [...map.values()];
-    })();
+    });
+    return [...map.values()];
+  }
+
+  function readCachedPublicAds() {
+    try {
+      const snapshot = JSON.parse(localStorage.getItem(HOME_SNAPSHOT_KEY) || 'null');
+      const age = Date.now() - Number(snapshot?.savedAt || 0);
+      if (!Array.isArray(snapshot?.ads) || !Number.isFinite(age) || age < 0 || age > HOME_SNAPSHOT_TTL_MS) return [];
+      return normalizePublicAds(snapshot.ads);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  publicAdsCache = readCachedPublicAds();
+
+  async function loadPublicAds(force = false) {
+    if (!force && publicAdsPromise) return publicAdsPromise;
+    publicAdsPromise = (async () => {
+      const [homeResult, staticResult] = await Promise.allSettled([
+        fetch('/api/public-home?limit=250', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+          .then(async (response) => ({ response, payload: await response.json().catch(() => ({})) })),
+        fetch('/static-ads.json', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+          .then(async (response) => ({ response, payload: await response.json().catch(() => []) }))
+      ]);
+
+      const rows = [];
+      if (homeResult.status === 'fulfilled' && homeResult.value.response.ok && Array.isArray(homeResult.value.payload?.ads)) {
+        rows.push(...homeResult.value.payload.ads);
+      }
+      if (staticResult.status === 'fulfilled' && staticResult.value.response.ok && Array.isArray(staticResult.value.payload)) {
+        rows.push(...staticResult.value.payload);
+      }
+
+      const normalized = normalizePublicAds(rows);
+      if (normalized.length || !publicAdsCache.length) publicAdsCache = normalized;
+      return publicAdsCache;
+    })().finally(() => {
+      // Keep the resolved promise for this page lifetime so tab changes do not
+      // trigger duplicate network requests. A forced refresh may replace it.
+    });
     return publicAdsPromise;
   }
 
@@ -172,15 +201,40 @@
     return Number.isFinite(number) ? `LKR ${Math.round(number).toLocaleString('en-LK')}` : 'Price on request';
   }
 
-  async function renderFavorites() {
-    if (cleanPath() !== '/dashboard/favorites') return;
-    const heading = [...document.querySelectorAll('h1,h2')].find((node) => /^favorites$/i.test(text(node)));
-    if (!heading) return;
-    const section = heading.parentElement;
-    if (!section) return;
+  function favoriteRows(ids, ads = publicAdsCache) {
+    return (Array.isArray(ads) ? ads : []).filter((ad) => ids.has(String(ad.id)));
+  }
 
-    const ids = readFavoriteIds();
-    const rows = (await loadPublicAds()).filter((ad) => ids.has(String(ad.id)));
+  function paintFavoritesPanel(panel, ids, ads, settled = false) {
+    const rows = favoriteRows(ids, ads);
+    const signature = `${settled ? 'settled' : 'cached'}|${[...ids].sort().join(',')}|${rows.map((row) => `${row.id}:${row.image}:${row.price}`).join('|')}`;
+    if (panel.dataset.signature === signature) return;
+    panel.dataset.signature = signature;
+
+    if (rows.length) {
+      panel.innerHTML = rows.map((ad) => `<article class="ehm-favorite-row">
+        <a href="/ad/${encodeURIComponent(ad.id)}"><img src="${esc(ad.image)}" alt="${esc(ad.title)}" onerror="this.onerror=null;this.src='${PLACEHOLDER}'"></a>
+        <div><a href="/ad/${encodeURIComponent(ad.id)}"><h3>${esc(ad.title)}</h3></a><strong>${esc(formatMoney(ad.price))}</strong><div>${esc(ad.location)}</div></div>
+        <button type="button" class="ehm-remove-favorite" data-ehm-remove-favorite="${esc(ad.id)}">Remove from favourites</button>
+      </article>`).join('');
+      return;
+    }
+
+    if (ids.size && !settled) {
+      panel.innerHTML = '<div class="ehm-dashboard-empty ehm-dashboard-loading"><strong>Loading favourites…</strong><span>Your saved ads are being prepared.</span></div>';
+      return;
+    }
+
+    panel.innerHTML = '<div class="ehm-dashboard-empty"><strong>No favourites yet</strong><span>Saved ads will appear here.</span><a href="/">Browse Ads</a></div>';
+  }
+
+  async function renderFavorites() {
+    if (cleanPath() !== '/dashboard/favorites') return false;
+    const heading = [...document.querySelectorAll('h1,h2')].find((node) => /^favorites$/i.test(text(node)) && node.offsetParent !== null);
+    if (!heading) return false;
+    const section = heading.parentElement;
+    if (!section) return false;
+
     [...section.children].forEach((child) => {
       if (child !== heading && !child.classList.contains('ehm-managed-favorites')) child.style.display = 'none';
     });
@@ -189,18 +243,17 @@
     if (!panel) {
       panel = document.createElement('div');
       panel.className = 'ehm-managed-favorites';
+      panel.setAttribute('aria-live', 'polite');
       section.appendChild(panel);
     }
-    const signature = rows.map((row) => `${row.id}:${row.image}:${row.price}`).join('|');
-    if (panel.dataset.signature === signature) return;
-    panel.dataset.signature = signature;
-    panel.innerHTML = rows.length
-      ? rows.map((ad) => `<article class="ehm-favorite-row">
-          <a href="/ad/${encodeURIComponent(ad.id)}"><img src="${esc(ad.image)}" alt="${esc(ad.title)}" onerror="this.onerror=null;this.src='${PLACEHOLDER}'"></a>
-          <div><a href="/ad/${encodeURIComponent(ad.id)}"><h3>${esc(ad.title)}</h3></a><strong>${esc(formatMoney(ad.price))}</strong><div>${esc(ad.location)}</div></div>
-          <button type="button" class="ehm-remove-favorite" data-ehm-remove-favorite="${esc(ad.id)}">Remove from favourites</button>
-        </article>`).join('')
-      : '<div class="ehm-dashboard-empty"><strong>No favourites yet</strong><span>Saved ads will appear here.</span><a href="/">Browse Ads</a></div>';
+
+    const ids = readFavoriteIds();
+    paintFavoritesPanel(panel, ids, publicAdsCache, false);
+
+    const ads = await loadPublicAds();
+    if (cleanPath() !== '/dashboard/favorites' || !panel.isConnected) return true;
+    paintFavoritesPanel(panel, ids, ads, true);
+    return true;
   }
 
   function dashboardTab() {
@@ -244,6 +297,20 @@
       wanted.click();
       requestAnimationFrame(() => { dashboardSyncing = false; });
     }
+  }
+
+  function scheduleDashboardRouteSync() {
+    window.clearTimeout(dashboardRouteTimer);
+    const delays = [0, 16, 60, 140, 300, 600];
+    const runAt = (index) => {
+      if (index >= delays.length || !isDashboard()) return;
+      dashboardRouteTimer = window.setTimeout(async () => {
+        dashboardNav();
+        if (cleanPath() === '/dashboard/favorites') await renderFavorites();
+        if (index + 1 < delays.length) runAt(index + 1);
+      }, delays[index]);
+    };
+    runAt(0);
   }
 
   function inputFor(container, possibleLabels) {
@@ -494,6 +561,7 @@
       const route = key === 'overview' ? '/dashboard' : `/dashboard/${key}`;
       if (cleanPath() !== route) history.replaceState({}, '', route);
       queue();
+      scheduleDashboardRouteSync();
       return;
     }
 
@@ -504,6 +572,7 @@
       if (isDashboard()) {
         history.replaceState({}, '', route);
         queue();
+        scheduleDashboardRouteSync();
       } else {
         location.assign(route);
       }
@@ -511,12 +580,17 @@
   }, true);
 
   ['popstate', 'ehemehe:routechange', 'ehemehe:auth-changed', 'ehemehe:favorites-changed']
-    .forEach((eventName) => window.addEventListener(eventName, queue));
+    .forEach((eventName) => window.addEventListener(eventName, () => {
+      queue();
+      scheduleDashboardRouteSync();
+    }));
 
   function init() {
     observer = new MutationObserver(queue);
     observer.observe(document.documentElement, { childList: true, subtree: true });
+    if (isDashboard()) loadPublicAds().catch(() => {});
     queue();
+    scheduleDashboardRouteSync();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

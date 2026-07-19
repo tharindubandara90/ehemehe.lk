@@ -24,39 +24,62 @@ function customFields(row) {
   return {};
 }
 
+function belongsToUser(row, userId) {
+  const custom = customFields(row);
+  return [
+    row.user_id,
+    row.owner_id,
+    row.seller_id,
+    row.profile_id,
+    row.created_by,
+    custom.owner_user_id
+  ].some((value) => String(value || '') === String(userId));
+}
+
+function missingColumnOrTable(data, message) {
+  return data?.code === 'PGRST205' || data?.code === '42P01' || data?.code === '42703' ||
+    /could not find the table ['"]?public\.ads|relation ['"]?public\.ads|relation ['"]?ads['"]? does not exist|column .* does not exist/i.test(message);
+}
+
+async function readOwnedAds(url, key, userId) {
+  // Current EheMehe publishing always stores user_id. Filtering at PostgREST
+  // avoids downloading every marketplace image and every other user's ad.
+  const fastUrl = `${url}/rest/v1/ads?select=*&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=200`;
+  let response = await fetch(fastUrl, {
+    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
+  });
+  let data = await response.json().catch(() => []);
+
+  if (response.ok) {
+    return (Array.isArray(data) ? data : []).filter((row) => belongsToUser(row, userId));
+  }
+
+  const message = data.message || data.details || 'Could not read your ads.';
+  if (!missingColumnOrTable(data, message)) throw new Error(message);
+
+  // Compatibility fallback for an older database that predates user_id.
+  response = await fetch(
+    `${url}/rest/v1/ads?select=*&order=created_at.desc&limit=500`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' } }
+  );
+  data = await response.json().catch(() => []);
+  if (!response.ok) {
+    const fallbackMessage = data.message || data.details || 'Could not read your ads.';
+    if (missingColumnOrTable(data, fallbackMessage)) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
+    throw new Error(fallbackMessage);
+  }
+  return (Array.isArray(data) ? data : []).filter((row) => belongsToUser(row, userId));
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { ok: false, message: 'Method not allowed' });
 
   try {
     const user = await authenticatedUser(req);
     const { url, key } = supabaseAdminConfig();
-    const response = await fetch(
-      `${url}/rest/v1/ads?select=*&order=created_at.desc&limit=500`,
-      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
-    );
-    const data = await response.json().catch(() => []);
-    if (!response.ok) {
-      const message = data.message || data.details || 'Could not read your ads.';
-      const missingAdsTable =
-        data.code === 'PGRST205' ||
-        data.code === '42P01' ||
-        /could not find the table ['"]?public\.ads|relation ['"]?public\.ads|relation ['"]?ads['"]? does not exist/i.test(message);
-      if (missingAdsTable) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
-      throw new Error(message);
-    }
+    const ads = await readOwnedAds(url, key, user.id);
 
-    const ads = (Array.isArray(data) ? data : []).filter((row) => {
-      const custom = customFields(row);
-      return [
-        row.user_id,
-        row.owner_id,
-        row.seller_id,
-        row.profile_id,
-        row.created_by,
-        custom.owner_user_id
-      ].some((value) => String(value || '') === String(user.id));
-    });
-
+    res.setHeader?.('Cache-Control', 'private, no-store, max-age=0');
     return json(res, 200, { ok: true, ads });
   } catch (error) {
     const auth = error.message === 'AUTH_REQUIRED';

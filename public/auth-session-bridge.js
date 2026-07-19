@@ -4,6 +4,13 @@
   let retries = 0;
   let initialized = false;
 
+
+  function publishSession(session) {
+    currentSession = session || null;
+    window.__EHM_AUTH_SESSION = currentSession;
+    window.dispatchEvent(new CustomEvent('ehemehe:auth-ready', { detail: { session: currentSession } }));
+  }
+
   function normalizedUser(user) {
     if (!user) return null;
     const metadata = user.user_metadata || {};
@@ -67,11 +74,11 @@
 
     initialized = true;
     const result = await client.auth.getSession();
-    currentSession = result.data?.session || null;
+    publishSession(result.data?.session || null);
     applySessionToStore();
 
     client.auth.onAuthStateChange((_event, session) => {
-      currentSession = session || null;
+      publishSession(session || null);
       retries = 0;
       applySessionToStore();
     });

@@ -18,6 +18,7 @@
     phoneProof: '',
     publishing: false,
     dashboardLoading: false,
+    dashboardPromise: null,
     dashboardLoadedAt: 0,
     dashboardAds: [],
     authChecking: false,
@@ -919,10 +920,13 @@
   }
 
   async function session() {
-    const client = window.supabaseClient || await window.waitForSupabaseClient?.().catch(() => null);
+    if (window.__EHM_AUTH_SESSION?.user) return window.__EHM_AUTH_SESSION;
+    const client = window.supabaseClient || await window.waitForSupabaseClient?.(4000).catch(() => null);
     if (!client?.auth) return null;
     const result = await client.auth.getSession();
-    return result.data?.session || null;
+    const authSession = result.data?.session || null;
+    if (authSession) window.__EHM_AUTH_SESSION = authSession;
+    return authSession;
   }
 
   function setPostAuthLoading(loading) {
@@ -1581,13 +1585,13 @@
   }
 
   async function loadDashboardAds(force = false) {
-    if (runtime.dashboardLoading) return runtime.dashboardAds;
     if (!force && Date.now() - runtime.dashboardLoadedAt < 5000) return runtime.dashboardAds;
+    if (runtime.dashboardPromise) return runtime.dashboardPromise;
 
     runtime.dashboardLoading = true;
-    try {
+    runtime.dashboardPromise = (async () => {
       const authSession = await session();
-      if (!authSession?.user || !authSession.access_token) return [];
+      if (!authSession?.user || !authSession.access_token) return runtime.dashboardAds;
 
       let remote = [];
       try {
@@ -1595,7 +1599,8 @@
           headers: {
             'Accept': 'application/json',
             'Authorization': `Bearer ${authSession.access_token}`
-          }
+          },
+          credentials: 'same-origin'
         });
         const data = await response.json().catch(() => ({}));
         if (response.ok && data.ok !== false && Array.isArray(data.ads)) remote = data.ads;
@@ -1613,9 +1618,12 @@
         .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       runtime.dashboardLoadedAt = Date.now();
       return runtime.dashboardAds;
-    } finally {
+    })().finally(() => {
       runtime.dashboardLoading = false;
-    }
+      runtime.dashboardPromise = null;
+    });
+
+    return runtime.dashboardPromise;
   }
 
   function updateDashboardOverview(ads) {
@@ -1644,41 +1652,56 @@
     });
   }
 
+  function paintDashboardAds(panel, ads, settled = false) {
+    if (!panel) return;
+    const rows = Array.isArray(ads) ? ads : [];
+    const signature = `${settled ? 'settled' : 'cached'}|${JSON.stringify(rows.map((ad) => [ad.id, ad.localId, ad.status, ad.updated_at, ad.created_at, ad.image_url]))}`;
+    if (panel.dataset.signature === signature) return;
+    panel.dataset.signature = signature;
+    panel.innerHTML = rows.length
+      ? rows.map(adCard).join('')
+      : settled
+        ? `<div class="ehm-dashboard-empty">
+            <strong>No ads submitted yet</strong>
+            <span>Your published ads will appear here.</span>
+          </div>`
+        : `<div class="ehm-dashboard-empty ehm-dashboard-loading">
+            <strong>Loading your ads…</strong>
+            <span>Your listings are being prepared.</span>
+          </div>`;
+  }
+
   async function renderDashboard() {
     if (!route().startsWith('/dashboard')) return;
+
+    const myAdsHeading = Array.from(document.querySelectorAll('h1,h2'))
+      .find((node) => labelKey(node.textContent) === 'my ads' && node.offsetParent !== null);
+    let panel = null;
+
+    if (myAdsHeading) {
+      const section = myAdsHeading.parentElement?.parentElement || myAdsHeading.parentElement;
+      if (section) {
+        const oldList = Array.from(section.children)
+          .find((child) => child.classList?.contains('space-y-4'));
+        if (oldList) oldList.style.display = 'none';
+
+        panel = section.querySelector('#ehm-real-my-ads');
+        if (!panel) {
+          panel = document.createElement('div');
+          panel.id = 'ehm-real-my-ads';
+          panel.className = 'ehm-real-my-ads';
+          panel.setAttribute('aria-live', 'polite');
+          section.appendChild(panel);
+        }
+        paintDashboardAds(panel, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
+      }
+    }
+
     const ads = await loadDashboardAds();
     updateDashboardCount(ads.length);
     updateDashboardOverview(ads);
     wireNativeDashboardEditButtons(ads);
-
-    const myAdsHeading = Array.from(document.querySelectorAll('h1,h2'))
-      .find((node) => labelKey(node.textContent) === 'my ads');
-    if (!myAdsHeading) return;
-
-    const section = myAdsHeading.parentElement?.parentElement || myAdsHeading.parentElement;
-    if (!section) return;
-
-    const oldList = Array.from(section.children)
-      .find((child) => child.classList?.contains('space-y-4'));
-    if (oldList) oldList.style.display = 'none';
-
-    let panel = section.querySelector('#ehm-real-my-ads');
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.id = 'ehm-real-my-ads';
-      panel.className = 'ehm-real-my-ads';
-      section.appendChild(panel);
-    }
-
-    const signature = JSON.stringify(ads.map((ad) => [ad.id, ad.localId, ad.status, ad.updated_at, ad.created_at]));
-    if (panel.dataset.signature === signature) return;
-    panel.dataset.signature = signature;
-    panel.innerHTML = ads.length
-      ? ads.map(adCard).join('')
-      : `<div class="ehm-dashboard-empty">
-          <strong>No ads submitted yet</strong>
-          <span>Your published ads will appear here.</span>
-        </div>`;
+    if (panel?.isConnected && route().startsWith('/dashboard')) paintDashboardAds(panel, ads, true);
   }
 
   // -------------------------- Lifecycle -----------------------------------
@@ -1827,6 +1850,15 @@
     }
     window.clearTimeout(runtimeTimer);
   }
+
+  function prefetchDashboardAds(event) {
+    const authSession = event?.detail?.session || window.__EHM_AUTH_SESSION;
+    if (!route().startsWith('/dashboard') || !authSession?.user) return;
+    loadDashboardAds(true).then(() => scheduleRuntimeTick(0)).catch(() => {});
+  }
+
+  window.addEventListener('ehemehe:auth-ready', prefetchDashboardAds);
+  if (window.__EHM_AUTH_SESSION?.user) prefetchDashboardAds();
 
   document.addEventListener('DOMContentLoaded', updateRuntimeLifecycle);
   window.addEventListener('ehemehe:routechange', updateRuntimeLifecycle);

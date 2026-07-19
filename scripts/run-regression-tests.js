@@ -38,6 +38,7 @@ const tests = [
   ['bug_report_full_regression_test.js', []],
   ['home_banner_recommendations_regression_test.js', []],
   ['mobile_favorites_and_recommendations_regression_test.js', []],
+  ['dashboard_favorites_my_ads_speed_regression_test.js', []],
   ['account_settings_and_ownership_api_regression_test.js', []],
   ['vercel_function_startup_regression_test.js', []],
   ['scripts/http-regression-test.js', []]
