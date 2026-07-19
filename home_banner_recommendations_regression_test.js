@@ -1,0 +1,28 @@
+const fs = require('fs');
+const assert = require('assert');
+const publicJs = fs.readFileSync('public/index-filters.js','utf8');
+const css = fs.readFileSync('public/brand-theme.css','utf8');
+const adminHtml = fs.readFileSync('public/admin.html','utf8');
+const adminNestedHtml = fs.readFileSync('public/admin/index.html','utf8');
+const adminJs = fs.readFileSync('public/admin.js','utf8');
+const adminNestedJs = fs.readFileSync('public/admin/admin.js','utf8');
+const reportJs = fs.readFileSync('public/report-fixes.js','utf8');
+
+assert(publicJs.includes("'home_before_recommendations'"), 'Unified home banner placement is missing');
+assert(publicJs.includes('function ensureDesktopHomeBanner(recommendations)'), 'Desktop home banner host is missing');
+assert(publicJs.includes("sortAdsForPlacement(allAds()).slice(0, 8)"), 'Desktop recommendations are not limited to two rows');
+assert(publicJs.includes("recommendations.insertAdjacentElement('beforebegin', host)"), 'Desktop banner is not placed above recommendations');
+assert((publicJs.match(/ensureDesktopHomeBanner\(recommendations\)/g)||[]).length >= 4, 'Desktop banner is not re-anchored after recommendation section ordering');
+assert(css.includes('.ehm-home-recommendations-banner'), 'Home banner responsive styling is missing');
+assert(css.includes('.ehm-olx-latest-grid > :nth-child(n+9)'), 'CSS guard for maximum two desktop rows is missing');
+assert(adminHtml.includes('id="bannerEnabled"'), 'Admin banner enable checkbox is missing');
+assert(adminHtml.includes('id="bannerDays"'), 'Admin banner duration is missing');
+assert(adminHtml.includes('home_before_recommendations'), 'Admin unified home placement option is missing');
+assert(adminJs.includes("placement:el('bannerPlacement')?.value||'home_before_recommendations'"), 'Admin banner save does not use unified placement');
+assert(adminJs.includes("status:enabled?'active':'disabled'"), 'Admin enable/disable state is not persisted');
+assert(adminJs.includes('function bannerPlacementLabel(value)'), 'Admin banner management status UI is missing');
+assert(reportJs.includes('function hideMobileHeaderFavorites()'), 'Mobile header Favorites cleanup is missing');
+assert(css.includes('.ehm-mobile-header-favorites-hidden'), 'Mobile header Favorites CSS guard is missing');
+assert.strictEqual(adminHtml, adminNestedHtml, 'Duplicate admin HTML files are not synchronized');
+assert.strictEqual(adminJs, adminNestedJs, 'Duplicate admin JS files are not synchronized');
+console.log('HOME_BANNER_RECOMMENDATIONS_REGRESSION_TEST_PASSED');

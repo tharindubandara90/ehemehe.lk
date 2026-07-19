@@ -1456,8 +1456,50 @@
     return `<a class="ehm-promo-banner ${esc(className)}" href="${esc(href)}" target="_blank" rel="noopener sponsored">${image}</a>`;
   }
 
+  function homeBannerForDisplay() {
+    const placements = [
+      'home_before_recommendations',
+      'home_top',
+      'home_mobile_between_filters_ads'
+    ];
+    for (const placement of placements) {
+      const banner = bannerForPlacement(placement);
+      if (banner) return banner;
+    }
+    return null;
+  }
+
   function activeBannerHtml() {
-    return bannerHtmlForPlacement('home_mobile_between_filters_ads', 'ehm-home-banner');
+    const banner = homeBannerForDisplay();
+    if (!banner) return '';
+    const href = banner.target_url || banner.url || '';
+    const image = `<img src="${esc(banner.image_url)}" alt="${esc(banner.title || 'Banner Ad')}" loading="eager" fetchpriority="high">`;
+    if (!href || href === '#') {
+      return `<div class="ehm-promo-banner ehm-home-banner">${image}</div>`;
+    }
+    return `<a class="ehm-promo-banner ehm-home-banner" href="${esc(href)}" target="_blank" rel="noopener sponsored">${image}</a>`;
+  }
+
+  function ensureDesktopHomeBanner(recommendations) {
+    let host = document.getElementById('ehmDesktopHomeBanner');
+    const html = activeBannerHtml();
+    if (!html || !recommendations) {
+      host?.remove();
+      return null;
+    }
+    if (!host) {
+      host = document.createElement('section');
+      host.id = 'ehmDesktopHomeBanner';
+      host.className = 'section-container ehm-home-recommendations-banner';
+    }
+    if (host.__ehmBannerHtml !== html) {
+      host.__ehmBannerHtml = html;
+      host.innerHTML = html;
+    }
+    if (host.nextElementSibling !== recommendations || host.parentElement !== recommendations.parentElement) {
+      recommendations.insertAdjacentElement('beforebegin', host);
+    }
+    return host;
   }
 
   function renderResults() {
@@ -2121,14 +2163,17 @@
     if (!grid) return;
 
     if (!desktopLiveDataSettled && !homeSnapshotHydrated) {
+      ensureDesktopHomeBanner(recommendations);
       renderDesktopRecommendationsPending(recommendations, grid);
       if (browse && recommendations.previousElementSibling !== browse) browse.insertAdjacentElement('afterend', recommendations);
+      ensureDesktopHomeBanner(recommendations);
       return;
     }
 
     recommendations.classList.remove('ehm-home-live-pending');
+    ensureDesktopHomeBanner(recommendations);
     grid.__ehmLiveState = 'ready';
-    const rows = sortAdsForPlacement(allAds());
+    const rows = sortAdsForPlacement(allAds()).slice(0, 8);
     const html = rows.map(renderAdCard).join('');
     if (grid.__ehmPromotionHtml !== html) {
       grid.__ehmPromotionHtml = html;
@@ -2136,6 +2181,7 @@
     }
     releaseDesktopHomePrepaint();
     if (browse && recommendations.previousElementSibling !== browse) browse.insertAdjacentElement('afterend', recommendations);
+    ensureDesktopHomeBanner(recommendations);
   }
 
   function createDesktopResultsHost() {
@@ -2166,6 +2212,7 @@
       return;
     }
 
+    document.getElementById('ehmDesktopHomeBanner')?.remove();
     const rows = filteredAds();
     host.style.display = 'block';
     host.innerHTML = `

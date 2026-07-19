@@ -1811,3 +1811,41 @@ footer [data-yw="c3JjL2NvbXBvbmVudHMvRm9vdGVyLnRzeEA4OjY"]{
   body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-badge.promoted { background: #06b6d4 !important; }
   body.ehm-desktop-olx-home .ehm-olx-latest-grid .ehm-badge.top { background: #ef4444 !important; }
 }
+
+
+/* Home banner above recommendations: shown only when an enabled active admin banner exists. */
+.ehm-home-recommendations-banner {
+  margin-top: 8px !important;
+  margin-bottom: 18px !important;
+}
+.ehm-home-recommendations-banner .ehm-home-banner {
+  margin: 0 !important;
+}
+.ehm-home-recommendations-banner .ehm-promo-banner img {
+  width: 100% !important;
+  max-height: 190px !important;
+  aspect-ratio: 16 / 4 !important;
+  object-fit: cover !important;
+}
+
+@media (min-width: 1024px) {
+  /* Four cards per row and no more than two rows on the unfiltered desktop home page. */
+  body.ehm-desktop-olx-home .ehm-olx-latest-grid > :nth-child(n+9) {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .ehm-mobile-header-favorites-hidden,
+  header .ehm-desktop-favorites-link {
+    display: none !important;
+  }
+  .ehm-home-banner {
+    margin: 8px 0 14px !important;
+  }
+  .ehm-home-banner img {
+    max-height: 132px !important;
+    aspect-ratio: 16 / 5 !important;
+    object-fit: cover !important;
+  }
+}

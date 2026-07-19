@@ -715,7 +715,7 @@
 
   </style>
   <link rel="icon" type="image/png" href="/assets/ehemehe_favicon.png">
-  <link rel="stylesheet" href="/brand-theme.css?v=ea755e17b0b602bf">
+  <link rel="stylesheet" href="/brand-theme.css?v=10bb68c83f492557">
 </head>
 <body>
   <section id="loginBox" class="login-wrap">
@@ -1059,7 +1059,7 @@
         </section>
 
         <section id="section-banners" class="section hidden panel">
-          <div class="panel-head"><div><h2>Banner Ads</h2><p>Add, replace, or remove image banners shown on mobile pages.</p></div><button class="btn" onclick="loadBanners(true)">Refresh</button></div>
+          <div class="panel-head"><div><h2>Banner Ads</h2><p>Add, replace, enable, or disable the banner shown above home recommendations on desktop and mobile.</p></div><button class="btn" onclick="loadBanners(true)">Refresh</button></div>
           <div class="grid two">
             <div class="setting-card">
               <h3>Add Banner</h3>
@@ -1077,10 +1077,13 @@
               <div class="field"><label>Click URL</label><input class="input" id="bannerUrl" placeholder="https://... (optional)"></div>
               <div class="field"><label>Display Position</label>
                 <select id="bannerPlacement">
-                  <option value="home_mobile_between_filters_ads">Home mobile — below filters</option>
+                  <option value="home_before_recommendations">Home — above Fresh recommendations (desktop + mobile)</option>
+                  <option value="home_mobile_between_filters_ads">Legacy home mobile — below filters</option>
                   <option value="ad_detail_mobile_before_image">Ad detail mobile — above product image</option>
                 </select>
               </div>
+              <div class="field"><label>Display duration (days)</label><input class="input" id="bannerDays" type="number" min="1" max="365" value="30"></div>
+              <div class="field"><label><input type="checkbox" id="bannerEnabled" checked> Enable banner on the website</label></div>
               <button class="btn primary" onclick="saveBanner()">Save Banner</button>
             </div>
             <div id="bannersList"></div>
@@ -1097,7 +1100,7 @@
     </div>
   </div>
 
-  <script src="/admin.js?v=77a04c813c9e8a0c"></script>
+  <script src="/admin.js?v=ae7bf65643cb9eaf"></script>
   <script src="/brand-theme.js?v=c96bb70a24fc9780"></script>
 </body>
 </html>

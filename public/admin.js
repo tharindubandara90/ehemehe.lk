@@ -1754,5 +1754,90 @@ function editBanner(id){ const b=BANNERS.find(x=>String(x.id)===String(id)); if(
 async function saveBanner(){ const days=30; const now=new Date().toISOString(); const id=el('bannerId')?.value||`banner_${Date.now()}`; const payload={id,title:el('bannerTitle')?.value||'Banner Ad',image_url:el('bannerImage')?.value||'',target_url:el('bannerUrl')?.value||'/',placement:el('bannerPlacement')?.value||'home_top',status:'active',is_enabled:true,days,start_at:now,end_at:addDaysISO(days),updated_at:now,created_at:now}; try{ if(typeof supabaseClient!=='undefined'){ const {error}=await supabaseClient.from('banner_ads').upsert(payload,{onConflict:'id'}); if(error) throw error; } else throw new Error('No Supabase'); }catch(e){ const rows=localRead(BANNER_ADS_KEY,[]).filter(x=>String(x.id)!==String(id)); rows.unshift(payload); localWrite(BANNER_ADS_KEY,rows); } ['bannerId','bannerTitle','bannerImage','bannerUrl'].forEach(id=>{ if(el(id)) el(id).value=''; }); await loadBanners(true); }
 async function deleteBanner(id){ if(!confirm('Delete this banner?')) return; try{ if(typeof supabaseClient!=='undefined') await supabaseClient.from('banner_ads').delete().eq('id',id); }catch(e){} const rows=localRead(BANNER_ADS_KEY,[]).filter(x=>String(x.id)!==String(id)); localWrite(BANNER_ADS_KEY,rows); BANNERS=BANNERS.filter(x=>String(x.id)!==String(id)); renderBanners(); renderPromoBanners(); }
 
+/* ---------------- Unified home banner manager (desktop + mobile) ---------------- */
+function bannerPlacementLabel(value){
+  const labels={
+    home_before_recommendations:'Home — above Fresh recommendations',
+    home_top:'Home — above Fresh recommendations (legacy)',
+    home_mobile_between_filters_ads:'Home mobile — below filters (legacy)',
+    ad_detail_mobile_before_image:'Ad detail mobile — above product image'
+  };
+  return labels[String(value||'')] || value || '-';
+}
+function renderBanners(){
+  const target=el('bannersList');
+  if(!target){ renderPromoBanners(); return; }
+  if(!BANNERS.length){ target.innerHTML='<div class="empty">No banners found.</div>'; renderPromoBanners(); return; }
+  target.innerHTML=BANNERS.map(b=>{
+    const active=isActiveWindow(b);
+    return `<div class="listing-card"><div class="listing-thumb">${b.image_url?`<img src="${html(b.image_url)}">`:'<div class="noimg">AD</div>'}</div><div class="listing-body"><div class="listing-title">${html(b.title||'Untitled banner')}</div><div class="listing-meta"><span>${html(bannerPlacementLabel(b.placement))}</span><span>${statusBadge(active?'active':(b.is_enabled===false||b.status==='disabled'?'disabled':'expired'))}</span></div><div class="actions"><button class="btn small" onclick="editBanner('${html(b.id)}')">Edit</button><button class="btn warn small" onclick="togglePromoBanner('${html(b.id)}')">${b.is_enabled===false||b.status==='disabled'?'Enable':'Disable'}</button><button class="btn danger small" onclick="deleteBanner('${html(b.id)}')">Delete</button></div></div></div>`;
+  }).join('');
+  renderPromoBanners();
+}
+function editBanner(id){
+  const b=BANNERS.find(x=>String(x.id)===String(id));
+  if(!b) return;
+  if(el('bannerId')) el('bannerId').value=b.id;
+  if(el('bannerTitle')) el('bannerTitle').value=b.title||'';
+  if(el('bannerImage')) el('bannerImage').value=b.image_url||'';
+  if(el('bannerUrl')) el('bannerUrl').value=b.target_url||b.url||'';
+  if(el('bannerPlacement')) el('bannerPlacement').value=b.placement||'home_before_recommendations';
+  if(el('bannerDays')) el('bannerDays').value=b.days||30;
+  if(el('bannerEnabled')) el('bannerEnabled').checked=b.is_enabled!==false && b.status!=='disabled';
+  if(el('bannerFile')) el('bannerFile').value='';
+  showBannerPreview(b.image_url||'');
+  document.getElementById('section-banners')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function saveBanner(){
+  if(!requirePermission('can_edit_ads')) return;
+  const id=el('bannerId')?.value||`banner_${Date.now()}`;
+  const existing=BANNERS.find(x=>String(x.id)===String(id));
+  const image=el('bannerImage')?.value||'';
+  if(!image){ toast('Please select a banner image.'); return; }
+  const days=Math.max(1,Math.min(365,Number(el('bannerDays')?.value||30)));
+  const enabled=el('bannerEnabled')?.checked!==false;
+  const now=new Date().toISOString();
+  const payload={
+    id,
+    title:el('bannerTitle')?.value||'Banner Ad',
+    image_url:image,
+    target_url:el('bannerUrl')?.value||'/',
+    placement:el('bannerPlacement')?.value||'home_before_recommendations',
+    status:enabled?'active':'disabled',
+    is_enabled:enabled,
+    days,
+    start_at:now,
+    end_at:addDaysISO(days),
+    created_at:existing?.created_at||now,
+    updated_at:now
+  };
+  try{
+    if(existing) await safeUpdate('banner_ads',id,payload);
+    else await safeInsert('banner_ads',payload);
+  }catch(e){
+    const rows=localRead(BANNER_ADS_KEY,[]).filter(x=>String(x.id)!==String(id));
+    rows.unshift(payload); localWrite(BANNER_ADS_KEY,rows);
+  }
+  ['bannerId','bannerTitle','bannerImage','bannerUrl'].forEach(key=>{ if(el(key)) el(key).value=''; });
+  if(el('bannerFile')) el('bannerFile').value='';
+  if(el('bannerPlacement')) el('bannerPlacement').value='home_before_recommendations';
+  if(el('bannerDays')) el('bannerDays').value='30';
+  if(el('bannerEnabled')) el('bannerEnabled').checked=true;
+  showBannerPreview('');
+  await loadBanners(true);
+  toast(enabled?'Banner saved and enabled.':'Banner saved but disabled.');
+}
+async function savePromoBanner(){
+  if(!requirePermission('can_edit_ads')) return;
+  const days=Math.max(1,Number(el('promoBannerDays')?.value||1));
+  const now=new Date().toISOString();
+  const enabled=!!el('promoBannerEnabled')?.checked;
+  const payload={id:el('promoBannerId')?.value||`banner_${Date.now()}`,title:el('promoBannerTitle')?.value||'Banner Ad',image_url:el('promoBannerImage')?.value||'',target_url:el('promoBannerUrl')?.value||'/',placement:'home_before_recommendations',days,start_at:now,end_at:addDaysISO(days),status:enabled?'active':'disabled',is_enabled:enabled,created_at:now,updated_at:now};
+  if(!payload.image_url){ toast('Banner image URL required.'); return; }
+  try{ if(typeof supabaseClient!=='undefined'){ const {error}=await supabaseClient.from('banner_ads').upsert(payload,{onConflict:'id'}); if(error) throw error; await loadBanners(true); } else throw new Error('No Supabase'); }
+  catch(e){ const rows=localRead(BANNER_ADS_KEY,[]).filter(x=>String(x.id)!==String(payload.id)); rows.unshift(payload); localWrite(BANNER_ADS_KEY,rows); await loadBanners(true); }
+  toast(enabled?'Banner saved and enabled.':'Banner saved but disabled.');
+}
+
 installAdminAdManagementStyles();
 checkSession();

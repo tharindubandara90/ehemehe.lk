@@ -1,0 +1,25 @@
+{
+  "source_zip": "ehemehe-bug-report-all-fixed-full.zip",
+  "changes": {
+    "desktop_recommendations_max_cards": 8,
+    "desktop_recommendations_max_rows": 2,
+    "home_banner_placement": "home_before_recommendations",
+    "banner_desktop": true,
+    "banner_mobile": true,
+    "banner_requires_active_enabled_state": true,
+    "admin_upload_edit_delete": true,
+    "admin_enable_disable": true,
+    "admin_duration_days": true,
+    "mobile_header_favorites_removed": true,
+    "mobile_bottom_nav_favorites_preserved": true
+  },
+  "tests": {
+    "javascript_syntax": "passed",
+    "build": "passed",
+    "full_regression": "35/35 passed",
+    "targeted_banner_layout_repeats": "10/10 passed",
+    "admin_duplicate_files_synchronized": true,
+    "static_ad_shells_synchronized": 100
+  },
+  "production_live_tested": false
+}

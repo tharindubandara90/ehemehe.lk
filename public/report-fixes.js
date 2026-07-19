@@ -353,6 +353,21 @@
     }
   }
 
+  function hideMobileHeaderFavorites() {
+    if (!window.matchMedia?.('(max-width: 767px)').matches) return;
+    const candidates = Array.from(document.querySelectorAll('a[href*="/dashboard/favorites"], button'));
+    candidates.forEach((node) => {
+      const label = text(node).toLowerCase();
+      if (label !== 'favorites' && label !== 'favourites') return;
+      if (node.closest('.ehm-mobile-bottom-nav, footer, [data-ehm-favorites-view]')) return;
+      const header = node.closest('header');
+      const nearTop = (() => {
+        try { return node.getBoundingClientRect().top < 190; } catch (_) { return false; }
+      })();
+      if (header || nearTop) node.classList.add('ehm-mobile-header-favorites-hidden');
+    });
+  }
+
   function mobileNav() {
     const nav = [...document.querySelectorAll('nav')].find((node) => /Home/.test(text(node)) && /Post Ad/.test(text(node)) && getComputedStyle(node).position === 'fixed');
     if (!nav) return;
@@ -426,6 +441,7 @@
       repairDashboardLinks();
       dashboardNav();
       profileSettings();
+      hideMobileHeaderFavorites();
       mobileNav();
       allCategoriesBack();
       imageFallbacks();
