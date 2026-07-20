@@ -39,8 +39,8 @@ assert(dispatcher.includes("'/api/update-profile'"), 'Update profile route missi
 assert(dispatcher.includes("'/api/delete-my-ad'"), 'Delete own ad route missing from dispatcher.');
 assert(dispatcher.includes("'/api/delete-account'"), 'Delete account route missing from dispatcher.');
 
-assert(postRuntime.includes("fetch('/api/my-ads'"), 'My Ads is not loaded from the authenticated account API.');
-assert(postRuntime.includes('updateDashboardOverview(ads)'), 'Real My Ads and view-count dashboard statistics missing.');
+assert(postRuntime.includes("fetch('/api/my-ads?summary=1'"), 'My Ads is not loaded from the authenticated compact account API.');
+assert(postRuntime.includes('updateDashboardOverview(rows)'), 'Real My Ads and view-count dashboard statistics missing.');
 assert(postRuntime.includes('data-ehm-delete-ad'), 'User ad delete control missing.');
 assert(postRuntime.includes("fetch('/api/delete-my-ad'"), 'User ad delete API call missing.');
 assert(postRuntime.includes("image || AD_PLACEHOLDER"), 'Dashboard cards do not use the missing-image placeholder.');

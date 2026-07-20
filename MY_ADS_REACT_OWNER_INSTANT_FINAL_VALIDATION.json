@@ -1,0 +1,29 @@
+{
+  "fix": "My Ads owner-only instant React rendering",
+  "date": "2026-07-20",
+  "root_causes": [
+    "The compiled React dashboard rendered a hardcoded My Ads count of 3 and a hardcoded Views count of 892.",
+    "The React My Ads array was permanently initialized as an empty array, so the native list stayed blank.",
+    "A separate runtime script tried to replace React-owned children with innerHTML after the API response, creating a React/DOM race.",
+    "The API ownership compatibility queries were executed serially, increasing wait time on legacy schemas."
+  ],
+  "changes": [
+    "React now hydrates the current user's My Ads synchronously from the v3 cache and migrates the existing v2 cache.",
+    "React subscribes to authenticated ehemehe:dashboard-ads-updated events and renders only rows owned by the current user.",
+    "Dashboard counts are calculated from the same real owner rows; the bundled 3 and 892 values were removed.",
+    "Direct /dashboard/ads navigation opens the My Ads tab immediately.",
+    "The legacy DOM painter is disabled whenever React owns the My Ads mount.",
+    "Edit and Delete controls receive the real ad ID after React rendering.",
+    "Supabase custom_fields.owner_user_id and user_id ownership queries run in parallel and remain server-side filtered.",
+    "Loading and settled-empty states are visible instead of a blank page."
+  ],
+  "automated_verification": {
+    "regression_tests_per_run": 42,
+    "full_suite_runs": 10,
+    "total_regression_executions": 420,
+    "passed": 420,
+    "javascript_syntax_checks": "passed on every full-suite run",
+    "http_route_and_cache_tests": "passed on every full-suite run"
+  },
+  "production_note": "The automated suite validates the packaged code with mocked authenticated ownership responses. A real production Supabase session can only be observed after deployment."
+}

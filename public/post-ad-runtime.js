@@ -11,8 +11,10 @@
   const MAX_PHONES = 5;
   const MAX_IMAGES = 10;
   const AD_PLACEHOLDER = '/assets/ad-placeholder.svg';
-  const DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v2:';
-  const DASHBOARD_ADS_CACHE_TTL_MS = 15 * 60 * 1000;
+  const DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v3:';
+  const LEGACY_DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v2:';
+  const DASHBOARD_ADS_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  const DASHBOARD_REQUEST_TIMEOUT_MS = 6500;
 
   const runtime = {
     rows: [],
@@ -1527,6 +1529,8 @@
     if (!response.ok || result.ok === false) throw new Error(result.message || 'Could not delete the ad.');
     runtime.dashboardAds = runtime.dashboardAds.filter((row) => String(row.id || row.localId || '') !== String(ad.id));
     runtime.dashboardLoadedAt = Date.now();
+    saveDashboardAdsCache(runtime.dashboardCacheUserId, runtime.dashboardAds);
+    publishDashboardAds(runtime.dashboardAds, true);
     try {
       const local = localAds().filter((row) => String(row.id || row.localId || '') !== String(ad.id));
       localStorage.setItem('ehemeheLocalAds', JSON.stringify(local));
@@ -1590,20 +1594,62 @@
     };
   }
 
+  function dashboardAdBelongsToUser(ad, userId) {
+    const custom = ad?.custom_fields && typeof ad.custom_fields === 'object' ? ad.custom_fields : {};
+    const candidates = [ad?.user_id, ad?.userId, ad?.owner_id, ad?.seller_id, ad?.profile_id, ad?.created_by, custom.owner_user_id]
+      .filter((value) => value !== undefined && value !== null && String(value) !== '');
+    if (!candidates.length) return true;
+    return candidates.some((value) => String(value) === String(userId || ''));
+  }
+
+  function reactDashboardAd(ad) {
+    const normalized = normalizeDashboardAd(ad || {});
+    const image = normalized.image_url || normalized.images?.[0] || AD_PLACEHOLDER;
+    return {
+      ...normalized,
+      images: [image],
+      postedAt: normalized.created_at || normalized.postedAt || '',
+      viewCount: Number(normalized.view_count ?? normalized.viewCount ?? normalized.views ?? 0) || 0,
+      location: normalized.city || normalized.custom_fields?.city || normalized.district || normalized.custom_fields?.district || ''
+    };
+  }
+
+  function publishDashboardAds(rows, settled = false) {
+    const userId = runtime.dashboardCacheUserId || window.__EHM_AUTH_SESSION?.user?.id || '';
+    const safeRows = (Array.isArray(rows) ? rows : [])
+      .filter((ad) => dashboardAdBelongsToUser(ad, userId))
+      .map(reactDashboardAd);
+    window.__EHM_DASHBOARD_ADS = safeRows;
+    window.__EHM_DASHBOARD_ADS_SETTLED = Boolean(settled);
+    window.dispatchEvent(new CustomEvent('ehemehe:dashboard-ads-updated', {
+      detail: { ads: safeRows, settled: Boolean(settled), userId: String(userId || '') }
+    }));
+    return safeRows;
+  }
+
   function dashboardCacheKey(userId) {
     return `${DASHBOARD_ADS_CACHE_PREFIX}${String(userId || '')}`;
   }
 
+  function legacyDashboardCacheKey(userId) {
+    return `${LEGACY_DASHBOARD_ADS_CACHE_PREFIX}${String(userId || '')}`;
+  }
+
   function readDashboardAdsCache(userId) {
     if (!userId) return [];
-    try {
-      const parsed = JSON.parse(localStorage.getItem(dashboardCacheKey(userId)) || 'null');
-      const age = Date.now() - Number(parsed?.savedAt || 0);
-      if (!Array.isArray(parsed?.ads) || !Number.isFinite(age) || age < 0 || age > DASHBOARD_ADS_CACHE_TTL_MS) return [];
-      return parsed.ads.map(normalizeDashboardAd);
-    } catch (_) {
-      return [];
+    const keys = [dashboardCacheKey(userId), legacyDashboardCacheKey(userId)];
+    for (const key of keys) {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+        const age = Date.now() - Number(parsed?.savedAt || 0);
+        if (!Array.isArray(parsed?.ads) || !Number.isFinite(age) || age < 0 || age > DASHBOARD_ADS_CACHE_TTL_MS) continue;
+        const owned = parsed.ads
+          .map(normalizeDashboardAd)
+          .filter((ad) => dashboardAdBelongsToUser(ad, userId));
+        if (owned.length || parsed.ads.length === 0) return owned;
+      } catch (_) {}
     }
+    return [];
   }
 
   function saveDashboardAdsCache(userId, ads) {
@@ -1643,6 +1689,7 @@
     // request completes.
     runtime.dashboardAds = cached;
     runtime.dashboardLoadedAt = cached.length ? Date.now() : 0;
+    publishDashboardAds(runtime.dashboardAds, false);
     return runtime.dashboardAds;
   }
 
@@ -1656,25 +1703,53 @@
       if (!authSession?.user || !authSession.access_token) return runtime.dashboardAds;
 
       hydrateDashboardAdsCache(authSession.user.id);
-
-      let remote = [];
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), DASHBOARD_REQUEST_TIMEOUT_MS);
+      let remote;
+      let requestError = null;
       try {
-        // The same authenticated account API is used in compact mode: fetch('/api/my-ads')
         const response = await fetch('/api/my-ads?summary=1', {
           headers: {
             'Accept': 'application/json',
             'Authorization': `Bearer ${authSession.access_token}`
           },
-          credentials: 'same-origin'
+          credentials: 'same-origin',
+          signal: controller.signal,
+          cache: 'no-store'
         });
         const data = await response.json().catch(() => ({}));
-        if (response.ok && data.ok !== false && Array.isArray(data.ads)) remote = data.ads;
-      } catch (_) {}
+        if (!response.ok || data.ok === false || !Array.isArray(data.ads)) {
+          throw new Error(data.message || `Could not load your ads (HTTP ${response.status}).`);
+        }
+        remote = data.ads;
+      } catch (error) {
+        requestError = error;
+      } finally {
+        window.clearTimeout(timeout);
+      }
 
       const local = localAds().filter((ad) => String(ad.userId) === String(authSession.user.id));
+      if (!Array.isArray(remote)) {
+        if (runtime.dashboardAds.length || local.length) {
+          const byId = new Map();
+          [...runtime.dashboardAds, ...local].forEach((ad) => {
+            const normalized = normalizeDashboardAd(ad);
+            if (!dashboardAdBelongsToUser(normalized, authSession.user.id)) return;
+            const key = String(normalized.id || normalized.localId || `${normalized.title}|${normalized.created_at}`);
+            byId.set(key, { ...(byId.get(key) || {}), ...normalized });
+          });
+          runtime.dashboardAds = Array.from(byId.values())
+            .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+          publishDashboardAds(runtime.dashboardAds, false);
+          return runtime.dashboardAds;
+        }
+        throw requestError || new Error('Could not load your ads.');
+      }
+
       const byId = new Map();
       [...local, ...remote].forEach((ad) => {
         const normalized = normalizeDashboardAd(ad);
+        if (!dashboardAdBelongsToUser(normalized, authSession.user.id)) return;
         const key = String(normalized.id || normalized.localId || `${normalized.title}|${normalized.created_at}`);
         byId.set(key, { ...(byId.get(key) || {}), ...normalized });
       });
@@ -1683,6 +1758,7 @@
         .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       runtime.dashboardLoadedAt = Date.now();
       saveDashboardAdsCache(authSession.user.id, runtime.dashboardAds);
+      publishDashboardAds(runtime.dashboardAds, true);
       return runtime.dashboardAds;
     })().finally(() => {
       runtime.dashboardLoading = false;
@@ -1761,7 +1837,10 @@
       nativeList.removeAttribute('hidden');
       nativeList.style.removeProperty('display');
       delete nativeList.dataset.ehmNativeMyAdsHidden;
-      paintDashboardAds(nativeList, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
+      nativeList.dataset.ehmDashboardSettled = runtime.dashboardLoadedAt > 0 ? '1' : '0';
+      if (window.__EHM_REACT_DASHBOARD_ADS !== true) {
+        paintDashboardAds(nativeList, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
+      }
       return nativeList;
     }
 
@@ -1782,19 +1861,24 @@
 
     panel.removeAttribute('hidden');
     panel.style.removeProperty('display');
-    paintDashboardAds(panel, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
+    panel.dataset.ehmDashboardSettled = runtime.dashboardLoadedAt > 0 ? '1' : '0';
+    if (window.__EHM_REACT_DASHBOARD_ADS !== true) {
+      paintDashboardAds(panel, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
+    }
     return panel;
   }
 
   function applyLoadedDashboardAds(ads) {
-    if (!route().startsWith('/dashboard')) return;
     const rows = Array.isArray(ads) ? ads : [];
+    publishDashboardAds(rows, runtime.dashboardLoadedAt > 0);
+    if (!route().startsWith('/dashboard')) return;
     updateDashboardCount(rows.length);
     updateDashboardOverview(rows);
     wireNativeDashboardEditButtons(rows);
     const currentPanel = ensureDashboardAdsPanel();
     if (currentPanel?.isConnected && route() === '/dashboard/ads') {
-      paintDashboardAds(currentPanel, rows, true);
+      currentPanel.dataset.ehmDashboardSettled = runtime.dashboardLoadedAt > 0 ? '1' : '0';
+      if (window.__EHM_REACT_DASHBOARD_ADS !== true) paintDashboardAds(currentPanel, rows, true);
     }
   }
 
@@ -1805,7 +1889,8 @@
       if (!route().startsWith('/dashboard')) return;
       const currentPanel = ensureDashboardAdsPanel();
       if (currentPanel?.isConnected && !runtime.dashboardLoadedAt) {
-        paintDashboardAds(currentPanel, [], true);
+        currentPanel.dataset.ehmDashboardSettled = '1';
+        if (window.__EHM_REACT_DASHBOARD_ADS !== true) paintDashboardAds(currentPanel, [], true);
       }
     });
     return request;
@@ -1818,7 +1903,9 @@
     const authSession = window.__EHM_AUTH_SESSION?.user ? window.__EHM_AUTH_SESSION : null;
     if (authSession?.user) {
       const cached = hydrateDashboardAdsCache(authSession.user.id);
-      if (panel?.isConnected && cached.length) paintDashboardAds(panel, cached, false);
+      if (panel?.isConnected && cached.length && window.__EHM_REACT_DASHBOARD_ADS !== true) {
+        paintDashboardAds(panel, cached, false);
+      }
     }
 
     // Do not await the network here. The first dashboard tick can start while React

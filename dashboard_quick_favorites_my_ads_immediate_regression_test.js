@@ -4,11 +4,16 @@ const { EventEmitter } = require('events');
 
 const report = fs.readFileSync('public/report-fixes.js', 'utf8');
 const runtime = fs.readFileSync('public/post-ad-runtime.js', 'utf8');
+const bundle = fs.readFileSync('public/js/index-BsKly-Vj.js', 'utf8');
 
 assert(report.includes("'view favorites': '/dashboard/favorites'"),
   'Dashboard View Favorites quick action is not mapped to the Favorites route.');
-assert(runtime.includes("const DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v2:'"),
-  'My Ads has no user-specific immediate cache.');
+assert(runtime.includes("const DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v3:'"),
+  'My Ads has no current user-specific immediate cache.');
+assert(runtime.includes("const LEGACY_DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v2:'"),
+  'The previous owner cache is not migrated for instant display.');
+assert(bundle.includes('ehemehe:myAdsCache:v3:') && bundle.includes('ehemehe:myAdsCache:v2:'),
+  'React does not synchronously hydrate the current account from cache.');
 assert(runtime.includes('function ensureDashboardAdsPanel()'),
   'My Ads loading/list panel is not created immediately on /dashboard/ads.');
 assert(runtime.includes("fetch('/api/my-ads?summary=1'"),
@@ -58,18 +63,24 @@ function jsonResponse(ok, payload, status = ok ? 200 : 400) {
 
   const calls = [];
   global.fetch = async (url) => {
-    calls.push(String(url));
-    if (String(url).endsWith('/auth/v1/user')) return jsonResponse(true, { id: 'user-fast-2' });
-    if (String(url).includes('/rest/v1/ads?')) {
-      const decoded = decodeURIComponent(String(url));
-      assert(decoded.includes('user_id=eq.user-fast-2'), 'My Ads query is not filtered server-side by user.');
+    const value = String(url);
+    calls.push(value);
+    if (value.endsWith('/auth/v1/user')) return jsonResponse(true, { id: 'user-fast-2' });
+    if (value.includes('/rest/v1/ads?')) {
+      const decoded = decodeURIComponent(value);
+      assert(decoded.includes('user_id=eq.user-fast-2') || decoded.includes('custom_fields->>owner_user_id=eq.user-fast-2'),
+        'My Ads query is not filtered server-side by user.');
       assert(!decoded.includes('select=*'), 'Fast My Ads path still downloads full rows.');
       assert(!decoded.includes('images') && !decoded.includes('image_url'),
         'Fast My Ads path still downloads heavy image columns.');
-      return jsonResponse(true, [{
-        id: 'owned-fast-2', user_id: 'user-fast-2', title: 'Fast dashboard ad', price: 1000,
-        status: 'approved', created_at: '2026-07-19T00:00:00Z', custom_fields: {}
-      }]);
+      const parsed = new URL(value);
+      if (parsed.searchParams.get('user_id')) {
+        return jsonResponse(true, [{
+          id: 'owned-fast-2', user_id: 'user-fast-2', title: 'Fast dashboard ad', price: 1000,
+          status: 'approved', created_at: '2026-07-19T00:00:00Z', custom_fields: {}
+        }]);
+      }
+      return jsonResponse(true, []);
     }
     throw new Error(`Unexpected URL ${url}`);
   };
@@ -83,14 +94,14 @@ function jsonResponse(ok, payload, status = ok ? 200 : 400) {
   assert.strictEqual(res.statusCode, 200);
   assert.strictEqual(payload.ads.length, 1);
   assert.strictEqual(payload.ads[0].image_url, '/api/ad-image?id=owned-fast-2&index=0');
-  assert.strictEqual(calls.filter((url) => url.includes('/rest/v1/ads?')).length, 1,
-    'Fast My Ads path made unnecessary schema retries.');
+  assert.strictEqual(calls.filter((url) => url.includes('/rest/v1/ads?')).length, 2,
+    'Fast My Ads path must use exactly two parallel compact ownership queries.');
 
   global.fetch = oldFetch;
   for (const [key, value] of Object.entries(oldEnv)) {
     if (value === undefined) delete process.env[key]; else process.env[key] = value;
   }
-  console.log('Dashboard quick Favorites + immediate compact My Ads regression test passed.');
+  console.log('Dashboard quick Favorites + immediate React My Ads regression test passed.');
 })().catch((error) => {
   console.error(error);
   process.exit(1);

@@ -2,16 +2,36 @@ const {
   json, supabasePublicKey, supabaseAdminConfig
 } = require('../lib/otp-utils');
 
+const AUTH_TIMEOUT_MS = 5000;
+const ADS_TIMEOUT_MS = 6500;
+const DASHBOARD_SELECT_WITH_USER = 'id,user_id,title,description,price,status,condition,created_at,custom_fields';
+const DASHBOARD_SELECT_OWNER = 'id,title,description,price,status,condition,created_at,custom_fields';
+const DASHBOARD_SELECT_COMPAT = 'id,title,price,status,created_at,custom_fields';
+
+async function fetchJson(url, options = {}, timeoutMs = ADS_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const data = await response.json().catch(() => ({}));
+    return { response, data };
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('MY_ADS_TIMEOUT');
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function authenticatedUser(req) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
   if (!token) throw new Error('AUTH_REQUIRED');
 
   const { url } = supabaseAdminConfig();
   const publicKey = supabasePublicKey();
-  const response = await fetch(`${url}/auth/v1/user`, {
+  const { response, data } = await fetchJson(`${url}/auth/v1/user`, {
     headers: { apikey: publicKey, Authorization: `Bearer ${token}` }
-  });
-  const data = await response.json().catch(() => ({}));
+  }, AUTH_TIMEOUT_MS);
   if (!response.ok || !data.id) throw new Error('AUTH_REQUIRED');
   return data;
 }
@@ -51,108 +71,91 @@ function missingUserIdColumn(data, message) {
   );
 }
 
-async function requestAds(url, key, select, filters) {
+function compactOwnedRows(rows, userId) {
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row) => belongsToUser(row, userId))
+    .map((row) => ({
+      ...row,
+      custom_fields: customFields(row),
+      image_url: `/api/ad-image?id=${encodeURIComponent(String(row.id || ''))}&index=0`,
+      images: []
+    }));
+}
+
+async function requestAds(url, key, select, filters = {}) {
   const params = new URLSearchParams({
     select,
     order: 'created_at.desc',
     limit: '200',
     ...filters
   });
-  const response = await fetch(`${url}/rest/v1/ads?${params.toString()}`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
-  });
-  const data = await response.json().catch(() => []);
-  return { response, data };
-}
-
-function compactOwnedRows(rows, userId) {
-  return (Array.isArray(rows) ? rows : [])
-    .filter((row) => belongsToUser(row, userId))
-    .map((row) => ({
-      ...row,
-      image_url: `/api/ad-image?id=${encodeURIComponent(String(row.id || ''))}&index=0`,
-      images: []
-    }));
-}
-
-async function queryOwnedRows(url, key, userId, selects, filters, stopWhenUserIdMissing = false) {
-  let lastError = null;
-  for (const select of selects) {
-    const { response, data } = await requestAds(url, key, select, filters);
-    if (response.ok) {
-      return { ok: true, rows: compactOwnedRows(data, userId), lastError: null, userIdMissing: false };
-    }
-
-    const message = data.message || data.details || data.hint || 'Could not read your ads.';
-    lastError = new Error(message);
-    if (stopWhenUserIdMissing && missingUserIdColumn(data, message)) {
-      return { ok: false, rows: [], lastError, userIdMissing: true };
-    }
-    if (!missingColumnOrTable(data, message)) throw lastError;
+  try {
+    const { response, data } = await fetchJson(`${url}/rest/v1/ads?${params.toString()}`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
+    });
+    if (response.ok) return { ok: true, rows: data, error: null, data };
+    const message = data?.message || data?.details || data?.hint || 'Could not read your ads.';
+    return {
+      ok: false,
+      rows: [],
+      error: new Error(message),
+      data,
+      schemaMissing: missingColumnOrTable(data, message),
+      userIdMissing: missingUserIdColumn(data, message)
+    };
+  } catch (error) {
+    return { ok: false, rows: [], error, data: {}, schemaMissing: false, userIdMissing: false };
   }
-  return { ok: false, rows: [], lastError, userIdMissing: false };
+}
+
+function mergeOwnedResults(results, userId) {
+  const byId = new Map();
+  for (const result of results) {
+    if (!result?.ok) continue;
+    for (const row of compactOwnedRows(result.rows, userId)) {
+      const key = String(row.id || `${row.title || ''}|${row.created_at || ''}`);
+      byId.set(key, { ...(byId.get(key) || {}), ...row });
+    }
+  }
+  return Array.from(byId.values())
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 }
 
 async function readOwnedAds(url, key, userId) {
-  // The dashboard only needs compact metadata. Images stay lazy through
-  // /api/ad-image. Start with stable core columns so older schemas do not spend
-  // many seconds retrying optional updated_at/view_count/city/district columns.
-  const directSelects = [
-    'id,user_id,title,description,price,status,condition,created_at,custom_fields',
-    'id,user_id,title,price,status,created_at,custom_fields'
-  ];
-  const ownerSelects = [
-    'id,title,description,price,status,condition,created_at,custom_fields',
-    'id,title,price,status,created_at,custom_fields'
-  ];
+  // Both ownership layouts are queried at the same time. The old implementation
+  // waited for several schema fallbacks one after another, which made the
+  // dashboard sit on the bundled count before real rows appeared.
+  const [ownerResult, directResult] = await Promise.all([
+    requestAds(url, key, DASHBOARD_SELECT_OWNER, {
+      'custom_fields->>owner_user_id': `eq.${userId}`
+    }),
+    requestAds(url, key, DASHBOARD_SELECT_WITH_USER, {
+      user_id: `eq.${userId}`
+    })
+  ]);
 
-  // Every ad published by the current application records owner_user_id in
-  // custom_fields, including databases that also have a user_id column. Query
-  // that stable owner field first so the live legacy schema finishes in one
-  // compact request instead of waiting for a known-missing user_id query.
-  const owner = await queryOwnedRows(
-    url,
-    key,
-    userId,
-    ownerSelects,
-    { 'custom_fields->>owner_user_id': `eq.${userId}` }
-  );
-  if (owner.ok && owner.rows.length) return owner.rows;
+  const owned = mergeOwnedResults([ownerResult, directResult], userId);
+  if (owned.length) return owned;
 
-  // Older rows may only have the relational user_id ownership field. Use it as
-  // a compatibility fallback when the JSON owner query is empty or unsupported.
-  const direct = await queryOwnedRows(
-    url,
-    key,
-    userId,
-    directSelects,
-    { user_id: `eq.${userId}` },
-    true
-  );
-  if (direct.ok) return direct.rows;
-  if (owner.ok) return owner.rows;
+  // If either filtered query completed successfully, an empty merged result is
+  // a valid empty account. Do not start a long retry chain.
+  if (ownerResult.ok || directResult.ok) return [];
 
-  // Final compatibility scan is intentionally one compact request, not a long
-  // chain of full-row retries. The result is still filtered again in-process.
-  const compatibilitySelect = direct.userIdMissing
-    ? 'id,title,price,status,created_at,custom_fields'
-    : 'id,user_id,title,price,status,created_at,custom_fields';
-  const params = new URLSearchParams({
-    select: compatibilitySelect,
-    order: 'created_at.desc',
-    limit: '500'
-  });
-  const response = await fetch(`${url}/rest/v1/ads?${params.toString()}`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
-  });
-  const data = await response.json().catch(() => []);
-  if (response.ok) return compactOwnedRows(data, userId);
+  // A single compatibility scan is reserved for an old/schema-cache database
+  // where neither filtered query can execute. Rows are still ownership-filtered
+  // in-process before anything is returned to the browser.
+  if (ownerResult.schemaMissing || directResult.schemaMissing || directResult.userIdMissing) {
+    const compatibility = await requestAds(url, key, DASHBOARD_SELECT_COMPAT);
+    if (compatibility.ok) return compactOwnedRows(compatibility.rows, userId)
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    if (compatibility.schemaMissing) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
+    throw compatibility.error || ownerResult.error || directResult.error || new Error('Could not read your ads.');
+  }
 
-  const message = data.message || data.details || owner.lastError?.message || direct.lastError?.message || 'Could not read your ads.';
-  if (missingColumnOrTable(data, message)) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
-  throw new Error(message);
+  const error = ownerResult.error || directResult.error || new Error('Could not read your ads.');
+  if (error.message === 'MY_ADS_TIMEOUT') throw new Error('MY_ADS_TIMEOUT');
+  throw error;
 }
-
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { ok: false, message: 'Method not allowed' });
@@ -162,19 +165,22 @@ module.exports = async function handler(req, res) {
     const { url, key } = supabaseAdminConfig();
     const ads = await readOwnedAds(url, key, user.id);
 
-    res.setHeader?.('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader?.('Cache-Control', 'no-store');
     return json(res, 200, { ok: true, ads });
   } catch (error) {
     const auth = error.message === 'AUTH_REQUIRED';
     const schemaMissing = error.message === 'DATABASE_SCHEMA_MISSING_ADS';
-    return json(res, auth ? 401 : (schemaMissing ? 503 : 400), {
+    const timeout = error.message === 'MY_ADS_TIMEOUT';
+    return json(res, auth ? 401 : (schemaMissing ? 503 : (timeout ? 504 : 400)), {
       ok: false,
-      code: schemaMissing ? 'DATABASE_SCHEMA_MISSING_ADS' : undefined,
+      code: schemaMissing ? 'DATABASE_SCHEMA_MISSING_ADS' : (timeout ? 'MY_ADS_TIMEOUT' : undefined),
       message: auth
         ? 'Log in to view your ads.'
         : schemaMissing
           ? 'Marketplace database setup is incomplete. Run supabase_marketplace_core_schema.sql once in the Supabase SQL Editor.'
-          : (error.message || 'Could not read your ads.')
+          : timeout
+            ? 'Your ads took too long to load. Please retry.'
+            : (error.message || 'Could not read your ads.')
     });
   }
 };
