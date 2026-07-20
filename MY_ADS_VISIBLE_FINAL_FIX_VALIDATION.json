@@ -1,0 +1,15 @@
+{
+  "fix": "my_ads_visible_tab_mount_and_owner_fallback",
+  "managed_panel_mount": "native_my_ads_tab_wrapper",
+  "sample_list_hidden_after_panel_mount": true,
+  "ownership_queries": [
+    "ads.user_id",
+    "custom_fields.owner_user_id",
+    "compact compatibility scan"
+  ],
+  "full_regression_tests_per_pass": 40,
+  "completed_full_passes": 5,
+  "targeted_my_ads_passes": 10,
+  "syntax_checks": "passed",
+  "build": "passed"
+}

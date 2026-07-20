@@ -40,6 +40,9 @@ const tests = [
   ['mobile_favorites_and_recommendations_regression_test.js', []],
   ['dashboard_favorites_my_ads_speed_regression_test.js', []],
   ['dashboard_quick_favorites_my_ads_immediate_regression_test.js', []],
+  ['my_ads_visible_render_regression_test.js', []],
+  ['my_ads_owner_fallback_regression_test.js', []],
+  ['my_ads_schema_cache_fallback_regression_test.js', []],
   ['account_settings_and_ownership_api_regression_test.js', []],
   ['vercel_function_startup_regression_test.js', []],
   ['scripts/http-regression-test.js', []]

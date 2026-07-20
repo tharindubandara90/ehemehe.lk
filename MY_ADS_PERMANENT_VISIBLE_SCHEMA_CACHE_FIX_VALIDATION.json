@@ -1,0 +1,24 @@
+{
+  "fix": "my_ads_permanent_native_mount_and_pgrst204_schema_cache_fallback",
+  "scope": [
+    "dashboard My Ads visible rendering",
+    "Supabase legacy ownership compatibility"
+  ],
+  "native_list_hidden": false,
+  "react_child_repaint_guard": true,
+  "supabase_errors_supported": [
+    "PGRST204",
+    "PGRST205",
+    "42703",
+    "42P01",
+    "schema cache missing-column messages"
+  ],
+  "ownership_fallback": "custom_fields.owner_user_id",
+  "image_strategy": "lazy /api/ad-image proxy",
+  "full_regression_tests_per_pass": 41,
+  "completed_full_passes": 3,
+  "targeted_my_ads_repeated_passes": 10,
+  "syntax_checks": "passed",
+  "build": "passed",
+  "asset_hash_verification": "passed"
+}

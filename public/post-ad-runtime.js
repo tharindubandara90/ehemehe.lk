@@ -1186,6 +1186,7 @@
   }
 
 
+  const NATIVE_DASHBOARD_TAB_MARKER = 'c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEzMjoxNA';
   const NATIVE_DASHBOARD_LIST_MARKER = 'c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEzNzoxNg';
   const NATIVE_DASHBOARD_CARD_MARKER = 'c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEzOToyMA';
   const NATIVE_DASHBOARD_EDIT_MARKER = 'c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDE0NzoyNA';
@@ -1719,7 +1720,8 @@
     if (!panel) return;
     const rows = Array.isArray(ads) ? ads : [];
     const signature = `${settled ? 'settled' : 'cached'}|${JSON.stringify(rows.map((ad) => [ad.id, ad.localId, ad.status, ad.updated_at, ad.created_at, ad.image_url]))}`;
-    if (panel.dataset.signature === signature) return;
+    const managedContentPresent = Boolean(panel.querySelector('.ehm-dashboard-ad-card, .ehm-dashboard-empty'));
+    if (panel.dataset.signature === signature && managedContentPresent) return;
     panel.dataset.signature = signature;
     panel.innerHTML = rows.length
       ? rows.map(adCard).join('')
@@ -1736,27 +1738,48 @@
 
   function ensureDashboardAdsPanel() {
     if (route() !== '/dashboard/ads') return null;
-    const myAdsHeading = Array.from(document.querySelectorAll('h1,h2'))
-      .find((node) => labelKey(node.textContent) === 'my ads' && node.offsetParent !== null);
-    if (!myAdsHeading) return null;
 
-    const main = myAdsHeading.closest('main') || myAdsHeading.parentElement?.parentElement || myAdsHeading.parentElement;
-    if (!main) return null;
+    const tabRoot = document.querySelector(`[data-yw="${NATIVE_DASHBOARD_TAB_MARKER}"]`);
+    const myAdsHeading = tabRoot?.querySelector('h1,h2') || Array.from(document.querySelectorAll('h1,h2'))
+      .find((node) => labelKey(node.textContent) === 'my ads');
+    const nativeList = document.querySelector(`[data-yw="${NATIVE_DASHBOARD_LIST_MARKER}"]`) || nativeDashboardList();
 
-    main.querySelectorAll('.space-y-4').forEach((list) => {
-      if (list.querySelector('button, article, img')) list.style.display = 'none';
-    });
+    // Use the React dashboard's own My Ads list as the managed container.
+    // A separately injected sibling can be removed by a later React render
+    // while the original list remains hidden, which leaves this page blank.
+    // Reusing the native list keeps one permanent visible mount point.
+    if (nativeList) {
+      const stalePanel = document.getElementById('ehm-real-my-ads');
+      if (stalePanel && stalePanel !== nativeList) stalePanel.remove();
 
-    let panel = main.querySelector('#ehm-real-my-ads');
+      nativeList.id = 'ehm-real-my-ads';
+      nativeList.classList.add('ehm-real-my-ads');
+      nativeList.setAttribute('aria-live', 'polite');
+      nativeList.setAttribute('data-ehm-dashboard-list', 'managed');
+      nativeList.removeAttribute('hidden');
+      nativeList.style.removeProperty('display');
+      delete nativeList.dataset.ehmNativeMyAdsHidden;
+      paintDashboardAds(nativeList, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
+      return nativeList;
+    }
+
+    const mountRoot = tabRoot || myAdsHeading?.parentElement?.parentElement || myAdsHeading?.parentElement;
+    if (!mountRoot || !myAdsHeading) return null;
+
+    let panel = mountRoot.querySelector('#ehm-real-my-ads');
     if (!panel) {
       panel = document.createElement('div');
       panel.id = 'ehm-real-my-ads';
       panel.className = 'ehm-real-my-ads';
       panel.setAttribute('aria-live', 'polite');
+      panel.setAttribute('data-ehm-dashboard-list', 'managed');
       const headerRow = myAdsHeading.parentElement;
-      if (headerRow?.parentElement === main) headerRow.insertAdjacentElement('afterend', panel);
-      else main.appendChild(panel);
+      if (headerRow?.parentElement === mountRoot) headerRow.insertAdjacentElement('afterend', panel);
+      else mountRoot.appendChild(panel);
     }
+
+    panel.removeAttribute('hidden');
+    panel.style.removeProperty('display');
     paintDashboardAds(panel, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
     return panel;
   }

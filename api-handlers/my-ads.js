@@ -37,69 +37,122 @@ function belongsToUser(row, userId) {
 }
 
 function missingColumnOrTable(data, message) {
-  return data?.code === 'PGRST205' || data?.code === '42P01' || data?.code === '42703' ||
-    /could not find the table ['"]?public\.ads|relation ['"]?public\.ads|relation ['"]?ads['"]? does not exist|column .* does not exist/i.test(message);
+  const text = [data?.message, data?.details, data?.hint, message].filter(Boolean).join(' ');
+  return data?.code === 'PGRST204' || data?.code === 'PGRST205' ||
+    data?.code === '42P01' || data?.code === '42703' ||
+    /could not find the table ['"]?public\.ads|relation ['"]?public\.ads|relation ['"]?ads['"]? does not exist|could not find (?:the )?['"]?[^'"]+['"]? column|column .* does not exist|schema cache/i.test(text);
 }
 
-async function readOwnedAds(url, key, userId) {
-  // Keep the dashboard response compact. Full Base64 image arrays are loaded
-  // lazily through /api/ad-image, so My Ads can paint without downloading
-  // every photo before the list becomes visible.
-  const selects = [
-    'id,user_id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
-    'id,user_id,title,description,price,status,condition,city,district,created_at,updated_at,view_count,views,custom_fields',
-    'id,user_id,title,description,price,status,condition,created_at,custom_fields',
-    'id,user_id,title,description,price,status,created_at,custom_fields',
-    'id,user_id,title,price,status,created_at'
-  ];
-
-  let lastError = null;
-  for (const select of selects) {
-    const params = new URLSearchParams({
-      select,
-      user_id: `eq.${userId}`,
-      order: 'created_at.desc',
-      limit: '200'
-    });
-    const response = await fetch(`${url}/rest/v1/ads?${params.toString()}`, {
-      headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
-    });
-    const data = await response.json().catch(() => []);
-
-    if (response.ok) {
-      return (Array.isArray(data) ? data : [])
-        .filter((row) => belongsToUser(row, userId))
-        .map((row) => ({
-          ...row,
-          image_url: `/api/ad-image?id=${encodeURIComponent(String(row.id || ''))}&index=0`,
-          images: []
-        }));
-    }
-
-    const message = data.message || data.details || 'Could not read your ads.';
-    lastError = new Error(message);
-    if (!missingColumnOrTable(data, message)) throw lastError;
-  }
-
-  // Compatibility fallback for an older database. This path is only used when
-  // compact projections cannot be resolved from the schema cache.
-  const response = await fetch(
-    `${url}/rest/v1/ads?select=*&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=200`,
-    { headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' } }
+function missingUserIdColumn(data, message) {
+  const text = [data?.message, data?.details, data?.hint, message].filter(Boolean).join(' ');
+  return /user_id/i.test(text) && (
+    data?.code === 'PGRST204' || data?.code === '42703' ||
+    /could not find (?:the )?['"]?user_id['"]? column|column .*user_id.*does not exist|schema cache/i.test(text)
   );
+}
+
+async function requestAds(url, key, select, filters) {
+  const params = new URLSearchParams({
+    select,
+    order: 'created_at.desc',
+    limit: '200',
+    ...filters
+  });
+  const response = await fetch(`${url}/rest/v1/ads?${params.toString()}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
+  });
   const data = await response.json().catch(() => []);
-  if (!response.ok) {
-    const fallbackMessage = data.message || data.details || lastError?.message || 'Could not read your ads.';
-    if (missingColumnOrTable(data, fallbackMessage)) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
-    throw new Error(fallbackMessage);
-  }
-  return (Array.isArray(data) ? data : [])
+  return { response, data };
+}
+
+function compactOwnedRows(rows, userId) {
+  return (Array.isArray(rows) ? rows : [])
     .filter((row) => belongsToUser(row, userId))
     .map((row) => ({
       ...row,
       image_url: `/api/ad-image?id=${encodeURIComponent(String(row.id || ''))}&index=0`,
       images: []
     }));
+}
+
+async function readOwnedAds(url, key, userId) {
+  // Keep the dashboard response compact. Full Base64 image arrays are loaded
+  // lazily through /api/ad-image, so My Ads can paint without downloading
+  // every photo before the list becomes visible.
+  const directSelects = [
+    'id,user_id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
+    'id,user_id,title,description,price,status,condition,city,district,created_at,updated_at,view_count,views,custom_fields',
+    'id,user_id,title,description,price,status,condition,created_at,custom_fields',
+    'id,user_id,title,description,price,status,created_at,custom_fields',
+    'id,user_id,title,price,status,created_at,custom_fields'
+  ];
+
+  let lastError = null;
+  let directQuerySupported = true;
+
+  for (const select of directSelects) {
+    const { response, data } = await requestAds(url, key, select, { user_id: `eq.${userId}` });
+    if (response.ok) {
+      const rows = compactOwnedRows(data, userId);
+      if (rows.length) return rows;
+      break;
+    }
+
+    const message = data.message || data.details || data.hint || 'Could not read your ads.';
+    lastError = new Error(message);
+    if (missingUserIdColumn(data, message)) {
+      directQuerySupported = false;
+      break;
+    }
+    if (!missingColumnOrTable(data, message)) throw lastError;
+  }
+
+  // Older deployments saved ownership only in custom_fields.owner_user_id
+  // after a missing user_id column forced publish-ad's compatibility insert.
+  // Query that JSON owner directly instead of returning an empty dashboard.
+  const ownerSelects = [
+    'id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
+    'id,title,description,price,status,condition,city,district,created_at,updated_at,view_count,views,custom_fields',
+    'id,title,description,price,status,condition,created_at,custom_fields',
+    'id,title,description,price,status,created_at,custom_fields',
+    'id,title,price,status,created_at,custom_fields'
+  ];
+
+  for (const select of ownerSelects) {
+    const { response, data } = await requestAds(url, key, select, {
+      'custom_fields->>owner_user_id': `eq.${userId}`
+    });
+    if (response.ok) return compactOwnedRows(data, userId);
+
+    const message = data.message || data.details || data.hint || 'Could not read your ads.';
+    lastError = new Error(message);
+    if (!missingColumnOrTable(data, message)) throw lastError;
+  }
+
+  // Final compact compatibility scan. It is reached only when an old schema
+  // cannot filter either user_id or the JSON owner through PostgREST.
+  const compatibilitySelects = [
+    'id,user_id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
+    'id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
+    'id,title,price,status,created_at,custom_fields'
+  ];
+  for (const select of compatibilitySelects) {
+    const params = new URLSearchParams({ select, order: 'created_at.desc', limit: '500' });
+    const response = await fetch(`${url}/rest/v1/ads?${params.toString()}`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
+    });
+    const data = await response.json().catch(() => []);
+    if (response.ok) return compactOwnedRows(data, userId);
+
+    const message = data.message || data.details || lastError?.message || 'Could not read your ads.';
+    lastError = new Error(message);
+    if (!missingColumnOrTable(data, message)) throw lastError;
+  }
+
+  const fallbackMessage = lastError?.message || 'Could not read your ads.';
+  if (missingColumnOrTable({}, fallbackMessage)) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
+  if (!directQuerySupported && /user_id/i.test(fallbackMessage)) return [];
+  throw new Error(fallbackMessage);
 }
 
 
