@@ -57,7 +57,7 @@ async function applyWatermark(ctx,w,h){
   const x=Math.round((w-logoWidth)/2);
   const y=Math.round((h-logoHeight)/2);
   ctx.save();
-  ctx.globalAlpha=0.13;
+  ctx.globalAlpha=0.18;
   ctx.drawImage(logo,x,y,logoWidth,logoHeight);
   ctx.restore();
 }

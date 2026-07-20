@@ -129,6 +129,13 @@ function validateImage(value) {
   return image;
 }
 
+function validateImages(values) {
+  if (!Array.isArray(values)) return [];
+  const images = values.map(validateImage).filter(Boolean).slice(0, 10);
+  if (images.length > 10) throw new Error('You can upload up to 10 photos.');
+  return images;
+}
+
 async function updateAd(id, payload) {
   const { url, key } = supabaseAdminConfig();
   const params = new URLSearchParams({ id: `eq.${id}` });
@@ -187,13 +194,15 @@ module.exports = async function handler(req, res) {
 
     const now = new Date().toISOString();
     const custom = parseJson(existing.custom_fields, {});
-    const replacementImage = validateImage(body.image);
+    const replacementImages = validateImages(body.images);
+    const replacementImage = replacementImages[0] || validateImage(body.image);
     let images = parseJson(existing.images, []);
     if (!Array.isArray(images)) images = [];
+    images = images.filter(Boolean);
 
     const effectiveImageCount = Math.max(
       Number(custom.image_count || custom.images_count || 0) || 0,
-      images.filter(Boolean).length,
+      images.length,
       existing.image_url ? 1 : 0
     );
 
@@ -213,12 +222,17 @@ module.exports = async function handler(req, res) {
         user_edited_at: now,
         previous_status_before_edit: existing.status || 'pending',
         requires_admin_review: true,
-        image_count: replacementImage ? Math.max(1, effectiveImageCount) : effectiveImageCount
+        image_count: replacementImages.length
+          ? replacementImages.length
+          : (replacementImage ? Math.max(1, effectiveImageCount) : effectiveImageCount)
       },
       updated_at: now
     };
 
-    if (replacementImage) {
+    if (replacementImages.length) {
+      payload.image_url = replacementImages[0];
+      payload.images = replacementImages;
+    } else if (replacementImage) {
       payload.image_url = replacementImage;
       payload.images = [replacementImage, ...images.slice(1, 10)];
     }

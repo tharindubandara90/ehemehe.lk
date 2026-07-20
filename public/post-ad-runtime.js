@@ -198,7 +198,7 @@
     const x = Math.round((width - logoWidth) / 2);
     const y = Math.round((height - logoHeight) / 2);
     context.save();
-    context.globalAlpha = 0.13;
+    context.globalAlpha = 0.18;
     context.drawImage(logo, x, y, logoWidth, logoHeight);
     context.restore();
   }
@@ -1337,9 +1337,19 @@
   function setEditPreview(source) {
     const preview = document.querySelector('#ehm-edit-ad-modal .ehm-edit-preview');
     if (!preview) return;
-    preview.innerHTML = source
-      ? `<img src="${esc(source)}" alt="Ad photo preview">`
-      : '<span>No photo</span>';
+    const images = Array.isArray(source)
+      ? source.filter(Boolean)
+      : (source ? [source] : []);
+    if (!images.length) {
+      preview.innerHTML = '<span>No photo</span>';
+      return;
+    }
+    preview.innerHTML = images.map((item, index) => `
+      <div class="ehm-edit-preview-item${index === 0 ? ' is-main' : ''}">
+        <img src="${esc(item)}" alt="Ad photo preview ${index + 1}">
+        <span class="ehm-edit-preview-badge">${index === 0 ? 'Main' : index + 1}</span>
+      </div>
+    `).join('');
   }
 
   function fileToOptimizedImage(file) {
@@ -1392,7 +1402,14 @@
     const custom = ad.custom_fields || {};
     const district = ad.district || custom.district || '';
     const city = ad.city || custom.city || '';
-    const image = ad.image_url || ad.images?.[0] || '';
+    let currentImages = Array.isArray(ad.images) ? ad.images.filter(Boolean) : [];
+    if (!currentImages.length && typeof ad.images === 'string') {
+      try {
+        const parsed = JSON.parse(ad.images);
+        if (Array.isArray(parsed)) currentImages = parsed.filter(Boolean);
+      } catch (_) {}
+    }
+    if (!currentImages.length && ad.image_url) currentImages = [ad.image_url];
     const modal = document.createElement('div');
     modal.id = 'ehm-edit-ad-modal';
     modal.className = 'ehm-edit-ad-modal';
@@ -1427,9 +1444,9 @@
               <textarea name="description" rows="6" maxlength="10000" required>${esc(ad.description || '')}</textarea>
             </label>
             <div class="ehm-edit-wide ehm-edit-photo-row">
-              <div class="ehm-edit-preview">${image ? `<img src="${esc(image)}" alt="Current ad photo">` : '<span>No photo</span>'}</div>
-              <label>Change main photo <small>Optional. Existing photo stays unless you choose a new one.</small>
-                <input name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+              <div class="ehm-edit-preview">${currentImages.length ? currentImages.map((item, index) => `<div class="ehm-edit-preview-item${index === 0 ? ' is-main' : ''}"><img src="${esc(item)}" alt="Current ad photo ${index + 1}"><span class="ehm-edit-preview-badge">${index === 0 ? 'Main' : index + 1}</span></div>`).join('') : '<span>No photo</span>'}</div>
+              <label>Change photos <small>Optional. You can choose up to 10 photos. If you select new photos, they replace the full gallery.</small>
+                <input name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
               </label>
             </div>
           </div>
@@ -1449,25 +1466,36 @@
     districtField?.addEventListener('change', () => {
       cityField.innerHTML = cityOptions(districtField.value, '');
     });
-    modal.querySelector('[name="photo"]')?.addEventListener('change', async (event) => {
-      const file = event.target.files?.[0];
-      if (!file) {
-        setEditPreview(image);
+    modal.querySelector('[name="photos"]')?.addEventListener('change', async (event) => {
+      const files = Array.from(event.target.files || []).filter(Boolean).slice(0, MAX_IMAGES);
+      if (!files.length) {
+        delete event.target.dataset.optimizedImages;
+        setEditPreview(currentImages);
         return;
       }
       const errorNode = modal.querySelector('.ehm-edit-error');
       try {
-        errorNode.textContent = 'Preparing photo...';
+        errorNode.textContent = `Preparing ${files.length} photo${files.length === 1 ? '' : 's'}...`;
         errorNode.className = 'ehm-edit-error pending';
-        const optimized = await fileToOptimizedImage(file);
-        event.target.dataset.optimizedImage = optimized;
-        setEditPreview(optimized);
-        errorNode.textContent = '';
-        errorNode.className = 'ehm-edit-error';
+        const optimizedImages = [];
+        for (const file of files) {
+          optimizedImages.push(await fileToOptimizedImage(file));
+        }
+        event.target.dataset.optimizedImages = JSON.stringify(optimizedImages);
+        setEditPreview(optimizedImages);
+        errorNode.textContent = `${optimizedImages.length} photo${optimizedImages.length === 1 ? '' : 's'} ready.`;
+        errorNode.className = 'ehm-edit-error pending';
+        setTimeout(() => {
+          if (errorNode.textContent.includes('ready.')) {
+            errorNode.textContent = '';
+            errorNode.className = 'ehm-edit-error';
+          }
+        }, 1200);
       } catch (error) {
         event.target.value = '';
-        delete event.target.dataset.optimizedImage;
-        errorNode.textContent = error.message || 'Could not prepare the photo.';
+        delete event.target.dataset.optimizedImages;
+        setEditPreview(currentImages);
+        errorNode.textContent = error.message || 'Could not prepare the selected photos.';
         errorNode.className = 'ehm-edit-error error';
       }
     });
@@ -1487,7 +1515,7 @@
     errorNode.className = 'ehm-edit-error';
 
     try {
-      const photo = form.querySelector('[name="photo"]');
+      const photo = form.querySelector('[name="photos"]');
       const payload = {
         id: String(data.get('id') || ''),
         title: String(data.get('title') || ''),
@@ -1497,7 +1525,14 @@
         city: String(data.get('city') || ''),
         description: String(data.get('description') || '')
       };
-      if (photo?.dataset.optimizedImage) payload.image = photo.dataset.optimizedImage;
+      if (photo?.dataset.optimizedImages) {
+        let parsedImages = [];
+        try { parsedImages = JSON.parse(photo.dataset.optimizedImages || '[]'); } catch (_) { parsedImages = []; }
+        if (Array.isArray(parsedImages) && parsedImages.length) {
+          payload.images = parsedImages.slice(0, MAX_IMAGES);
+          payload.image = payload.images[0];
+        }
+      }
 
       const response = await fetch('/api/update-my-ad', {
         method: 'PATCH',
