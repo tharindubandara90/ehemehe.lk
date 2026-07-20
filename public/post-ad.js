@@ -51,13 +51,14 @@ async function loadWatermarkLogo(){
 async function applyWatermark(ctx,w,h){
   const logo=await loadWatermarkLogo();
   if(!logo)return;
-  const logoWidth=Math.max(180,Math.min(Math.round(w*0.42),720));
+  const logoWidth=Math.max(180,Math.min(Math.round(w*0.52),720));
   const ratio=logo.naturalWidth&&logo.naturalHeight?logo.naturalHeight/logo.naturalWidth:0.236;
   const logoHeight=Math.max(48,Math.round(logoWidth*ratio));
   const x=Math.round((w-logoWidth)/2);
   const y=Math.round((h-logoHeight)/2);
   ctx.save();
-  ctx.globalAlpha=0.18;
+  ctx.globalCompositeOperation='source-over';
+  ctx.globalAlpha=0.24;
   ctx.drawImage(logo,x,y,logoWidth,logoHeight);
   ctx.restore();
 }

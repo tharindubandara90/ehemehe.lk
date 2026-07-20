@@ -192,13 +192,14 @@
   async function drawWatermarkOnCanvas(context, width, height) {
     const logo = await getWatermarkLogo();
     if (!logo || !context) return;
-    const logoWidth = Math.max(180, Math.min(Math.round(width * 0.42), 720));
+    const logoWidth = Math.max(220, Math.min(Math.round(width * 0.52), 720));
     const ratio = logo.naturalWidth && logo.naturalHeight ? logo.naturalHeight / logo.naturalWidth : 0.236;
-    const logoHeight = Math.max(48, Math.round(logoWidth * ratio));
+    const logoHeight = Math.max(56, Math.round(logoWidth * ratio));
     const x = Math.round((width - logoWidth) / 2);
     const y = Math.round((height - logoHeight) / 2);
     context.save();
-    context.globalAlpha = 0.18;
+    context.globalCompositeOperation = 'source-over';
+    context.globalAlpha = 0.24;
     context.drawImage(logo, x, y, logoWidth, logoHeight);
     context.restore();
   }
