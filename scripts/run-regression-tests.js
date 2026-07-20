@@ -38,6 +38,7 @@ const tests = [
   ['ad_gallery_watermark_regression_test.js', []],
   ['ad_gallery_no_single_image_flash_regression_test.js', []],
   ['ad_detail_loading_overlay_stability_regression_test.js', []],
+  ['ad_detail_loading_footer_phone_regression_test.js', []],
   ['supabase_marketplace_schema_regression_test.js', []],
   ['user_ad_edit_regression_test.js', []],
   ['dashboard_edit_mobile_home_navigation_regression_test.js', []],

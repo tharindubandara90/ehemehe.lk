@@ -477,6 +477,7 @@
     style.id = 'ehmAdDetailPendingStyles';
     style.textContent = `
       body.ehm-ad-detail-pending #root main{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+      body.ehm-ad-detail-pending #ehmSellerPhone{display:none!important}
       #ehmAdDetailPendingShell{display:none;position:fixed;z-index:25;left:50%;top:52%;transform:translate(-50%,-50%);width:min(520px,calc(100vw - 40px));padding:28px 24px;border:1px solid #e6edf2;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(15,23,42,.10);text-align:center;color:#64748b}
       body.ehm-ad-detail-pending #ehmAdDetailPendingShell{display:block}
       #ehmAdDetailPendingShell .ehm-pending-spinner{width:42px;height:42px;margin:0 auto 15px;border:4px solid #dff6ee;border-top-color:#22b98b;border-radius:50%;animation:ehm-detail-spin .7s linear infinite}
@@ -510,6 +511,8 @@
       finishDynamicDetailPending();
       return false;
     }
+
+    document.getElementById('ehmSellerPhone')?.remove?.();
 
     const route = `${window.location.pathname}${window.location.search || ''}`;
     detailPendingRoute = route;
@@ -3467,17 +3470,39 @@
 
   function injectSellerPhoneAboveCall() {
     if (!isAdRoute()) return false;
-    if (document.getElementById('ehmDynamicAdDetail')) {
-      document.getElementById('ehmSellerPhone')?.remove();
+    const existing = document.getElementById('ehmSellerPhone');
+
+    // While the authoritative ad is loading there is no seller card yet.
+    // Searching the whole document used to match the footer's telephone link
+    // and insert the seller phone panel inside the footer. Never inject during
+    // this state, and remove any stale panel left by an earlier timer.
+    if (document.body.classList.contains('ehm-ad-detail-pending') || document.getElementById('ehmAdDetailPendingShell')) {
+      existing?.remove();
       return false;
     }
 
-    const callButton = Array.from(document.querySelectorAll('a[href^="tel:"], a, button')).find((node) => {
-      if(node.closest?.('#ehmSellerPhone'))return false;
+    if (document.getElementById('ehmDynamicAdDetail')) {
+      existing?.remove();
+      return false;
+    }
+
+    // Limit discovery to the actual page content. Footer/header telephone
+    // links are not ad seller actions and must never be used as anchors.
+    const detailScope = document.querySelector('#root main, main');
+    if (!detailScope) {
+      existing?.remove();
+      return false;
+    }
+
+    const callButton = Array.from(detailScope.querySelectorAll('a[href^="tel:"], a, button')).find((node) => {
+      if(node.closest?.('#ehmSellerPhone, footer, header, nav'))return false;
       const text = String(node.textContent || '').replace(/\s+/g, ' ').trim();
       return /^call now$/i.test(text) || /^call$/i.test(text) || String(node.getAttribute?.('href') || '').startsWith('tel:');
     });
-    if (!callButton || !callButton.parentElement) return false;
+    if (!callButton || !callButton.parentElement) {
+      existing?.remove();
+      return false;
+    }
 
     const ad = currentAdForDetail();
     const hrefPhone = String(callButton.getAttribute?.('href') || '').replace(/^tel:/i, '').trim();
@@ -3486,7 +3511,6 @@
       ad?.contactPhone, ad?.contact_phone, ad?.phone, ad?.phone_number, ad?.seller?.phone, hrefPhone
     ].map(value=>String(value||'').trim()).filter(Boolean)));
 
-    const existing = document.getElementById('ehmSellerPhone');
     if (!phones.length) { if (existing) existing.remove(); return false; }
 
     const content = `<div class="ehm-seller-phone-heading">Contact Number${phones.length===1?'':'s'}</div><div class="ehm-seller-phone-list">${phones.map((phone,index)=>{
