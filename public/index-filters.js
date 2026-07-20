@@ -2703,9 +2703,9 @@
       <div class="ehm-dynamic-breadcrumb"><a href="/">Home</a><span>›</span><span>${esc(ad.categoryName || ad.customFields?.category_name || 'Marketplace')}</span><span>›</span><strong>${esc(ad.title)}</strong></div>
       <div class="ehm-dynamic-layout">
         <div class="ehm-dynamic-main">
-          <section class="ehm-dynamic-gallery">
-            <div class="ehm-dynamic-main-image"><img id="ehmDynamicMainImage" src="${esc(mainImage)}" alt="${esc(ad.title)}" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'"></div>
-            ${images.length > 1 ? `<div class="ehm-dynamic-thumbs">${images.map((src, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-ehm-detail-image="${esc(src)}"><img src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'"></button>`).join('')}</div>` : ''}
+          <section class="ehm-dynamic-gallery" data-ehm-gallery>
+            <div class="ehm-dynamic-main-image" data-ehm-gallery-stage>${images.length > 1 ? `<button type="button" class="ehm-dynamic-gallery-nav ehm-dynamic-gallery-prev" aria-label="Previous image" data-ehm-detail-prev>‹</button><button type="button" class="ehm-dynamic-gallery-nav ehm-dynamic-gallery-next" aria-label="Next image" data-ehm-detail-next>›</button>` : ''}<img id="ehmDynamicMainImage" src="${esc(mainImage)}" alt="${esc(ad.title)}" data-ehm-detail-main-image onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'">${images.length ? `<span class="ehm-dynamic-image-count" data-ehm-detail-count>1 / ${images.length}</span>` : ''}</div>
+            ${images.length > 1 ? `<div class="ehm-dynamic-thumbs">${images.map((src, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-ehm-detail-image="${esc(src)}" data-ehm-detail-index="${index}"><img src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'"></button>`).join('')}</div>` : ''}
           </section>
           <section class="ehm-dynamic-card ehm-dynamic-summary">
             <div class="ehm-dynamic-title-row"><h1>${esc(ad.title)}</h1><button type="button" class="ehm-dynamic-heart${isFavoriteId(ad.id) ? ' active' : ''}" data-ehm-favorite-id="${esc(ad.id)}" aria-label="Save ad" aria-pressed="${isFavoriteId(ad.id) ? 'true' : 'false'}"><span data-ehm-heart-icon>${isFavoriteId(ad.id) ? '♥' : '♡'}</span></button></div>
@@ -2737,7 +2737,8 @@
       .ehm-dynamic-breadcrumb{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:13px;color:#64748b;margin:0 0 18px}.ehm-dynamic-breadcrumb a{color:#0891b2;text-decoration:none}.ehm-dynamic-breadcrumb strong{max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .ehm-dynamic-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}.ehm-dynamic-main{min-width:0;display:grid;gap:18px}.ehm-dynamic-side{display:grid;gap:18px;position:sticky;top:92px}
       .ehm-dynamic-card,.ehm-dynamic-gallery{background:#fff;border:1px solid #e6edf2;border-radius:18px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,.06)}.ehm-dynamic-card{padding:22px}.ehm-dynamic-card h2{margin:0 0 16px;font-size:18px;color:#0f172a}
-      .ehm-dynamic-main-image{height:min(56vw,520px);min-height:300px;background:#edf3f6;display:flex;align-items:center;justify-content:center}.ehm-dynamic-main-image img{width:100%;height:100%;object-fit:contain;display:block}.ehm-dynamic-no-image{color:#94a3b8;font-weight:700}
+      .ehm-dynamic-main-image{position:relative;height:min(56vw,520px);min-height:300px;background:#edf3f6;display:flex;align-items:center;justify-content:center}.ehm-dynamic-main-image img{width:100%;height:100%;object-fit:contain;display:block}.ehm-dynamic-no-image{color:#94a3b8;font-weight:700}
+      .ehm-dynamic-gallery-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:44px;height:44px;border:0;border-radius:999px;background:rgba(15,23,42,.72);color:#fff;font-size:28px;line-height:1;display:grid;place-items:center;cursor:pointer}.ehm-dynamic-gallery-prev{left:14px}.ehm-dynamic-gallery-next{right:14px}.ehm-dynamic-image-count{position:absolute;left:14px;bottom:14px;padding:7px 10px;border-radius:999px;background:rgba(15,23,42,.74);color:#fff;font-size:12px;font-weight:800}
       .ehm-dynamic-thumbs{display:flex;gap:10px;padding:12px;overflow:auto}.ehm-dynamic-thumbs button{width:76px;height:58px;min-width:76px;padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:#eef2f5}.ehm-dynamic-thumbs button.active{border-color:#22b98b}.ehm-dynamic-thumbs img{width:100%;height:100%;object-fit:cover}
       .ehm-dynamic-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.ehm-dynamic-title-row h1{font-size:28px;line-height:1.25;margin:0;color:#0f172a}.ehm-dynamic-heart{width:44px;height:44px;min-width:44px;border:1px solid #dce5eb;border-radius:12px;background:#fff;font-size:26px;color:#94a3b8}.ehm-dynamic-price{font-size:30px;font-weight:900;color:#0f9f76;margin:15px 0}
       .ehm-dynamic-meta{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:20px}.ehm-dynamic-meta span{padding:7px 10px;border-radius:9px;background:#f1f5f9;color:#475569;font-size:13px;font-weight:700}.ehm-dynamic-meta span:first-child{background:#dcfce7;color:#15803d}
@@ -2746,19 +2747,43 @@
       .ehm-dynamic-specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 22px}.ehm-dynamic-specs div{padding:13px 0;border-bottom:1px solid #edf1f4}.ehm-dynamic-specs span{display:block;color:#64748b;font-size:13px;margin-bottom:4px}.ehm-dynamic-specs strong{font-size:15px;color:#0f172a;overflow-wrap:anywhere}
       .ehm-dynamic-contact h2{font-size:20px}.ehm-dynamic-seller-name{display:grid;gap:3px;padding:0 0 14px}.ehm-dynamic-seller-name strong{font-size:16px}.ehm-dynamic-seller-name span{font-size:12px;color:#64748b;overflow-wrap:anywhere}.ehm-dynamic-phones{display:grid;gap:8px;margin-bottom:14px}.ehm-dynamic-phones a{display:flex;justify-content:space-between;gap:10px;padding:11px;border:1px solid #dfe8ed;border-radius:11px;text-decoration:none}.ehm-dynamic-phones span{font-size:12px;color:#64748b}.ehm-dynamic-phones strong{color:#0f172a}.ehm-dynamic-call,.ehm-dynamic-message{display:flex;height:50px;align-items:center;justify-content:center;border-radius:12px;text-decoration:none;font-weight:900;margin-top:10px}.ehm-dynamic-call{background:#22b98b;color:#fff}.ehm-dynamic-message{border:2px solid #22b98b;color:#0f9f76;background:#fff}.ehm-dynamic-safety p{margin:0;color:#64748b;line-height:1.55}
       @media(max-width:900px){.ehm-dynamic-layout{grid-template-columns:1fr}.ehm-dynamic-side{position:static}.ehm-dynamic-main-image{height:52vw;min-height:260px}}
-      @media(max-width:767px){.ehm-dynamic-detail{padding:12px 12px 100px!important}.ehm-dynamic-breadcrumb{margin-bottom:12px}.ehm-dynamic-card{padding:16px;border-radius:15px}.ehm-dynamic-gallery{border-radius:15px}.ehm-dynamic-main-image{height:72vw;min-height:220px}.ehm-dynamic-title-row h1{font-size:21px}.ehm-dynamic-price{font-size:24px}.ehm-dynamic-finance{grid-template-columns:1fr}.ehm-dynamic-specs{grid-template-columns:1fr}.ehm-dynamic-side{gap:14px}.ehm-dynamic-layout,.ehm-dynamic-main{gap:14px}}
+      @media(max-width:767px){.ehm-dynamic-detail{padding:12px 12px 100px!important}.ehm-dynamic-breadcrumb{margin-bottom:12px}.ehm-dynamic-card{padding:16px;border-radius:15px}.ehm-dynamic-gallery{border-radius:15px}.ehm-dynamic-main-image{height:72vw;min-height:220px}.ehm-dynamic-gallery-nav{width:40px;height:40px;font-size:24px}.ehm-dynamic-image-count{left:10px;bottom:10px}.ehm-dynamic-title-row h1{font-size:21px}.ehm-dynamic-price{font-size:24px}.ehm-dynamic-finance{grid-template-columns:1fr}.ehm-dynamic-specs{grid-template-columns:1fr}.ehm-dynamic-side{gap:14px}.ehm-dynamic-layout,.ehm-dynamic-main{gap:14px}}
     `;
     document.head.appendChild(style);
   }
 
   function bindDynamicDetailGallery(host) {
-    host.querySelectorAll('[data-ehm-detail-image]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const image = host.querySelector('#ehmDynamicMainImage');
-        if (image) image.src = button.getAttribute('data-ehm-detail-image') || '';
-        host.querySelectorAll('[data-ehm-detail-image]').forEach((item) => item.classList.toggle('active', item === button));
-      });
+    const buttons = Array.from(host.querySelectorAll('[data-ehm-detail-image]'));
+    const image = host.querySelector('#ehmDynamicMainImage');
+    const count = host.querySelector('[data-ehm-detail-count]');
+    if (!image || !buttons.length) return;
+    const sources = buttons.map((button) => button.getAttribute('data-ehm-detail-image') || '').filter(Boolean);
+    if (!sources.length) return;
+    let currentIndex = Math.max(0, buttons.findIndex((button) => button.classList.contains('active')));
+    const setActive = (index) => {
+      currentIndex = (index + sources.length) % sources.length;
+      image.src = sources[currentIndex] || AD_PLACEHOLDER;
+      if (count) count.textContent = `${currentIndex + 1} / ${sources.length}`;
+      buttons.forEach((button, buttonIndex) => button.classList.toggle('active', buttonIndex === currentIndex));
+    };
+    buttons.forEach((button, buttonIndex) => {
+      button.addEventListener('click', () => setActive(buttonIndex));
     });
+    host.querySelector('[data-ehm-detail-prev]')?.addEventListener('click', () => setActive(currentIndex - 1));
+    host.querySelector('[data-ehm-detail-next]')?.addEventListener('click', () => setActive(currentIndex + 1));
+    const stage = host.querySelector('[data-ehm-gallery-stage]');
+    let touchStartX = null;
+    stage?.addEventListener('touchstart', (event) => {
+      touchStartX = event.touches?.[0]?.clientX ?? null;
+    }, { passive: true });
+    stage?.addEventListener('touchend', (event) => {
+      if (touchStartX == null) return;
+      const endX = event.changedTouches?.[0]?.clientX ?? touchStartX;
+      const deltaX = endX - touchStartX;
+      touchStartX = null;
+      if (Math.abs(deltaX) < 35) return;
+      setActive(deltaX < 0 ? currentIndex + 1 : currentIndex - 1);
+    }, { passive: true });
   }
 
   function renderDynamicAdDetail(ad) {

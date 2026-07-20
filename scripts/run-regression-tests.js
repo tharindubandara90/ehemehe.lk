@@ -32,6 +32,7 @@ const tests = [
   ['promotion_featured_admin_regression_test.js', []],
   ['public_ads_detail_desktop_regression_test.js', []],
   ['public_home_interactions_regression_test.js', []],
+  ['ad_gallery_watermark_regression_test.js', []],
   ['supabase_marketplace_schema_regression_test.js', []],
   ['user_ad_edit_regression_test.js', []],
   ['dashboard_edit_mobile_home_navigation_regression_test.js', []],

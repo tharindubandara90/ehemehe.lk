@@ -37,10 +37,53 @@ function renderSimpleDynamicFields(){
   box.classList.remove('hidden');
   box.innerHTML='<h3>Category Details</h3><div class="grid">'+fields.map(([id,label])=>`<div class="field"><label>${label}</label><input class="input" data-simple-field="${id}"></div>`).join('')+'</div>';
 }
+let WATERMARK_LOGO_PROMISE=null;
+async function loadWatermarkLogo(){
+  if(WATERMARK_LOGO_PROMISE)return WATERMARK_LOGO_PROMISE;
+  WATERMARK_LOGO_PROMISE=new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>resolve(img);
+    img.onerror=()=>resolve(null);
+    img.src='/assets/ehemehe_logo_header.png';
+  });
+  return WATERMARK_LOGO_PROMISE;
+}
+async function applyWatermark(ctx,w,h){
+  const logo=await loadWatermarkLogo();
+  if(!logo)return;
+  const margin=Math.max(12,Math.round(Math.min(w,h)*0.03));
+  const maxWidth=Math.min(Math.round(w*0.26),220);
+  const minWidth=Math.min(110,Math.round(w*0.3));
+  const logoWidth=Math.max(minWidth,maxWidth);
+  const ratio=logo.naturalWidth&&logo.naturalHeight?logo.naturalHeight/logo.naturalWidth:0.26;
+  const logoHeight=Math.max(28,Math.round(logoWidth*ratio));
+  const badgePadX=Math.max(10,Math.round(logoWidth*0.08));
+  const badgePadY=Math.max(8,Math.round(logoHeight*0.16));
+  const badgeWidth=logoWidth+badgePadX*2;
+  const badgeHeight=logoHeight+badgePadY*2;
+  const x=w-badgeWidth-margin;
+  const y=h-badgeHeight-margin;
+  const radius=Math.round(badgeHeight/2);
+  ctx.save();
+  ctx.globalAlpha=0.92;
+  ctx.fillStyle='rgba(255,255,255,0.92)';
+  ctx.beginPath();
+  ctx.moveTo(x+radius,y);
+  ctx.arcTo(x+badgeWidth,y,x+badgeWidth,y+badgeHeight,radius);
+  ctx.arcTo(x+badgeWidth,y+badgeHeight,x,y+badgeHeight,radius);
+  ctx.arcTo(x,y+badgeHeight,x,y,radius);
+  ctx.arcTo(x,y,x+badgeWidth,y,radius);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.drawImage(logo,x+badgePadX,y+badgePadY,logoWidth,logoHeight);
+  ctx.restore();
+}
 async function simpleCompressImage(file){
   const bitmap=await createImageBitmap(file);
   const max=1600; let w=bitmap.width,h=bitmap.height; const r=Math.min(1,max/Math.max(w,h)); w=Math.round(w*r); h=Math.round(h*r);
   const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h; const ctx=canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(bitmap,0,0,w,h);
+  await applyWatermark(ctx,w,h);
   return canvas.toDataURL('image/jpeg',0.88);
 }
 async function handleSimpleImages(event){

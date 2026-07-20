@@ -176,6 +176,49 @@
     });
   }
 
+  let ehmWatermarkLogoPromise = null;
+
+  function getWatermarkLogo() {
+    if (ehmWatermarkLogoPromise) return ehmWatermarkLogoPromise;
+    ehmWatermarkLogoPromise = new Promise((resolve) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => resolve(null);
+      image.src = '/assets/ehemehe_logo_header.png';
+    });
+    return ehmWatermarkLogoPromise;
+  }
+
+  async function drawWatermarkOnCanvas(context, width, height) {
+    const logo = await getWatermarkLogo();
+    if (!logo || !context) return;
+    const margin = Math.max(12, Math.round(Math.min(width, height) * 0.03));
+    const logoWidth = Math.max(Math.min(110, Math.round(width * 0.3)), Math.min(Math.round(width * 0.26), 220));
+    const ratio = logo.naturalWidth && logo.naturalHeight ? logo.naturalHeight / logo.naturalWidth : 0.26;
+    const logoHeight = Math.max(28, Math.round(logoWidth * ratio));
+    const badgePadX = Math.max(10, Math.round(logoWidth * 0.08));
+    const badgePadY = Math.max(8, Math.round(logoHeight * 0.16));
+    const badgeWidth = logoWidth + (badgePadX * 2);
+    const badgeHeight = logoHeight + (badgePadY * 2);
+    const x = width - badgeWidth - margin;
+    const y = height - badgeHeight - margin;
+    const radius = Math.round(badgeHeight / 2);
+    context.save();
+    context.globalAlpha = 0.92;
+    context.fillStyle = 'rgba(255,255,255,0.92)';
+    context.beginPath();
+    context.moveTo(x + radius, y);
+    context.arcTo(x + badgeWidth, y, x + badgeWidth, y + badgeHeight, radius);
+    context.arcTo(x + badgeWidth, y + badgeHeight, x, y + badgeHeight, radius);
+    context.arcTo(x, y + badgeHeight, x, y, radius);
+    context.arcTo(x, y, x + badgeWidth, y, radius);
+    context.closePath();
+    context.fill();
+    context.globalAlpha = 1;
+    context.drawImage(logo, x + badgePadX, y + badgePadY, logoWidth, logoHeight);
+    context.restore();
+  }
+
   async function optimizedImage(file, maxDimension = 1600, quality = 0.88) {
     if (!file?.type?.startsWith('image/')) {
       throw new Error('Select image files only.');
@@ -209,6 +252,7 @@
     context.fillStyle = '#fff';
     context.fillRect(0, 0, outputWidth, outputHeight);
     context.drawImage(source, 0, 0, outputWidth, outputHeight);
+    await drawWatermarkOnCanvas(context, outputWidth, outputHeight);
     if (typeof source.close === 'function') source.close();
 
     const webp = canvas.toDataURL('image/webp', quality);
@@ -1340,8 +1384,12 @@
             reject(new Error('Photo processing is unavailable in this browser.'));
             return;
           }
+          context.fillStyle = '#fff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
           context.drawImage(image, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', 0.82));
+          Promise.resolve(drawWatermarkOnCanvas(context, canvas.width, canvas.height))
+            .then(() => resolve(canvas.toDataURL('image/jpeg', 0.82)))
+            .catch(() => resolve(canvas.toDataURL('image/jpeg', 0.82)));
         };
         image.src = String(reader.result || '');
       };
