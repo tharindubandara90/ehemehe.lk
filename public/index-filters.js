@@ -80,7 +80,10 @@
 
   const CATEGORY_TREE = [
     { id: 'vehicles', name: 'Vehicles', children: [
-      { id: 'cars', name: 'Cars' }, { id: 'motorbikes', name: 'Motorbikes' }, { id: 'vans', name: 'Vans' }, { id: 'trucks', name: 'Trucks' }, { id: 'buses', name: 'Buses' }, { id: 'three-wheelers', name: 'Three Wheelers' }, { id: 'auto-parts-accessories', name: 'Auto Parts & Accessories' }
+      { id: 'cars', name: 'Cars' }, { id: 'vans', name: 'Vans' }, { id: 'suvs', name: 'SUVs' },
+      { id: 'motorbikes', name: 'Motorbikes' }, { id: 'three-wheelers', name: 'Three Wheelers' },
+      { id: 'buses', name: 'Buses' }, { id: 'lorries', name: 'Lorries' }, { id: 'boats', name: 'Boats' },
+      { id: 'heavy-equipment', name: 'Heavy Equipment' }, { id: 'vehicle-parts-accessories', name: 'Vehicle Parts & Accessories' }
     ]},
     { id: 'property', name: 'Property', children: [
       { id: 'houses', name: 'Houses' }, { id: 'land', name: 'Land' }, { id: 'apartments', name: 'Apartments' }, { id: 'commercial-properties', name: 'Commercial Properties' }, { id: 'rooms-annexes', name: 'Rooms & Annexes' }
@@ -191,12 +194,14 @@
     });
   }
 
-  function publicHomePayload() {
+  function publicHomePayload(force = false) {
+    if (force) publicHomePayloadPromise = null;
     if (publicHomePayloadPromise) return publicHomePayloadPromise;
-    const bootstrap = window.__EHM_PUBLIC_HOME_PROMISE;
-    publicHomePayloadPromise = Promise.resolve(bootstrap || fetch('/api/public-home?limit=80', {
-      headers: { Accept: 'application/json' },
-      credentials: 'same-origin'
+    const bootstrap = !force ? window.__EHM_PUBLIC_HOME_PROMISE : null;
+    publicHomePayloadPromise = Promise.resolve(bootstrap || fetch('/api/public-home?limit=80' + '&_=' + Date.now(), {
+      headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
+      credentials: 'same-origin',
+      cache: 'no-store'
     }).then((response) => {
       if (!response.ok) throw new Error(`Public home request failed (HTTP ${response.status})`);
       return response.json();
@@ -210,7 +215,7 @@
     return publicHomePayloadPromise;
   }
   const HOME_LIVE_SNAPSHOT_KEY = 'ehemehe:desktopHomeLiveSnapshot:v1';
-  const HOME_LIVE_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000;
+  const HOME_LIVE_SNAPSHOT_TTL_MS = 2 * 60 * 1000;
   let homeSnapshotHydrated = false;
   let desktopLiveDataSettled = false;
 
@@ -288,6 +293,10 @@
       .replace(/(^-|-$)/g, '');
   }
 
+  function isUuidLike(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+  }
+
   function esc(value) {
     return String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -304,6 +313,18 @@
   function isHomeRoute() {
     const path = window.location.pathname.replace(/\/index\.html$/i, '/');
     return path === '/' || path === '';
+  }
+
+  function categoryRouteSlug() {
+    const path = window.location.pathname.replace(/\/index\.html$/i, '').replace(/\/+$/, '');
+    const match = path.match(/^\/category\/([^/]+)$/i);
+    if (!match) return '';
+    try { return slugify(decodeURIComponent(match[1])); }
+    catch (_) { return slugify(match[1]); }
+  }
+
+  function isCategoryRoute() {
+    return !!categoryRouteSlug();
   }
 
 
@@ -617,7 +638,7 @@
       if (!window.supabaseClient) throw new Error('No Supabase client');
       const [dRes, cRes, cityRes] = await Promise.all([
         window.supabaseClient.from('districts').select('id,name,slug,is_active').eq('is_active', true).order('name'),
-        window.supabaseClient.from('categories').select('id,name,slug,is_active').eq('is_active', true).order('name'),
+        window.supabaseClient.from('categories').select('id,name,slug,parent_id,is_active').eq('is_active', true).order('name'),
         window.supabaseClient.from('cities').select('id,name,district_id,is_active').eq('is_active', true).order('name')
       ]);
 
@@ -638,12 +659,36 @@
       }
 
       if (Array.isArray(cRes.data) && cRes.data.length) {
-        const known = new Map(categories.map((c) => [slugify(c.id || c.slug || c.name), c]));
-        cRes.data.forEach((c) => {
-          const slug = slugify(c.slug || c.name);
-          if (!known.has(slug)) known.set(slug, { id: c.id, slug, name: c.name, children: [], source: 'supabase' });
+        const dbRows = cRes.data.map((row) => ({
+          ...row,
+          id: String(row.id || ''),
+          slug: slugify(row.slug || row.name),
+          name: String(row.name || row.slug || ''),
+          parent_id: row.parent_id ? String(row.parent_id) : ''
+        })).filter((row) => row.id && row.slug);
+        const dbById = new Map(dbRows.map((row) => [row.id, row]));
+        const rootMap = new Map(categories.map((category) => [slugify(category.id || category.slug || category.name), {
+          ...category,
+          id: slugify(category.id || category.slug || category.name),
+          slug: slugify(category.id || category.slug || category.name),
+          children: Array.isArray(category.children) ? category.children.map((child) => ({ ...child, id: slugify(child.id || child.slug || child.name), slug: slugify(child.id || child.slug || child.name) })) : []
+        }]));
+
+        dbRows.filter((row) => !row.parent_id || !dbById.has(row.parent_id)).forEach((row) => {
+          const existing = rootMap.get(row.slug) || {};
+          rootMap.set(row.slug, { ...existing, ...row, id: row.slug, children: existing.children || [], source: 'supabase' });
         });
-        categories = Array.from(known.values());
+
+        dbRows.filter((row) => row.parent_id && dbById.has(row.parent_id)).forEach((row) => {
+          const parentRow = dbById.get(row.parent_id);
+          const parentSlug = slugify(parentRow.slug || parentRow.name);
+          const existingParent = rootMap.get(parentSlug) || { id: parentSlug, slug: parentSlug, name: parentRow.name, children: [], source: 'supabase' };
+          const childMap = new Map((existingParent.children || []).map((child) => [slugify(child.id || child.slug || child.name), child]));
+          childMap.set(row.slug, { ...row, id: row.slug, parentId: parentSlug, source: 'supabase' });
+          rootMap.set(parentSlug, { ...existingParent, id: parentSlug, slug: parentSlug, children: Array.from(childMap.values()) });
+        });
+
+        categories = Array.from(rootMap.values());
       }
     } catch (e) {
       // Fallback data is enough for the current static site.
@@ -653,13 +698,18 @@
     return lookups;
   }
 
-  async function loadAds() {
+  async function loadAds(force = false) {
+    if (force) {
+      adsLoaded = false;
+      adsLoadPromise = null;
+      publicHomePayloadPromise = null;
+    }
     if (adsLoaded) return supabaseAds;
     if (adsLoadPromise) return adsLoadPromise;
 
     adsLoadPromise = (async () => {
       try {
-        const payload = await publicHomePayload();
+        const payload = await publicHomePayload(force);
         const apiAds = Array.isArray(payload?.ads) ? payload.ads : [];
         supabaseAds = apiAds.map((ad) => normalizeAd(ad, 'supabase'));
         supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
@@ -996,9 +1046,13 @@
     const selected = slugify(category.id || category.slug || category.name);
     const selectedParent = slugify(category.parentId || '');
 
-    const adCategory = slugify(ad.categoryId || ad.categoryName || '');
-    const adSubcategory = slugify(ad.subcategoryId || '');
-    const hasCategoryIds = !!(adCategory || adSubcategory);
+    const rawAdCategory = String(ad.categoryId || ad.categoryName || '');
+    const rawAdSubcategory = String(ad.subcategoryId || '');
+    const adCategory = slugify(rawAdCategory);
+    const adSubcategory = slugify(rawAdSubcategory);
+    // UUID-only category IDs cannot be compared with public slugs. In that
+    // fallback case, allow the text/category-name matcher below to decide.
+    const hasCategoryIds = !!(adCategory || adSubcategory) && !isUuidLike(rawAdCategory) && !isUuidLike(rawAdSubcategory);
 
     // Exact matching first. This prevents wrong results like MacBook showing under Cars
     // just because "AppleCare" contains the letters "car".
@@ -1316,6 +1370,31 @@
     document.head.appendChild(style);
   }
 
+  function installCategoryStyles() {
+    if (document.getElementById('ehmCategoryRouteStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'ehmCategoryRouteStyles';
+    style.textContent = `
+      body.ehm-category-route-active{background:#f7f9fb!important}
+      .ehm-category-page{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:22px 0 80px;color:#0f172a}
+      .ehm-category-breadcrumb{display:flex;align-items:center;gap:9px;margin:0 0 24px;font-size:14px;color:#64748b}.ehm-category-breadcrumb a{color:#0891b2;text-decoration:none}.ehm-category-breadcrumb strong{color:#0f172a}
+      .ehm-category-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:30px;align-items:start}
+      .ehm-category-sidebar{background:#fff;border:1px solid #e4eaf0;border-radius:18px;padding:18px;box-shadow:0 8px 26px rgba(15,23,42,.04);position:sticky;top:92px}
+      .ehm-category-sidebar h2{font-size:17px;margin:0 0 14px}.ehm-category-sidebar nav{display:grid;gap:4px}.ehm-category-sidebar a{padding:11px 12px;border-radius:11px;text-decoration:none;color:#475569;font-size:15px}.ehm-category-sidebar a.active{background:#e8faf3;color:#059669;font-weight:800}.ehm-category-sidebar a:hover{background:#f1f5f9}
+      .ehm-category-main{min-width:0}.ehm-category-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px}.ehm-category-heading h1{margin:0;font-size:32px;line-height:1.15;letter-spacing:-.03em}.ehm-category-count{margin:0 0 18px;color:#64748b;font-size:15px}
+      .ehm-category-view{display:flex;gap:7px}.ehm-category-view button{width:42px;height:42px;border:1px solid #dbe5ec;border-radius:11px;background:#fff;color:#94a3b8;font-size:19px;cursor:pointer}.ehm-category-view button.active{background:#e8faf3;color:#059669;border-color:#b7ead6}
+      .ehm-category-chips{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:22px}.ehm-category-chip{height:39px;border:1px solid #dbe5ec;border-radius:12px;padding:0 15px;background:#fff;color:#334155;font-weight:700;cursor:pointer}.ehm-category-chip.active{background:#43c596;color:#fff;border-color:#43c596}
+      .ehm-category-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.ehm-category-grid.list{grid-template-columns:1fr}.ehm-category-grid.list .ehm-ad-card{display:grid;grid-template-columns:220px minmax(0,1fr)}.ehm-category-grid.list .ehm-ad-img-wrap{height:100%;min-height:170px}
+      .ehm-category-main .ehm-ad-card{display:block;background:#fff;border:1px solid #e5edf3;border-radius:17px;overflow:hidden;text-decoration:none;color:#0f172a;box-shadow:0 8px 24px rgba(15,23,42,.055);transition:.18s ease}.ehm-category-main .ehm-ad-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(15,23,42,.10)}
+      .ehm-category-main .ehm-ad-img-wrap{position:relative;height:190px;background:#eef5f9;overflow:hidden}.ehm-category-main .ehm-ad-img{width:100%;height:100%;object-fit:cover;display:block}.ehm-category-main .ehm-ad-body{padding:14px 15px 16px}.ehm-category-main .ehm-ad-title{margin:0 0 9px;font-size:17px;line-height:1.35;font-weight:800;min-height:46px}.ehm-category-main .ehm-ad-price{font-size:21px;font-weight:900;color:#0f9f76;margin-bottom:8px}.ehm-category-main .ehm-ad-meta{display:flex;gap:9px;flex-wrap:wrap;color:#94a3b8;font-size:12px}.ehm-category-main .ehm-condition{display:inline-flex;margin-top:9px;padding:4px 8px;border-radius:7px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:800}
+      .ehm-category-main .ehm-badges{position:absolute;left:10px;right:10px;top:10px;display:flex;justify-content:space-between;gap:8px}.ehm-category-main .ehm-badge{display:inline-flex;border-radius:999px;padding:5px 9px;color:#fff;font-size:10px;font-weight:900;text-transform:uppercase}.ehm-category-main .ehm-badge.featured{background:#f59e0b}.ehm-category-main .ehm-badge.promoted{background:#06b6d4}.ehm-category-main .ehm-badge.top{background:#ef4444}.ehm-category-main .ehm-heart{position:absolute;right:10px;bottom:10px;width:38px;height:38px;border:0;border-radius:999px;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:23px;z-index:4;box-shadow:0 4px 14px rgba(15,23,42,.14)}
+      .ehm-category-empty{background:#fff;border:1px solid #e5edf3;border-radius:18px;padding:68px 22px;text-align:center;color:#64748b}.ehm-category-empty strong{display:block;color:#0f172a;font-size:21px;margin-bottom:8px}.ehm-category-loading{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.ehm-category-skeleton{height:320px;border-radius:17px;background:linear-gradient(100deg,#edf2f5 18%,#f8fafc 36%,#edf2f5 54%);background-size:220% 100%;animation:ehmHomeSkeleton 1.25s ease-in-out infinite}
+      @media(max-width:980px){.ehm-category-layout{grid-template-columns:1fr}.ehm-category-sidebar{display:none}.ehm-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      @media(max-width:767px){.ehm-category-page{width:100%;padding:14px 12px 100px}.ehm-category-breadcrumb{font-size:12px;margin-bottom:15px}.ehm-category-heading{align-items:center}.ehm-category-heading h1{font-size:25px}.ehm-category-count{margin-bottom:14px}.ehm-category-chips{flex-wrap:nowrap;overflow:auto;padding-bottom:3px;margin-right:-12px}.ehm-category-chip{white-space:nowrap;min-width:max-content}.ehm-category-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.ehm-category-main .ehm-ad-img-wrap{height:135px}.ehm-category-main .ehm-ad-body{padding:11px}.ehm-category-main .ehm-ad-title{font-size:14px;min-height:38px}.ehm-category-main .ehm-ad-price{font-size:18px}.ehm-category-grid.list{grid-template-columns:1fr}.ehm-category-grid.list .ehm-ad-card{grid-template-columns:116px minmax(0,1fr)}.ehm-category-grid.list .ehm-ad-img-wrap{min-height:126px}.ehm-category-loading{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.ehm-category-skeleton{height:245px}}
+    `;
+    document.head.appendChild(style);
+  }
+
   function removeManagedHome() {
     document.getElementById('ehmMobileFilterbar')?.remove();
     document.getElementById('ehmMobileResults')?.remove();
@@ -1546,6 +1625,132 @@
         </div>
       </a>
     `;
+  }
+
+  let categoryRouteDataKey = '';
+  let categoryRouteDataPromise = null;
+
+  function categorySelectionForSlug(routeSlug) {
+    const wanted = slugify(routeSlug);
+    for (const parent of lookups.categories || CATEGORY_TREE) {
+      const parentSlug = slugify(parent.id || parent.slug || parent.name);
+      if (parentSlug === wanted) {
+        return { parent: { ...parent, id: parentSlug, slug: parentSlug, type: 'parent' }, selected: { ...parent, id: parentSlug, slug: parentSlug, type: 'parent' } };
+      }
+      const child = (parent.children || []).find((row) => slugify(row.id || row.slug || row.name) === wanted);
+      if (child) {
+        return {
+          parent: { ...parent, id: parentSlug, slug: parentSlug, type: 'parent' },
+          selected: { ...child, id: wanted, slug: wanted, parentId: parentSlug, type: 'child' }
+        };
+      }
+    }
+    const title = wanted.replace(/-/g, ' ').replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+    const fallback = { id: wanted, slug: wanted, name: title || 'Category', children: [], type: 'parent' };
+    return { parent: fallback, selected: fallback };
+  }
+
+  function categoryPageHost() {
+    const main = document.querySelector('#root main') || document.querySelector('main') || document.getElementById('root');
+    if (!main) return null;
+    let host = document.getElementById('ehmLiveCategoryPage');
+    if (!host || !main.contains(host)) {
+      main.innerHTML = '';
+      host = document.createElement('section');
+      host.id = 'ehmLiveCategoryPage';
+      host.className = 'ehm-category-page';
+      main.appendChild(host);
+    }
+    return host;
+  }
+
+  function renderCategoryLoading(routeSlug) {
+    const host = categoryPageHost();
+    if (!host) return;
+    const selection = categorySelectionForSlug(routeSlug);
+    host.innerHTML = `<div class="ehm-category-breadcrumb"><a href="/">Home</a><span>›</span><strong>${esc(selection.parent.name)}</strong></div><div class="ehm-category-layout"><aside class="ehm-category-sidebar"><h2>Categories</h2><nav>${(lookups.categories || CATEGORY_TREE).map((row) => `<a href="/category/${esc(slugify(row.id || row.slug || row.name))}" class="${slugify(row.id || row.slug || row.name) === slugify(selection.parent.id) ? 'active' : ''}">${esc(row.name)}</a>`).join('')}</nav></aside><div class="ehm-category-main"><div class="ehm-category-heading"><h1>${esc(selection.parent.name)}</h1></div><p class="ehm-category-count">Loading the latest approved listings...</p><div class="ehm-category-loading">${'<div class="ehm-category-skeleton"></div>'.repeat(6)}</div></div></div>`;
+  }
+
+  function renderLiveCategoryPage(routeSlug) {
+    const host = categoryPageHost();
+    if (!host) return false;
+    const selection = categorySelectionForSlug(routeSlug);
+    const parent = selection.parent;
+    if (!state.category || (state.category.__routeParent !== slugify(parent.id))) {
+      state.category = { ...selection.selected, __routeParent: slugify(parent.id) };
+    }
+    const rows = filteredAds();
+    const parentSlug = slugify(parent.id || parent.slug || parent.name);
+    const selectedSlug = slugify(state.category?.id || state.category?.slug || state.category?.name || parentSlug);
+    const categories = lookups.categories || CATEGORY_TREE;
+    const chips = [
+      `<button type="button" class="ehm-category-chip ${state.category?.type === 'parent' ? 'active' : ''}" data-ehm-category-filter="${esc(parentSlug)}" data-ehm-category-type="parent">All</button>`,
+      ...(parent.children || []).map((child) => {
+        const childSlug = slugify(child.id || child.slug || child.name);
+        return `<button type="button" class="ehm-category-chip ${state.category?.type === 'child' && selectedSlug === childSlug ? 'active' : ''}" data-ehm-category-filter="${esc(childSlug)}" data-ehm-category-type="child">${esc(child.name)}</button>`;
+      })
+    ].join('');
+    const html = `
+      <div class="ehm-category-breadcrumb"><a href="/">Home</a><span>›</span><strong>${esc(parent.name)}</strong></div>
+      <div class="ehm-category-layout">
+        <aside class="ehm-category-sidebar"><h2>Categories</h2><nav>${categories.map((row) => {
+          const rowSlug = slugify(row.id || row.slug || row.name);
+          return `<a href="/category/${esc(rowSlug)}" class="${rowSlug === parentSlug ? 'active' : ''}">${esc(row.name)}</a>`;
+        }).join('')}</nav></aside>
+        <div class="ehm-category-main">
+          <div class="ehm-category-heading"><h1>${esc(parent.name)}</h1><div class="ehm-category-view"><button type="button" class="${state.view === 'grid' ? 'active' : ''}" data-ehm-category-view="grid" aria-label="Grid view">▦</button><button type="button" class="${state.view === 'list' ? 'active' : ''}" data-ehm-category-view="list" aria-label="List view">☷</button></div></div>
+          <p class="ehm-category-count">${rows.length} listing${rows.length === 1 ? '' : 's'} found</p>
+          <div class="ehm-category-chips">${chips}</div>
+          ${rows.length ? `<div class="ehm-category-grid ${state.view}">${rows.map(renderAdCard).join('')}</div>` : `<div class="ehm-category-empty"><strong>No ads found</strong><span>No approved live listings are available in this category yet.</span></div>`}
+        </div>
+      </div>`;
+    if (host.__ehmCategoryHtml !== html) {
+      host.__ehmCategoryHtml = html;
+      host.innerHTML = html;
+    }
+    host.querySelectorAll('[data-ehm-category-filter]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const filterSlug = slugify(button.dataset.ehmCategoryFilter);
+        if (button.dataset.ehmCategoryType === 'parent') {
+          state.category = { ...parent, id: parentSlug, slug: parentSlug, type: 'parent', __routeParent: parentSlug };
+        } else {
+          const child = (parent.children || []).find((row) => slugify(row.id || row.slug || row.name) === filterSlug);
+          if (child) state.category = { ...child, id: filterSlug, slug: filterSlug, parentId: parentSlug, type: 'child', __routeParent: parentSlug };
+        }
+        renderLiveCategoryPage(routeSlug);
+      });
+    });
+    host.querySelectorAll('[data-ehm-category-view]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.view = button.dataset.ehmCategoryView === 'list' ? 'list' : 'grid';
+        renderLiveCategoryPage(routeSlug);
+      });
+    });
+    return true;
+  }
+
+  function ensureLiveCategoryPage() {
+    const routeSlug = categoryRouteSlug();
+    if (!routeSlug) return Promise.resolve(false);
+    installStyles();
+    installCategoryStyles();
+    document.body.classList.add('ehm-category-route-active');
+    if (categoryRouteDataPromise && categoryRouteDataKey === routeSlug) return categoryRouteDataPromise;
+    if (categoryRouteDataKey === routeSlug && adsLoaded) {
+      renderLiveCategoryPage(routeSlug);
+      return Promise.resolve(true);
+    }
+    renderCategoryLoading(routeSlug);
+    categoryRouteDataKey = routeSlug;
+    categoryRouteDataPromise = (async () => {
+      await loadLookups();
+      const selection = categorySelectionForSlug(routeSlug);
+      state.category = { ...selection.selected, __routeParent: slugify(selection.parent.id) };
+      await Promise.allSettled([loadAds(true), loadPromotions(), loadFinanceSettings()]);
+      renderLiveCategoryPage(routeSlug);
+      return true;
+    })().finally(() => { categoryRouteDataPromise = null; });
+    return categoryRouteDataPromise;
   }
 
   function closeModal() {
@@ -2988,6 +3193,14 @@
       }
 
       document.body.classList.remove('ehm-dynamic-detail-active');
+
+      if (isCategoryRoute()) {
+        removeManagedHome();
+        await ensureLiveCategoryPage();
+        return;
+      }
+
+      document.body.classList.remove('ehm-category-route-active');
 
       if (!isMobile()) {
         removeManagedHome();

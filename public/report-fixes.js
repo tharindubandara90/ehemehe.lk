@@ -4,7 +4,7 @@
   const FAVORITES_KEY = 'ehemehe:favorites:v2';
   const PLACEHOLDER = '/assets/ad-placeholder.svg';
   const HOME_SNAPSHOT_KEY = 'ehemehe:desktopHomeLiveSnapshot:v1';
-  const HOME_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000;
+  const HOME_SNAPSHOT_TTL_MS = 2 * 60 * 1000;
   const AD_LIFETIME_MS = 25 * 24 * 60 * 60 * 1000;
   const DEMO_TITLES = new Set([
     '2020 Toyota Prius Hybrid - Low Mileage',
@@ -200,9 +200,10 @@
   async function loadPublicAds(force = false) {
     if (!force && publicAdsPromise) return publicAdsPromise;
     publicAdsPromise = (async () => {
-      const response = await fetch('/api/public-home?limit=250', {
-        headers: { Accept: 'application/json' },
-        credentials: 'same-origin'
+      const response = await fetch('/api/public-home?limit=250' + '&_=' + Date.now(), {
+        headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
+        credentials: 'same-origin',
+        cache: 'no-store'
       });
       const payload = await response.json().catch(() => ({}));
       const rows = response.ok && Array.isArray(payload?.ads) ? payload.ads : [];
