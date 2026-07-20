@@ -224,6 +224,7 @@ module.exports = async function handler(req, res) {
       contact_phones: verifiedPhones,
       verified_contact_phones: verifiedPhones,
       phone_verification_proof: body.phoneProof,
+      image_count: images.length,
       submitted_at: new Date().toISOString(),
       expires_at: expiresAt
     };

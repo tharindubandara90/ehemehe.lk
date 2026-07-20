@@ -191,6 +191,12 @@ module.exports = async function handler(req, res) {
     let images = parseJson(existing.images, []);
     if (!Array.isArray(images)) images = [];
 
+    const effectiveImageCount = Math.max(
+      Number(custom.image_count || custom.images_count || 0) || 0,
+      images.filter(Boolean).length,
+      existing.image_url ? 1 : 0
+    );
+
     const payload = {
       title,
       description,
@@ -206,7 +212,8 @@ module.exports = async function handler(req, res) {
         owner_user_id: user.id,
         user_edited_at: now,
         previous_status_before_edit: existing.status || 'pending',
-        requires_admin_review: true
+        requires_admin_review: true,
+        image_count: replacementImage ? Math.max(1, effectiveImageCount) : effectiveImageCount
       },
       updated_at: now
     };

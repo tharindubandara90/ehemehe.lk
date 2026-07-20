@@ -51,32 +51,14 @@ async function loadWatermarkLogo(){
 async function applyWatermark(ctx,w,h){
   const logo=await loadWatermarkLogo();
   if(!logo)return;
-  const margin=Math.max(12,Math.round(Math.min(w,h)*0.03));
-  const maxWidth=Math.min(Math.round(w*0.26),220);
-  const minWidth=Math.min(110,Math.round(w*0.3));
-  const logoWidth=Math.max(minWidth,maxWidth);
-  const ratio=logo.naturalWidth&&logo.naturalHeight?logo.naturalHeight/logo.naturalWidth:0.26;
-  const logoHeight=Math.max(28,Math.round(logoWidth*ratio));
-  const badgePadX=Math.max(10,Math.round(logoWidth*0.08));
-  const badgePadY=Math.max(8,Math.round(logoHeight*0.16));
-  const badgeWidth=logoWidth+badgePadX*2;
-  const badgeHeight=logoHeight+badgePadY*2;
-  const x=w-badgeWidth-margin;
-  const y=h-badgeHeight-margin;
-  const radius=Math.round(badgeHeight/2);
+  const logoWidth=Math.max(120,Math.min(Math.round(w*0.34),520));
+  const ratio=logo.naturalWidth&&logo.naturalHeight?logo.naturalHeight/logo.naturalWidth:0.236;
+  const logoHeight=Math.max(30,Math.round(logoWidth*ratio));
+  const x=Math.round((w-logoWidth)/2);
+  const y=Math.round((h-logoHeight)/2);
   ctx.save();
-  ctx.globalAlpha=0.92;
-  ctx.fillStyle='rgba(255,255,255,0.92)';
-  ctx.beginPath();
-  ctx.moveTo(x+radius,y);
-  ctx.arcTo(x+badgeWidth,y,x+badgeWidth,y+badgeHeight,radius);
-  ctx.arcTo(x+badgeWidth,y+badgeHeight,x,y+badgeHeight,radius);
-  ctx.arcTo(x,y+badgeHeight,x,y,radius);
-  ctx.arcTo(x,y,x+badgeWidth,y,radius);
-  ctx.closePath();
-  ctx.fill();
-  ctx.globalAlpha=1;
-  ctx.drawImage(logo,x+badgePadX,y+badgePadY,logoWidth,logoHeight);
+  ctx.globalAlpha=0.16;
+  ctx.drawImage(logo,x,y,logoWidth,logoHeight);
   ctx.restore();
 }
 async function simpleCompressImage(file){
@@ -378,7 +360,7 @@ async function submitAd(){
   const finance=isVehicleCategory()?calcFinance(el('price').value):null;
   const baseDescription=el('description').value.trim();
   const financeText=finance?`\n\nFinance Estimate:\nDown Payment: ${money(finance.downPayment)}\nMonthly Payment: ${money(finance.monthlyPayment)}\nFinance Company: ${FINANCE_SETTINGS.companyPhone}`:'';
-  const customFields={...collectSimpleFields(),contact_phones:verifiedPhoneNumbers,verified_contact_phones:verifiedPhoneNumbers,contact_phone_verification_proof:phoneValidation.proof||''};
+  const customFields={...collectSimpleFields(),contact_phones:verifiedPhoneNumbers,verified_contact_phones:verifiedPhoneNumbers,contact_phone_verification_proof:phoneValidation.proof||'',image_count:SIMPLE_IMAGES.length};
   const payload={user_id:currentUser.id,title:el('title').value.trim(),price:el('price').value||null,category_id:el('category').value||null,city_id:el('city').value||null,phone:verifiedPhone,phone_verified:true,phone_verified_at:new Date().toISOString(),image_url:SIMPLE_IMAGES[0]||'',images:SIMPLE_IMAGES,custom_fields:customFields,description:(baseDescription+financeText).trim(),status:'pending'};
   if(finance){ Object.assign(payload,{finance_enabled:true,finance_downpayment:finance.downPayment,finance_monthly_payment:finance.monthlyPayment,finance_downpayment_percent:finance.downPaymentPercent,finance_annual_rate_percent:finance.annualRatePercent,finance_months:finance.months,finance_company_phone:FINANCE_SETTINGS.companyPhone}); }
   if(!payload.title){msg('Title required');return;}

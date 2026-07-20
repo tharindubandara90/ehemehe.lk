@@ -2618,18 +2618,42 @@
     if (!rawId) return null;
     const cleanId = String(rawId).replace(/^static-/, '');
 
-    const existing = allAds().find((ad) => String(ad.id) === rawId || String(ad.id) === cleanId);
-    if (existing) return existing;
+    const existing = allAds().find((ad) => String(ad.id) === rawId || String(ad.id) === cleanId) || null;
+    const cached = readPublicDetailAd(cleanId) || null;
+    const instant = cached || existing;
+    if (/^\d+$/.test(cleanId)) return instant;
 
-    const cached = readPublicDetailAd(cleanId);
-    if (cached) return cached;
-    if (/^\d+$/.test(cleanId)) return null;
+    // Home/search payloads intentionally include one thumbnail only. Always
+    // refresh the selected listing from the detail API so its complete photo
+    // count and all proxy image URLs are available to the gallery.
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      let response;
+      try {
+        response = await fetch(`/api/public-ad?id=${encodeURIComponent(cleanId)}`, {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' }
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+      const payload = await response.json().catch(() => null);
+      if (response.ok && payload?.ad) {
+        const normalized = normalizeAd(payload.ad, 'supabase');
+        cachePublicDetailAd(normalized);
+        const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
+        if (index >= 0) supabaseAds[index] = normalized;
+        else supabaseAds = [normalized, ...supabaseAds];
+        return normalized;
+      }
+    } catch (_) {}
 
     let client = window.supabaseClient;
     if (!client && typeof window.waitForSupabaseClient === 'function') {
       try { client = await window.waitForSupabaseClient(2500); } catch (_) { client = null; }
     }
-    if (!client) return null;
+    if (!client) return instant;
 
     try {
       const { data, error } = await client
@@ -2638,15 +2662,15 @@
         .eq('id', cleanId)
         .eq('status', 'approved')
         .limit(1);
-      if (error || !Array.isArray(data) || !data[0]) return null;
+      if (error || !Array.isArray(data) || !data[0]) return instant;
       const normalized = normalizeAd(data[0], 'supabase');
       cachePublicDetailAd(normalized);
-      if (!supabaseAds.some((ad) => String(ad.id) === String(normalized.id))) {
-        supabaseAds = [normalized, ...supabaseAds];
-      }
+      const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
+      if (index >= 0) supabaseAds[index] = normalized;
+      else supabaseAds = [normalized, ...supabaseAds];
       return normalized;
     } catch (_) {
-      return null;
+      return instant;
     }
   }
 

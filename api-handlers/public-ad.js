@@ -1,5 +1,5 @@
 const { json } = require('../lib/otp-utils');
-const { queryAds, normalizeAd } = require('../lib/public-ads-utils');
+const { queryAds, normalizeAd, parseJson, queryAdImageCount } = require('../lib/public-ads-utils');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { ok: false, message: 'Method not allowed' });
@@ -14,7 +14,14 @@ module.exports = async function handler(req, res) {
     if (!row || String(row.status || '').toLowerCase() === 'rejected') {
       return json(res, 404, { ok: false, message: 'Ad not found.' });
     }
-    res.setHeader('Cache-Control', 'public, max-age=20, s-maxage=45, stale-while-revalidate=180');
+    const custom = parseJson(row.custom_fields, {});
+    let imageCount = Number(custom.image_count || custom.images_count || 0);
+    if (!Number.isFinite(imageCount) || imageCount < 1) {
+      try { imageCount = await queryAdImageCount(id); }
+      catch (_) { imageCount = row.image_url ? 1 : 0; }
+    }
+    row._image_count = Math.max(0, Math.min(10, Math.round(imageCount || 0)));
+    res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=30, stale-while-revalidate=120');
     return json(res, 200, { ok: true, ad: normalizeAd(row, true) });
   } catch (error) {
     return json(res, 502, { ok: false, message: error.message || 'Could not load the ad.' });

@@ -192,30 +192,14 @@
   async function drawWatermarkOnCanvas(context, width, height) {
     const logo = await getWatermarkLogo();
     if (!logo || !context) return;
-    const margin = Math.max(12, Math.round(Math.min(width, height) * 0.03));
-    const logoWidth = Math.max(Math.min(110, Math.round(width * 0.3)), Math.min(Math.round(width * 0.26), 220));
-    const ratio = logo.naturalWidth && logo.naturalHeight ? logo.naturalHeight / logo.naturalWidth : 0.26;
-    const logoHeight = Math.max(28, Math.round(logoWidth * ratio));
-    const badgePadX = Math.max(10, Math.round(logoWidth * 0.08));
-    const badgePadY = Math.max(8, Math.round(logoHeight * 0.16));
-    const badgeWidth = logoWidth + (badgePadX * 2);
-    const badgeHeight = logoHeight + (badgePadY * 2);
-    const x = width - badgeWidth - margin;
-    const y = height - badgeHeight - margin;
-    const radius = Math.round(badgeHeight / 2);
+    const logoWidth = Math.max(120, Math.min(Math.round(width * 0.34), 520));
+    const ratio = logo.naturalWidth && logo.naturalHeight ? logo.naturalHeight / logo.naturalWidth : 0.236;
+    const logoHeight = Math.max(30, Math.round(logoWidth * ratio));
+    const x = Math.round((width - logoWidth) / 2);
+    const y = Math.round((height - logoHeight) / 2);
     context.save();
-    context.globalAlpha = 0.92;
-    context.fillStyle = 'rgba(255,255,255,0.92)';
-    context.beginPath();
-    context.moveTo(x + radius, y);
-    context.arcTo(x + badgeWidth, y, x + badgeWidth, y + badgeHeight, radius);
-    context.arcTo(x + badgeWidth, y + badgeHeight, x, y + badgeHeight, radius);
-    context.arcTo(x, y + badgeHeight, x, y, radius);
-    context.arcTo(x, y, x + badgeWidth, y, radius);
-    context.closePath();
-    context.fill();
-    context.globalAlpha = 1;
-    context.drawImage(logo, x + badgePadX, y + badgePadY, logoWidth, logoHeight);
+    context.globalAlpha = 0.16;
+    context.drawImage(logo, x, y, logoWidth, logoHeight);
     context.restore();
   }
 
