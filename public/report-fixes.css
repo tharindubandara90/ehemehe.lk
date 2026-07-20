@@ -31,3 +31,29 @@ body.ehm-route-help main input[type="text"],body.ehm-route-help main input[type=
 [data-yw="c3JjL3BhZ2VzL0hlbHBQYWdlLnRzeEA3MDoxMg"]>svg{margin-top:0!important;align-self:center!important}
 [data-yw="c3JjL3BhZ2VzL1Bvc3RBZFBhZ2UudHN4QDEzNjoxOA"]>*{min-width:0}
 header a[class*="btn"],header button[class*="btn"]{align-items:center;justify-content:center}
+
+/* Account deletion: visible and usable on desktop, tablet, and mobile. */
+.ehm-delete-account-v2{max-width:32rem;margin-top:28px!important;padding:18px 20px!important;display:flex;align-items:center;justify-content:space-between;gap:18px;background:#fff7f7!important;border:1px solid #fecaca!important}
+.ehm-delete-account-v2 h3{font-size:16px;line-height:1.3;margin:0 0 5px!important;color:#991b1b!important}
+.ehm-delete-account-v2 p{font-size:13px;line-height:1.5;margin:0!important;color:#7f1d1d!important}
+.ehm-delete-account-v2 .ehm-delete-account-button{flex:0 0 auto;min-height:43px;white-space:nowrap}
+html.ehm-account-modal-open,html.ehm-account-modal-open body{overflow:hidden!important}
+.ehm-account-modal[hidden]{display:none!important}
+.ehm-account-modal{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:20px}
+.ehm-account-modal-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.58);backdrop-filter:blur(3px)}
+.ehm-account-modal-dialog{position:relative;width:min(100%,440px);max-height:calc(100vh - 32px);overflow:auto;border-radius:20px;background:#fff;padding:28px;box-shadow:0 28px 80px rgba(15,23,42,.28);font-family:inherit;color:#0f172a}
+.ehm-account-modal-close{position:absolute;top:12px;right:14px;width:36px;height:36px;border:0;border-radius:50%;background:#f1f5f9;color:#475569;font-size:25px;line-height:1;cursor:pointer}
+.ehm-account-warning-icon{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#fee2e2;color:#dc2626;font-size:25px;font-weight:900;margin-bottom:16px}
+.ehm-account-modal-dialog h2{font-size:21px;line-height:1.3;margin:0 42px 10px 0;font-weight:800}
+.ehm-account-modal-dialog>p{font-size:14px;line-height:1.55;color:#64748b;margin:0 0 18px}
+.ehm-account-modal-dialog label{display:block;font-size:13px;font-weight:700;color:#334155;margin-bottom:8px}
+.ehm-account-modal-dialog input{display:block;width:100%;height:48px;border:1px solid #cbd5e1;border-radius:11px;padding:0 13px;font:700 15px/1 inherit;letter-spacing:.08em;outline:none;box-sizing:border-box}
+.ehm-account-modal-dialog input:focus{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+.ehm-account-delete-status{min-height:21px;margin-top:9px;font-size:13px;color:#64748b}
+.ehm-account-delete-status.error{color:#b91c1c}.ehm-account-delete-status.success{color:#047857}
+.ehm-account-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+.ehm-account-modal-actions button{min-height:43px;border-radius:10px;padding:0 15px;font-weight:800;cursor:pointer}
+.ehm-account-cancel-button{border:1px solid #cbd5e1;background:#fff;color:#334155}
+.ehm-account-confirm-button{border:0;background:#dc2626;color:#fff}
+.ehm-account-confirm-button:disabled{cursor:not-allowed;opacity:.45}
+@media(max-width:640px){.ehm-delete-account-v2{max-width:none;display:block;padding:16px!important}.ehm-delete-account-v2 .ehm-delete-account-button{width:100%;margin-top:14px}.ehm-account-modal{padding:12px;align-items:end}.ehm-account-modal-dialog{width:100%;border-radius:20px 20px 14px 14px;padding:24px 18px calc(20px + env(safe-area-inset-bottom))}.ehm-account-modal-actions{display:grid;grid-template-columns:1fr 1fr}.ehm-account-modal-actions button{width:100%;padding:0 10px}}

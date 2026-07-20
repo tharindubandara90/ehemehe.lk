@@ -5,6 +5,26 @@
   const PLACEHOLDER = '/assets/ad-placeholder.svg';
   const HOME_SNAPSHOT_KEY = 'ehemehe:desktopHomeLiveSnapshot:v1';
   const HOME_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000;
+  const AD_LIFETIME_MS = 25 * 24 * 60 * 60 * 1000;
+  const DEMO_TITLES = new Set([
+    '2020 Toyota Prius Hybrid - Low Mileage',
+    'Modern 3-Bedroom House in Kandy',
+    'iPhone 15 Pro Max 256GB - Space Black',
+    'Samsung 65\" QLED 4K Smart TV',
+    'Professional Guitar - Fender Stratocaster',
+    'Honda CB150R - Excellent Condition',
+    'MacBook Pro M3 14-inch 16GB/512GB',
+    'Golden Retriever Puppies - 3 Months',
+    'Modern Sofa Set - 7 Piece',
+    'Software Engineer - Remote Position',
+    'Land for Sale - 10 Perches in Kadawatha',
+    'Professional Photography Services',
+    'Nike Air Max 270 - White/Black',
+    'Three Wheeler - Bajaj RE 205',
+    'A-Level Physics Tuition - Online',
+    'Industrial Sewing Machine - Juki',
+    'Used Laptop - Core i5, 8GB RAM'
+  ].map((title) => title.toLowerCase()));
   const DASHBOARD_TABS = Object.freeze({
     overview: 'Overview',
     ads: 'My Ads',
@@ -138,6 +158,14 @@
     (Array.isArray(rows) ? rows : []).forEach((raw) => {
       const id = String(raw?.id || raw?.ad_id || '');
       if (!id) return;
+      const rawTitle = String(raw?.title || '').trim();
+      if (DEMO_TITLES.has(rawTitle.toLowerCase())) return;
+      const createdValue = raw?.created_at || raw?.createdAt || raw?.postedAt;
+      const explicitExpiry = raw?.expires_at || raw?.expiresAt || raw?.custom_fields?.expires_at || raw?.customFields?.expires_at;
+      const expiryMs = explicitExpiry ? new Date(explicitExpiry).getTime() : NaN;
+      const createdMs = createdValue ? new Date(createdValue).getTime() : NaN;
+      if ((Number.isFinite(expiryMs) && expiryMs <= Date.now()) ||
+          (!Number.isFinite(expiryMs) && Number.isFinite(createdMs) && createdMs + AD_LIFETIME_MS <= Date.now())) return;
       let images = raw.images || [];
       if (typeof images === 'string') {
         try { images = JSON.parse(images); } catch (_) { images = []; }
@@ -172,21 +200,12 @@
   async function loadPublicAds(force = false) {
     if (!force && publicAdsPromise) return publicAdsPromise;
     publicAdsPromise = (async () => {
-      const [homeResult, staticResult] = await Promise.allSettled([
-        fetch('/api/public-home?limit=250', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
-          .then(async (response) => ({ response, payload: await response.json().catch(() => ({})) })),
-        fetch('/static-ads.json', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
-          .then(async (response) => ({ response, payload: await response.json().catch(() => []) }))
-      ]);
-
-      const rows = [];
-      if (homeResult.status === 'fulfilled' && homeResult.value.response.ok && Array.isArray(homeResult.value.payload?.ads)) {
-        rows.push(...homeResult.value.payload.ads);
-      }
-      if (staticResult.status === 'fulfilled' && staticResult.value.response.ok && Array.isArray(staticResult.value.payload)) {
-        rows.push(...staticResult.value.payload);
-      }
-
+      const response = await fetch('/api/public-home?limit=250', {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin'
+      });
+      const payload = await response.json().catch(() => ({}));
+      const rows = response.ok && Array.isArray(payload?.ads) ? payload.ads : [];
       const normalized = normalizePublicAds(rows);
       if (normalized.length || !publicAdsCache.length) publicAdsCache = normalized;
       return publicAdsCache;
@@ -393,32 +412,7 @@
       });
     }
 
-    if (!card.querySelector('.ehm-delete-account-card')) {
-      const box = document.createElement('section');
-      box.className = 'ehm-delete-account-card';
-      box.innerHTML = '<h3>Delete account permanently</h3><p>This removes your account and owned listings. This action cannot be undone.</p><button type="button" class="ehm-delete-account-button">Delete Account</button>';
-      card.appendChild(box);
-      box.querySelector('button').addEventListener('click', async () => {
-        const confirmation = prompt('Type DELETE to permanently delete your account.');
-        if (confirmation !== 'DELETE') return;
-        try {
-          const authSession = await getSession();
-          if (!authSession?.access_token) throw new Error('Log in again to delete your account.');
-          const response = await fetch('/api/delete-account', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authSession.access_token}` },
-            body: JSON.stringify({ confirmation })
-          });
-          const payload = await response.json().catch(() => ({}));
-          if (!response.ok || payload.ok === false) throw new Error(payload.message || 'Could not delete account.');
-          try { await window.supabaseClient?.auth?.signOut?.(); } catch (_) {}
-          localStorage.removeItem(FAVORITES_KEY);
-          location.assign('/');
-        } catch (error) {
-          alert(error.message || 'Could not delete account.');
-        }
-      });
-    }
+
   }
 
   function hideMobileHeaderFavorites() {

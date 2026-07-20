@@ -102,23 +102,12 @@
 
   async function boot() {
     if (!adId) return renderError();
-    let staticRows = [];
-    const staticPromise = fetchJson('/static-ads.json?v=20260715-final-performance-fix', 2500)
-      .then((rows) => {
-        staticRows = Array.isArray(rows) ? rows : [];
-        const local = staticRows.find((row) => String(row.id) === String(adId));
-        if (local) render(local, staticRows);
-        return local;
-      }).catch(() => null);
-
-    const remotePromise = fetchJson(`/api/public-ad?id=${encodeURIComponent(adId)}`, 7000)
+    const remote = await fetchJson(`/api/public-ad?id=${encodeURIComponent(adId)}`, 7000)
       .then((data) => {
-        if (data?.ad) render(data.ad, staticRows);
+        if (data?.ad) render(data.ad, []);
         return data?.ad || null;
       }).catch(() => null);
-
-    const [local, remote] = await Promise.all([staticPromise, remotePromise]);
-    if (!local && !remote) renderError();
+    if (!remote) renderError();
   }
 
   boot();

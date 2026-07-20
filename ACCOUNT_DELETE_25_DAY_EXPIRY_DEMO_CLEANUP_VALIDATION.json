@@ -1,0 +1,33 @@
+{
+  "feature": "Account deletion, 25-day ad expiry, and demo product cleanup",
+  "accountDeletion": {
+    "desktop": true,
+    "mobile": true,
+    "typedConfirmation": "DELETE",
+    "ownedAdsDeletedBeforeAuthUser": true,
+    "ownershipSchemasSupported": [
+      "user_id",
+      "custom_fields.owner_user_id",
+      "owner_id",
+      "seller_id",
+      "profile_id",
+      "created_by"
+    ]
+  },
+  "adExpiry": {
+    "days": 25,
+    "newAdsReceiveExpiresAt": true,
+    "publicAndMyAdsHideExpiredImmediately": true,
+    "dailyPhysicalCleanup": "/api/cleanup-expired-ads",
+    "cron": "15 3 * * *"
+  },
+  "demoCleanup": {
+    "staticJsonEmpty": true,
+    "reactDemoArraysEmpty": true,
+    "homeFiltersDemoArrayEmpty": true,
+    "adminDemoArraysEmpty": true,
+    "databaseCleanupIncluded": true
+  },
+  "migration": "supabase_25_day_ad_expiry_demo_cleanup.sql",
+  "regressionTestsPerRun": 43
+}

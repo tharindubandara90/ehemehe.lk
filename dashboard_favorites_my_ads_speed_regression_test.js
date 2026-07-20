@@ -9,8 +9,10 @@ const apiSource = fs.readFileSync('api-handlers/my-ads.js', 'utf8');
 
 assert(report.includes("const HOME_SNAPSHOT_KEY = 'ehemehe:desktopHomeLiveSnapshot:v1'"),
   'Favorites view does not hydrate from the already loaded home snapshot.');
-assert(report.includes('Promise.allSettled(['),
-  'Favorites public and static ad sources are not fetched in parallel.');
+assert(report.includes("fetch('/api/public-home?limit=250'"),
+  'Favorites are not loaded from the real public ads API.');
+assert(!report.includes("fetch('/static-ads.json"),
+  'Favorites must not load bundled demo ads.');
 assert(report.includes('paintFavoritesPanel(panel, ids, publicAdsCache, false)'),
   'Favorites view does not paint cached rows before waiting for the network.');
 assert(report.includes('Loading favourites…'),

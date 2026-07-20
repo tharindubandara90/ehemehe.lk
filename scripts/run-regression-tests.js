@@ -45,6 +45,7 @@ const tests = [
   ['my_ads_owner_fallback_regression_test.js', []],
   ['my_ads_schema_cache_fallback_regression_test.js', []],
   ['account_settings_and_ownership_api_regression_test.js', []],
+  ['account_delete_expiry_demo_cleanup_regression_test.js', []],
   ['vercel_function_startup_regression_test.js', []],
   ['scripts/http-regression-test.js', []]
 ];

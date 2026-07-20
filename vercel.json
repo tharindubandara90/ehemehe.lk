@@ -70,5 +70,11 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cleanup-expired-ads",
+      "schedule": "15 3 * * *"
+    }
   ]
 }

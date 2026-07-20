@@ -7,6 +7,7 @@ const root = __dirname;
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const reportJs = read('public/report-fixes.js');
 const reportCss = read('public/report-fixes.css');
+const accountManagement = read('public/account-management.js');
 const filters = read('public/index-filters.js');
 const postRuntime = read('public/post-ad-runtime.js');
 const dispatcher = read('lib/api-dispatcher.js');
@@ -33,7 +34,7 @@ assert(reportJs.includes('ehm-mobile-favorites-link'), 'Mobile favorites navigat
 assert(reportJs.includes('aria-current'), 'Active mobile navigation state missing.');
 
 assert(reportJs.includes("fetch('/api/update-profile'"), 'Profile Save Changes API connection missing.');
-assert(reportJs.includes("fetch('/api/delete-account'"), 'Permanent account deletion connection missing.');
+assert(accountManagement.includes("fetch('/api/delete-account'"), 'Permanent account deletion connection missing.');
 assert(reportJs.includes('+94 7X XXX XXXX'), 'Sri Lankan +94 phone input format missing.');
 assert(dispatcher.includes("'/api/update-profile'"), 'Update profile route missing from dispatcher.');
 assert(dispatcher.includes("'/api/delete-my-ad'"), 'Delete own ad route missing from dispatcher.');

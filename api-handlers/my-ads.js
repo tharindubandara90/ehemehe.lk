@@ -1,6 +1,7 @@
 const {
   json, supabasePublicKey, supabaseAdminConfig
 } = require('../lib/otp-utils');
+const { expiryCutoffIso, filterLiveAds } = require('../lib/ad-lifecycle');
 
 const AUTH_TIMEOUT_MS = 5000;
 const ADS_TIMEOUT_MS = 6500;
@@ -72,7 +73,7 @@ function missingUserIdColumn(data, message) {
 }
 
 function compactOwnedRows(rows, userId) {
-  return (Array.isArray(rows) ? rows : [])
+  return filterLiveAds(Array.isArray(rows) ? rows : [])
     .filter((row) => belongsToUser(row, userId))
     .map((row) => ({
       ...row,
@@ -127,10 +128,12 @@ async function readOwnedAds(url, key, userId) {
   // dashboard sit on the bundled count before real rows appeared.
   const [ownerResult, directResult] = await Promise.all([
     requestAds(url, key, DASHBOARD_SELECT_OWNER, {
-      'custom_fields->>owner_user_id': `eq.${userId}`
+      'custom_fields->>owner_user_id': `eq.${userId}`,
+      created_at: `gte.${expiryCutoffIso()}`
     }),
     requestAds(url, key, DASHBOARD_SELECT_WITH_USER, {
-      user_id: `eq.${userId}`
+      user_id: `eq.${userId}`,
+      created_at: `gte.${expiryCutoffIso()}`
     })
   ]);
 
@@ -145,7 +148,9 @@ async function readOwnedAds(url, key, userId) {
   // where neither filtered query can execute. Rows are still ownership-filtered
   // in-process before anything is returned to the browser.
   if (ownerResult.schemaMissing || directResult.schemaMissing || directResult.userIdMissing) {
-    const compatibility = await requestAds(url, key, DASHBOARD_SELECT_COMPAT);
+    const compatibility = await requestAds(url, key, DASHBOARD_SELECT_COMPAT, {
+      created_at: `gte.${expiryCutoffIso()}`
+    });
     if (compatibility.ok) return compactOwnedRows(compatibility.rows, userId)
       .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     if (compatibility.schemaMissing) throw new Error('DATABASE_SCHEMA_MISSING_ADS');

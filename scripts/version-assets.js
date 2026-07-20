@@ -45,7 +45,8 @@ const assetUrls = [
   '/post-ad.js',
   '/admin.js',
   '/report-fixes.css',
-  '/report-fixes.js'
+  '/report-fixes.js',
+  '/account-management.js'
 ];
 
 function assetPath(url) {

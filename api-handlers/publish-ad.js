@@ -2,6 +2,7 @@ const {
   json, normalizePhone, isSriLankaMobile, readToken,
   supabasePublicKey, supabaseAdminConfig
 } = require('../lib/otp-utils');
+const { expiresAtIso } = require('../lib/ad-lifecycle');
 
 function readLargeBody(req, maxBytes = 5 * 1024 * 1024) {
   const parseValue = (value) => {
@@ -138,10 +139,13 @@ async function insertAd(payload) {
   const { url, key } = supabaseAdminConfig();
   const attempts = [
     payload,
+    (() => { const copy = { ...payload }; delete copy.expires_at; return copy; })(),
     (() => { const copy = { ...payload }; delete copy.user_id; return copy; })(),
+    (() => { const copy = { ...payload }; delete copy.user_id; delete copy.expires_at; return copy; })(),
     (() => {
       const copy = { ...payload };
       delete copy.user_id;
+      delete copy.expires_at;
       delete copy.images;
       return copy;
     })()
@@ -204,6 +208,7 @@ module.exports = async function handler(req, res) {
     const verifiedPhones = validatePhoneProof(body.phoneProof, phones);
     const lookups = await resolveLookups(body);
     const metadata = user.user_metadata || {};
+    const expiresAt = expiresAtIso();
 
     const customFields = {
       ...(body.customFields && typeof body.customFields === 'object' ? body.customFields : {}),
@@ -219,7 +224,8 @@ module.exports = async function handler(req, res) {
       contact_phones: verifiedPhones,
       verified_contact_phones: verifiedPhones,
       phone_verification_proof: body.phoneProof,
-      submitted_at: new Date().toISOString()
+      submitted_at: new Date().toISOString(),
+      expires_at: expiresAt
     };
 
     const payload = {
@@ -235,6 +241,7 @@ module.exports = async function handler(req, res) {
       image_url: images[0] || null,
       images,
       custom_fields: customFields,
+      expires_at: expiresAt,
       updated_at: new Date().toISOString()
     };
 
