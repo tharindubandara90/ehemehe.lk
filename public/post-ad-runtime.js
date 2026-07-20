@@ -184,7 +184,7 @@
       const image = new Image();
       image.onload = () => resolve(image);
       image.onerror = () => resolve(null);
-      image.src = '/assets/ehemehe_logo_header.png';
+      image.src = '/assets/ehemehe_watermark_center.png';
     });
     return ehmWatermarkLogoPromise;
   }
@@ -192,13 +192,13 @@
   async function drawWatermarkOnCanvas(context, width, height) {
     const logo = await getWatermarkLogo();
     if (!logo || !context) return;
-    const logoWidth = Math.max(120, Math.min(Math.round(width * 0.34), 520));
+    const logoWidth = Math.max(180, Math.min(Math.round(width * 0.42), 720));
     const ratio = logo.naturalWidth && logo.naturalHeight ? logo.naturalHeight / logo.naturalWidth : 0.236;
-    const logoHeight = Math.max(30, Math.round(logoWidth * ratio));
+    const logoHeight = Math.max(48, Math.round(logoWidth * ratio));
     const x = Math.round((width - logoWidth) / 2);
     const y = Math.round((height - logoHeight) / 2);
     context.save();
-    context.globalAlpha = 0.16;
+    context.globalAlpha = 0.13;
     context.drawImage(logo, x, y, logoWidth, logoHeight);
     context.restore();
   }

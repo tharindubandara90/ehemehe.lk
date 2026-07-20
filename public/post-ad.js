@@ -44,20 +44,20 @@ async function loadWatermarkLogo(){
     const img=new Image();
     img.onload=()=>resolve(img);
     img.onerror=()=>resolve(null);
-    img.src='/assets/ehemehe_logo_header.png';
+    img.src='/assets/ehemehe_watermark_center.png';
   });
   return WATERMARK_LOGO_PROMISE;
 }
 async function applyWatermark(ctx,w,h){
   const logo=await loadWatermarkLogo();
   if(!logo)return;
-  const logoWidth=Math.max(120,Math.min(Math.round(w*0.34),520));
+  const logoWidth=Math.max(180,Math.min(Math.round(w*0.42),720));
   const ratio=logo.naturalWidth&&logo.naturalHeight?logo.naturalHeight/logo.naturalWidth:0.236;
-  const logoHeight=Math.max(30,Math.round(logoWidth*ratio));
+  const logoHeight=Math.max(48,Math.round(logoWidth*ratio));
   const x=Math.round((w-logoWidth)/2);
   const y=Math.round((h-logoHeight)/2);
   ctx.save();
-  ctx.globalAlpha=0.16;
+  ctx.globalAlpha=0.13;
   ctx.drawImage(logo,x,y,logoWidth,logoHeight);
   ctx.restore();
 }
