@@ -1637,10 +1637,12 @@
     if (!normalizedId || runtime.dashboardCacheUserId === normalizedId) return runtime.dashboardAds;
     runtime.dashboardCacheUserId = normalizedId;
     const cached = readDashboardAdsCache(normalizedId);
-    if (cached.length) {
-      runtime.dashboardAds = cached;
-      runtime.dashboardLoadedAt = Date.now();
-    }
+
+    // A cache miss for a different account must clear the previous account's
+    // in-memory rows. Otherwise another user's ads can flash until the new API
+    // request completes.
+    runtime.dashboardAds = cached;
+    runtime.dashboardLoadedAt = cached.length ? Date.now() : 0;
     return runtime.dashboardAds;
   }
 
@@ -1784,6 +1786,31 @@
     return panel;
   }
 
+  function applyLoadedDashboardAds(ads) {
+    if (!route().startsWith('/dashboard')) return;
+    const rows = Array.isArray(ads) ? ads : [];
+    updateDashboardCount(rows.length);
+    updateDashboardOverview(rows);
+    wireNativeDashboardEditButtons(rows);
+    const currentPanel = ensureDashboardAdsPanel();
+    if (currentPanel?.isConnected && route() === '/dashboard/ads') {
+      paintDashboardAds(currentPanel, rows, true);
+    }
+  }
+
+  function refreshDashboardAds(authSession = null, force = false) {
+    const request = loadDashboardAds(force, authSession);
+    request.then(applyLoadedDashboardAds).catch((error) => {
+      console.error('Could not load dashboard ads:', error);
+      if (!route().startsWith('/dashboard')) return;
+      const currentPanel = ensureDashboardAdsPanel();
+      if (currentPanel?.isConnected && !runtime.dashboardLoadedAt) {
+        paintDashboardAds(currentPanel, [], true);
+      }
+    });
+    return request;
+  }
+
   async function renderDashboard() {
     if (!route().startsWith('/dashboard')) return;
 
@@ -1794,11 +1821,12 @@
       if (panel?.isConnected && cached.length) paintDashboardAds(panel, cached, false);
     }
 
-    const ads = await loadDashboardAds(false, authSession);
-    updateDashboardCount(ads.length);
-    updateDashboardOverview(ads);
-    wireNativeDashboardEditButtons(ads);
-    if (panel?.isConnected && route() === '/dashboard/ads') paintDashboardAds(panel, ads, true);
+    // Do not await the network here. The first dashboard tick can start while React
+    // is still showing Overview. Waiting here used to block the mutation tick that
+    // replaces the native My Ads DOM, leaving the bundled demo cards visible until
+    // the API fallback chain finished. Keep the request in flight and return so the
+    // real My Ads mount is painted immediately with cache/loading state.
+    refreshDashboardAds(authSession, false);
   }
 
   // -------------------------- Lifecycle -----------------------------------
@@ -1950,10 +1978,19 @@
 
   function prefetchDashboardAds(event) {
     const authSession = event?.detail?.session || window.__EHM_AUTH_SESSION;
-    if (!route().startsWith('/dashboard') || !authSession?.user) return;
+    if (!authSession?.user) return;
+
+    // Warm the user-specific cache as soon as authentication is ready, even while
+    // the user is browsing another page. Opening My Ads can then paint their own
+    // listings immediately instead of beginning the request after the click.
     hydrateDashboardAdsCache(authSession.user.id);
-    scheduleRuntimeTick(0);
-    loadDashboardAds(true, authSession).then(() => scheduleRuntimeTick(0)).catch(() => {});
+    if (route().startsWith('/dashboard')) scheduleRuntimeTick(0);
+    loadDashboardAds(true, authSession).then((ads) => {
+      if (route().startsWith('/dashboard')) {
+        applyLoadedDashboardAds(ads);
+        scheduleRuntimeTick(0);
+      }
+    }).catch(() => {});
   }
 
   window.addEventListener('ehemehe:auth-ready', prefetchDashboardAds);

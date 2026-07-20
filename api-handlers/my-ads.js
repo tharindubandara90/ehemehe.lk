@@ -75,84 +75,82 @@ function compactOwnedRows(rows, userId) {
     }));
 }
 
+async function queryOwnedRows(url, key, userId, selects, filters, stopWhenUserIdMissing = false) {
+  let lastError = null;
+  for (const select of selects) {
+    const { response, data } = await requestAds(url, key, select, filters);
+    if (response.ok) {
+      return { ok: true, rows: compactOwnedRows(data, userId), lastError: null, userIdMissing: false };
+    }
+
+    const message = data.message || data.details || data.hint || 'Could not read your ads.';
+    lastError = new Error(message);
+    if (stopWhenUserIdMissing && missingUserIdColumn(data, message)) {
+      return { ok: false, rows: [], lastError, userIdMissing: true };
+    }
+    if (!missingColumnOrTable(data, message)) throw lastError;
+  }
+  return { ok: false, rows: [], lastError, userIdMissing: false };
+}
+
 async function readOwnedAds(url, key, userId) {
-  // Keep the dashboard response compact. Full Base64 image arrays are loaded
-  // lazily through /api/ad-image, so My Ads can paint without downloading
-  // every photo before the list becomes visible.
+  // The dashboard only needs compact metadata. Images stay lazy through
+  // /api/ad-image. Start with stable core columns so older schemas do not spend
+  // many seconds retrying optional updated_at/view_count/city/district columns.
   const directSelects = [
-    'id,user_id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
-    'id,user_id,title,description,price,status,condition,city,district,created_at,updated_at,view_count,views,custom_fields',
     'id,user_id,title,description,price,status,condition,created_at,custom_fields',
-    'id,user_id,title,description,price,status,created_at,custom_fields',
     'id,user_id,title,price,status,created_at,custom_fields'
   ];
-
-  let lastError = null;
-  let directQuerySupported = true;
-
-  for (const select of directSelects) {
-    const { response, data } = await requestAds(url, key, select, { user_id: `eq.${userId}` });
-    if (response.ok) {
-      const rows = compactOwnedRows(data, userId);
-      if (rows.length) return rows;
-      break;
-    }
-
-    const message = data.message || data.details || data.hint || 'Could not read your ads.';
-    lastError = new Error(message);
-    if (missingUserIdColumn(data, message)) {
-      directQuerySupported = false;
-      break;
-    }
-    if (!missingColumnOrTable(data, message)) throw lastError;
-  }
-
-  // Older deployments saved ownership only in custom_fields.owner_user_id
-  // after a missing user_id column forced publish-ad's compatibility insert.
-  // Query that JSON owner directly instead of returning an empty dashboard.
   const ownerSelects = [
-    'id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
-    'id,title,description,price,status,condition,city,district,created_at,updated_at,view_count,views,custom_fields',
     'id,title,description,price,status,condition,created_at,custom_fields',
-    'id,title,description,price,status,created_at,custom_fields',
     'id,title,price,status,created_at,custom_fields'
   ];
 
-  for (const select of ownerSelects) {
-    const { response, data } = await requestAds(url, key, select, {
-      'custom_fields->>owner_user_id': `eq.${userId}`
-    });
-    if (response.ok) return compactOwnedRows(data, userId);
+  // Every ad published by the current application records owner_user_id in
+  // custom_fields, including databases that also have a user_id column. Query
+  // that stable owner field first so the live legacy schema finishes in one
+  // compact request instead of waiting for a known-missing user_id query.
+  const owner = await queryOwnedRows(
+    url,
+    key,
+    userId,
+    ownerSelects,
+    { 'custom_fields->>owner_user_id': `eq.${userId}` }
+  );
+  if (owner.ok && owner.rows.length) return owner.rows;
 
-    const message = data.message || data.details || data.hint || 'Could not read your ads.';
-    lastError = new Error(message);
-    if (!missingColumnOrTable(data, message)) throw lastError;
-  }
+  // Older rows may only have the relational user_id ownership field. Use it as
+  // a compatibility fallback when the JSON owner query is empty or unsupported.
+  const direct = await queryOwnedRows(
+    url,
+    key,
+    userId,
+    directSelects,
+    { user_id: `eq.${userId}` },
+    true
+  );
+  if (direct.ok) return direct.rows;
+  if (owner.ok) return owner.rows;
 
-  // Final compact compatibility scan. It is reached only when an old schema
-  // cannot filter either user_id or the JSON owner through PostgREST.
-  const compatibilitySelects = [
-    'id,user_id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
-    'id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
-    'id,title,price,status,created_at,custom_fields'
-  ];
-  for (const select of compatibilitySelects) {
-    const params = new URLSearchParams({ select, order: 'created_at.desc', limit: '500' });
-    const response = await fetch(`${url}/rest/v1/ads?${params.toString()}`, {
-      headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
-    });
-    const data = await response.json().catch(() => []);
-    if (response.ok) return compactOwnedRows(data, userId);
+  // Final compatibility scan is intentionally one compact request, not a long
+  // chain of full-row retries. The result is still filtered again in-process.
+  const compatibilitySelect = direct.userIdMissing
+    ? 'id,title,price,status,created_at,custom_fields'
+    : 'id,user_id,title,price,status,created_at,custom_fields';
+  const params = new URLSearchParams({
+    select: compatibilitySelect,
+    order: 'created_at.desc',
+    limit: '500'
+  });
+  const response = await fetch(`${url}/rest/v1/ads?${params.toString()}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
+  });
+  const data = await response.json().catch(() => []);
+  if (response.ok) return compactOwnedRows(data, userId);
 
-    const message = data.message || data.details || lastError?.message || 'Could not read your ads.';
-    lastError = new Error(message);
-    if (!missingColumnOrTable(data, message)) throw lastError;
-  }
-
-  const fallbackMessage = lastError?.message || 'Could not read your ads.';
-  if (missingColumnOrTable({}, fallbackMessage)) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
-  if (!directQuerySupported && /user_id/i.test(fallbackMessage)) return [];
-  throw new Error(fallbackMessage);
+  const message = data.message || data.details || owner.lastError?.message || direct.lastError?.message || 'Could not read your ads.';
+  if (missingColumnOrTable(data, message)) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
+  throw new Error(message);
 }
 
 
