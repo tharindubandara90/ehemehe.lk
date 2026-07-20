@@ -551,11 +551,32 @@ async function safeInsert(table, payload){
   if(error) throw error;
   return data;
 }
+async function adminSessionToken(){
+  const {data,error}=await supabaseClient.auth.getSession();
+  if(error)throw error;
+  const token=data?.session?.access_token||'';
+  if(!token)throw new Error('Admin login required.');
+  return token;
+}
+async function serverAdAction(action,id,changes={}){
+  const token=await adminSessionToken();
+  const response=await fetch('/api/admin-ad-action',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:`Bearer ${token}`},
+    cache:'no-store',
+    body:JSON.stringify({action,id,changes})
+  });
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok||payload?.ok===false)throw new Error(payload?.message||`Ad update failed (HTTP ${response.status}).`);
+  return payload;
+}
 async function safeUpdate(table, id, payload){
+  if(table==='ads')return serverAdAction('update',id,payload);
   const {error} = await supabaseClient.from(table).update(payload).eq('id', id);
   if(error) throw error;
 }
 async function safeDelete(table, id){
+  if(table==='ads')return serverAdAction('delete',id,{});
   const {error} = await supabaseClient.from(table).delete().eq('id', id);
   if(error) throw error;
 }

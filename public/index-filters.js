@@ -3085,6 +3085,39 @@
     }
   }
 
+  async function currentRouteAccessToken() {
+    let client = window.supabaseClient;
+    if (!client && typeof window.waitForSupabaseClient === 'function') {
+      try { client = await window.waitForSupabaseClient(1800); } catch (_) { client = null; }
+    }
+    if (!client?.auth?.getSession) return '';
+    try {
+      const { data } = await client.auth.getSession();
+      return data?.session?.access_token || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  async function fetchRouteAdApi(cleanId, accessToken = '') {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const headers = { Accept: 'application/json', 'Cache-Control': 'no-cache' };
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+      const response = await fetch(`/api/public-ad?id=${encodeURIComponent(cleanId)}&_=${Date.now()}`, {
+        signal: controller.signal,
+        headers,
+        cache: 'no-store',
+        credentials: 'same-origin'
+      });
+      const payload = await response.json().catch(() => null);
+      return { response, payload };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function loadAdForCurrentRoute() {
     const rawId = currentRouteAdId();
     if (!rawId) return null;
@@ -3097,28 +3130,22 @@
 
     // Home/search payloads intentionally include one thumbnail only. Always
     // refresh the selected listing from the detail API so its complete photo
-    // count and all proxy image URLs are available to the gallery.
+    // count and all proxy image URLs are available to the gallery. Public ads
+    // load without auth first; a signed-in owner/staff member gets one secure
+    // retry so pending My Ads previews do not incorrectly show "Ad not found".
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 8000);
-      let response;
-      try {
-        response = await fetch(`/api/public-ad?id=${encodeURIComponent(cleanId)}&_=${Date.now()}`, {
-          signal: controller.signal,
-          headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
-          cache: 'no-store',
-          credentials: 'same-origin'
-        });
-      } finally {
-        clearTimeout(timer);
+      let result = await fetchRouteAdApi(cleanId, '');
+      if ((!result.response.ok || !result.payload?.ad) && [401, 403, 404].includes(result.response.status)) {
+        const token = await currentRouteAccessToken();
+        if (token) result = await fetchRouteAdApi(cleanId, token);
       }
-      const payload = await response.json().catch(() => null);
-      if (response.ok && payload?.ad) {
-        const normalized = resolveAdCategoryFromLookups(normalizeAd(payload.ad, 'supabase'));
+      if (result.response.ok && result.payload?.ad) {
+        const normalized = resolveAdCategoryFromLookups(normalizeAd(result.payload.ad, 'supabase'));
+        normalized.detailVisibility = result.payload.visibility || 'public';
         cachePublicDetailAd(normalized);
         const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
         if (index >= 0) supabaseAds[index] = normalized;
-        else supabaseAds = [normalized, ...supabaseAds];
+        else if (isClientLiveAd(normalized)) supabaseAds = [normalized, ...supabaseAds];
         return normalized;
       }
     } catch (_) {}
@@ -3140,11 +3167,27 @@
         .limit(1);
       if (error || !Array.isArray(data) || !data[0]) return instant;
       const normalized = resolveAdCategoryFromLookups(normalizeAd(data[0], 'supabase'));
-      if (!isClientLiveAd(normalized)) return instant;
+      const publiclyLive = isClientLiveAd(normalized);
+      let ownerPreview = false;
+      if (!publiclyLive) {
+        try {
+          const { data: userData } = await client.auth.getUser();
+          const userId = String(userData?.user?.id || '');
+          const ownerIds = [
+            data[0]?.user_id, data[0]?.owner_user_id, data[0]?.owner_id, data[0]?.seller_id,
+            data[0]?.profile_id, data[0]?.created_by, normalized.customFields?.owner_user_id
+          ].filter(Boolean).map(String);
+          ownerPreview = !!userId && ownerIds.includes(userId);
+        } catch (_) {}
+      }
+      if (!publiclyLive && !ownerPreview) return instant;
+      normalized.detailVisibility = ownerPreview ? 'owner-preview' : 'public';
       cachePublicDetailAd(normalized);
-      const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
-      if (index >= 0) supabaseAds[index] = normalized;
-      else supabaseAds = [normalized, ...supabaseAds];
+      if (publiclyLive) {
+        const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
+        if (index >= 0) supabaseAds[index] = normalized;
+        else supabaseAds = [normalized, ...supabaseAds];
+      }
       return normalized;
     } catch (_) {
       return instant;
