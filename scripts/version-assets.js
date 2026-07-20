@@ -47,6 +47,7 @@ const assetUrls = [
   '/report-fixes.css',
   '/report-fixes.js',
   '/account-management.js',
+  '/performance-safe.js',
   '/ad-detail.css',
   '/ad-detail.js'
 ];

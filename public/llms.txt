@@ -1,0 +1,14 @@
+# EheMehe.lk
+
+EheMehe.lk is a Sri Lankan classified marketplace for buying, selling, and discovering products, vehicles, property, jobs, and services.
+
+## Main public pages
+- Home: https://www.ehemehe.lk/
+- Browse all ads: https://www.ehemehe.lk/search
+- Categories: https://www.ehemehe.lk/categories
+- Safety guidance: https://www.ehemehe.lk/safety
+- Terms: https://www.ehemehe.lk/terms
+- Privacy: https://www.ehemehe.lk/privacy
+- Contact: https://www.ehemehe.lk/contact
+
+Public listing pages may change frequently. Private dashboard, admin, authentication, and API routes should not be indexed or treated as public content.

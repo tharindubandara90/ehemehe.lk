@@ -31,8 +31,8 @@ assert(normalized.images[4].includes('index=4'), 'Fifth gallery proxy URL missin
 
 const postWatermark = postAdJs.slice(postAdJs.indexOf('async function applyWatermark'), postAdJs.indexOf('async function simpleCompressImage'));
 const runtimeWatermark = postAdRuntimeJs.slice(postAdRuntimeJs.indexOf('async function drawWatermarkOnCanvas'), postAdRuntimeJs.indexOf('async function optimizedImage'));
-assert(postWatermark.includes('globalAlpha=0.13') && postWatermark.includes('(w-logoWidth)/2'), 'Post Ad watermark is not centered and lightly transparent');
-assert(runtimeWatermark.includes('globalAlpha = 0.13') && runtimeWatermark.includes('(width - logoWidth) / 2'), 'Runtime watermark is not centered and lightly transparent');
+assert(postWatermark.includes('globalAlpha=0.24') && postWatermark.includes('(w-logoWidth)/2'), 'Post Ad watermark is not centered and lightly transparent');
+assert(runtimeWatermark.includes('globalAlpha = 0.24') && runtimeWatermark.includes('(width - logoWidth) / 2'), 'Runtime watermark is not centered and lightly transparent');
 assert(!postWatermark.includes('fillStyle') && !postWatermark.includes('arcTo'), 'Post Ad watermark still draws a white badge');
 assert(!runtimeWatermark.includes('fillStyle') && !runtimeWatermark.includes('arcTo'), 'Runtime watermark still draws a white badge');
 assert(postAdJs.includes('ehemehe_watermark_center.png') && postAdRuntimeJs.includes('ehemehe_watermark_center.png'), 'Transparent EheMehe logo asset is not used');

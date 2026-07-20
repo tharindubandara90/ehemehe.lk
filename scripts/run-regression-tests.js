@@ -21,6 +21,7 @@ const tests = [
   ['post_ad_route_cache_regression_test.js', []],
   ['unified_sms_service_test.js', []],
   ['performance_stability_regression_test.js', []],
+  ['performance_safe_nonvisual_regression_test.js', []],
   ['desktop_home_first_paint_regression_test.js', []],
   ['desktop_live_first_paint_regression_test.js', []],
   ['post_auth_return_and_fast_home_regression_test.js', []],

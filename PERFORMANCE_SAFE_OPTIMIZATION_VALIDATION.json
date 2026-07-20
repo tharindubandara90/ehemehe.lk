@@ -1,0 +1,35 @@
+{
+  "scope": "Non-visual performance, SEO, cache, accessibility and safe-header improvements",
+  "visual_design_changed": false,
+  "core_feature_files_unchanged": [
+    "public/js/index-BsKly-Vj.js",
+    "public/index-filters.js",
+    "public/post-ad-runtime.js",
+    "public/admin.js",
+    "public/report-fixes.js",
+    "public/auth-unified.js",
+    "public/ad-detail.js",
+    "public/post-ad.js"
+  ],
+  "applied": [
+    "valid robots.txt",
+    "sitemap.xml",
+    "llms.txt",
+    "accessible viewport zoom",
+    "removed CSS @import chain",
+    "font and API preconnects",
+    "LCP image priority guard",
+    "offscreen image lazy loading guard",
+    "intrinsic image dimensions",
+    "icon button aria labels",
+    "versioned JS/CSS cache headers",
+    "safe security headers",
+    "edited image cache busting",
+    "prefers-reduced-motion support"
+  ],
+  "full_regression_tests_per_run": 51,
+  "completed_full_suite_runs": 5,
+  "completed_full_test_executions": 255,
+  "targeted_performance_safe_runs": 10,
+  "targeted_performance_safe_passed": 10
+}
