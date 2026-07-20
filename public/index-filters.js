@@ -249,6 +249,24 @@
     };
   }
 
+  function detailAdIsComplete(ad) {
+    return !!(ad && (ad.detailComplete === true || ad._detailComplete === true));
+  }
+
+  function setDetailAdCacheEntry(ad) {
+    if (!ad?.id) return null;
+    const id = String(ad.id).replace(/^static-/, '');
+    const existing = detailAdCache.get(id);
+
+    // Home/search/category payloads contain only the card thumbnail. They may
+    // finish after the detail request and must never downgrade a complete
+    // multi-photo gallery back to an incomplete one-image cache entry.
+    if (detailAdIsComplete(existing) && !detailAdIsComplete(ad)) return existing;
+
+    detailAdCache.set(id, ad);
+    return ad;
+  }
+
   function persistHomeSnapshotCache() {
     try {
       const snapshot = {
@@ -271,7 +289,7 @@
       if (!Array.isArray(snapshot?.ads) || !Array.isArray(snapshot?.promotions)) return false;
 
       supabaseAds = snapshot.ads.map((ad) => normalizeAd(ad, 'supabase'));
-      supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
+      supabaseAds.forEach((ad) => setDetailAdCacheEntry(ad));
       adPromotions = snapshot.promotions.slice();
       if (snapshot.financeSettings && typeof snapshot.financeSettings === 'object') {
         financeSettings = { ...financeSettings, ...snapshot.financeSettings };
@@ -386,7 +404,7 @@
   }
 
   function isCompleteDetailAd(ad) {
-    return !!(ad && (ad.detailComplete === true || ad._detailComplete === true));
+    return detailAdIsComplete(ad);
   }
 
   function cachePublicDetailAd(ad, options = {}) {
@@ -394,12 +412,12 @@
     const id = String(ad.id).replace(/^static-/, '');
     const complete = options.complete === true || isCompleteDetailAd(ad);
     const cacheValue = { ...ad, detailComplete: complete, _detailComplete: complete };
-    detailAdCache.set(id, cacheValue);
-    window.__ehmSelectedPublicAd = cacheValue;
+    const canonicalCacheValue = setDetailAdCacheEntry(cacheValue) || cacheValue;
+    window.__ehmSelectedPublicAd = canonicalCacheValue;
 
     try {
       if (!window.sessionStorage) return true;
-      let cachedAd = cacheValue;
+      let cachedAd = canonicalCacheValue;
       let json = JSON.stringify({ savedAt: Date.now(), ad: cachedAd });
       // Avoid exceeding mobile-browser sessionStorage when a legacy listing
       // contains large Base64 photos. A trimmed cache must never be treated as
@@ -431,7 +449,7 @@
 
     const selected = window.__ehmSelectedPublicAd;
     if (selected && String(selected.id).replace(/^static-/, '') === cleanId) {
-      detailAdCache.set(cleanId, selected);
+      setDetailAdCacheEntry(selected);
       return selected;
     }
 
@@ -446,7 +464,7 @@
       }
       const normalized = parsed.ad.source === 'supabase' ? parsed.ad : normalizeAd(parsed.ad, 'supabase');
       if (String(normalized.id).replace(/^static-/, '') !== cleanId) return null;
-      detailAdCache.set(cleanId, normalized);
+      setDetailAdCacheEntry(normalized);
       return normalized;
     } catch (_) {
       return null;
@@ -470,8 +488,29 @@
     document.head?.appendChild?.(style);
   }
 
-  function beginDynamicDetailPending() {
+  function renderedDetailMatchesCurrentRoute() {
+    if (!isAdRoute()) return false;
+    const host = document.getElementById('ehmDynamicAdDetail');
+    if (!host) return false;
+    const renderedId = String(host.dataset?.ehmRenderedAdId || '').replace(/^static-/, '');
+    const routeId = String(currentRouteAdId() || '').replace(/^static-/, '');
+    return Boolean(renderedId && routeId && renderedId === routeId && host.__ehmSignature);
+  }
+
+  function beginDynamicDetailPending(expectedAdId = '') {
     if (!isDatabaseAdRoute()) return false;
+    const currentId = String(currentRouteAdId() || '').replace(/^static-/, '');
+    const expectedId = String(expectedAdId || currentId).replace(/^static-/, '');
+
+    // Stabilization timers, pageshow and background data refreshes call sync()
+    // several times. Once the current ad is already rendered, never cover it
+    // again with the loading shell. The shell is only for a genuinely new
+    // route/ad that has not rendered yet.
+    if ((!expectedId || expectedId === currentId) && renderedDetailMatchesCurrentRoute()) {
+      finishDynamicDetailPending();
+      return false;
+    }
+
     const route = `${window.location.pathname}${window.location.search || ''}`;
     detailPendingRoute = route;
     installAdDetailPendingStyles();
@@ -854,14 +893,14 @@
           } catch (_) {}
         }
 
-        supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
+        supabaseAds.forEach((ad) => setDetailAdCacheEntry(ad));
         adsLoaded = true;
         persistHomeSnapshotCache();
         return supabaseAds;
       } catch (apiError) {
         try {
           supabaseAds = await loadAdsFromBrowserClient();
-          supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
+          supabaseAds.forEach((ad) => setDetailAdCacheEntry(ad));
           adsLoaded = true;
           persistHomeSnapshotCache();
         } catch (_) {
@@ -3381,6 +3420,7 @@
     }
 
     host.__ehmSignature = signature;
+    host.dataset.ehmRenderedAdId = String(ad.id || currentRouteAdId() || '').replace(/^static-/, '');
     const html = dynamicDetailHtml(ad);
     if (host.__ehmHtml !== html) {
       host.__ehmHtml = html;
@@ -3493,16 +3533,17 @@
       if (isAdRoute()) {
         openAdPageAtTop();
         removeManagedHome();
-        beginDynamicDetailPending();
 
-        // The old flow waited for the complete ads list and finance/settings
-        // queries before looking up the selected ad. Fetch the route ad first,
-        // and use the click/session cache immediately when available.
+        // Always try the authoritative complete cache before creating any
+        // loading UI. This matters when React temporarily remounts the route:
+        // the already-visible ad can be restored in the same task without a
+        // loading-card flash.
         const instantAd = readPublicDetailAd(currentRouteAdId());
-        // List/search cards cache only one thumbnail. Do not expose that
-        // incomplete cache as a temporary 1/1 gallery. Keep the loading shell
-        // visible until the detail API returns the authoritative image count.
-        if (isCompleteDetailAd(instantAd)) renderDynamicAdDetail(instantAd);
+        if (isCompleteDetailAd(instantAd)) {
+          renderDynamicAdDetail(instantAd);
+        } else {
+          beginDynamicDetailPending();
+        }
 
         const routeAdPromise = loadAdForCurrentRoute();
         const routeAd = await routeAdPromise;
@@ -3705,7 +3746,7 @@
       const cleanId = decodeURIComponent(String(rawId || '')).replace(/^static-/, '');
       const selected = allAds().find((ad) => String(ad.id).replace(/^static-/, '') === cleanId);
       if (selected?.source === 'supabase') cachePublicDetailAd(selected, { complete: false });
-      if (cleanId && !/^\d+$/.test(cleanId)) beginDynamicDetailPending();
+      if (cleanId && !/^\d+$/.test(cleanId)) beginDynamicDetailPending(cleanId);
     }, true);
 
     document.addEventListener('submit', (event) => {
