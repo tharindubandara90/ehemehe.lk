@@ -11,7 +11,10 @@ module.exports = async function handler(req, res) {
     }
     const rows = await queryAds({ id, approvedOnly: true });
     const row = rows[0];
-    if (!row || String(row.status || '').toLowerCase() === 'rejected') {
+    if (!row) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.setHeader('CDN-Cache-Control', 'no-store');
+      res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
       return json(res, 404, { ok: false, message: 'Ad not found.' });
     }
     const custom = parseJson(row.custom_fields, {});
@@ -21,8 +24,10 @@ module.exports = async function handler(req, res) {
       catch (_) { imageCount = row.image_url ? 1 : 0; }
     }
     row._image_count = Math.max(0, Math.min(10, Math.round(imageCount || 0)));
-    res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=30, stale-while-revalidate=120');
-    return json(res, 200, { ok: true, ad: normalizeAd(row, true) });
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    res.setHeader('CDN-Cache-Control', 'no-store');
+    res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
+    return json(res, 200, { ok: true, generatedAt: new Date().toISOString(), ad: normalizeAd(row, true) });
   } catch (error) {
     return json(res, 502, { ok: false, message: error.message || 'Could not load the ad.' });
   }

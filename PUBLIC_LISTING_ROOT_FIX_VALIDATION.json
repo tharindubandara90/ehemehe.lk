@@ -1,0 +1,23 @@
+{
+  "fix": "Public listings, All Ads, category pages, latest ads and direct UUID ad routes",
+  "root_causes_fixed": [
+    "The React /search All Ads page used the empty bundled Ht array instead of live ads.",
+    "Server public queries required status=approved with exact lowercase casing.",
+    "Server public queries required a created_at cutoff in PostgREST, causing total failure on schema variations.",
+    "Direct UUID ad fallback repeated the brittle exact-status query.",
+    "A successful but empty public API response did not try the browser Supabase fallback.",
+    "UUID category IDs were not consistently resolved to parent/subcategory slugs in browser fallback data.",
+    "Listings were deduplicated by title/location/price instead of database ID.",
+    "Public detail endpoint could serve stale CDN responses."
+  ],
+  "tests": {
+    "full_regression_tests_per_run": 46,
+    "full_suite_runs": 10,
+    "full_test_executions": 460,
+    "targeted_root_scenario_runs": 100,
+    "targeted_root_scenario_passes": 100,
+    "javascript_syntax": "passed",
+    "http_route_and_cache": "passed",
+    "final_package_retest": "passed"
+  }
+}

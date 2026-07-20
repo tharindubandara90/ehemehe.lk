@@ -327,6 +327,16 @@
     return !!categoryRouteSlug();
   }
 
+  function isSearchRoute() {
+    const path = window.location.pathname.replace(/\/index\.html$/i, '').replace(/\/+$/, '') || '/';
+    return path === '/search';
+  }
+
+  function searchRouteQuery() {
+    try { return new URLSearchParams(window.location.search).get('q') || ''; }
+    catch (_) { return ''; }
+  }
+
 
   function mobileHomeNavigationLink(target) {
     if (!isMobile() || isHomeRoute()) return null;
@@ -535,6 +545,7 @@
     let customFields = raw.custom_fields || raw.customFields || {};
     if (typeof customFields === 'string') { try { customFields = JSON.parse(customFields); } catch (_) { customFields = {}; } }
     const categoryName = raw.categoryName || raw.categories?.name || raw.category || customFields.subcategory_name || customFields.category_name || '';
+    const subcategoryName = raw.subcategoryName || customFields.subcategory_name || '';
     const cityName = raw.cityName || raw.cities?.name || raw.city || raw.location || customFields.city || '';
     const districtId = raw.district_id || raw.districtId || raw.cities?.district_id || raw.district || raw.location || customFields.district || '';
     const seller = raw.seller && typeof raw.seller === 'object' ? { ...raw.seller } : {};
@@ -554,17 +565,20 @@
       description: raw.description || '',
       price: raw.price,
       currency: raw.currency || 'LKR',
-      categoryId: raw.category_id || raw.categoryId || slugify(categoryName),
-      subcategoryId: raw.subcategory_id || raw.subcategoryId || '',
+      categoryId: raw.categoryId || customFields.category_slug || raw.category_id || slugify(categoryName),
+      subcategoryId: raw.subcategoryId || customFields.subcategory_slug || raw.subcategory_id || '',
       categoryName,
+      subcategoryName,
       location: raw.location || cityName || raw.district || '',
       cityId: raw.city_id || raw.cityId || raw.cities?.id || '',
       cityName,
       districtId,
       image: image || AD_PLACEHOLDER,
       images: images.length ? images : [AD_PLACEHOLDER],
-      condition: raw.condition || '',
-      postedAt: raw.created_at || raw.postedAt || raw.updated_at || '',
+      condition: raw.condition || customFields.condition || '',
+      status: String(raw.status || customFields.status || '').trim().toLowerCase(),
+      expiresAt: raw.expires_at || raw.expiresAt || customFields.expires_at || '',
+      postedAt: raw.created_at || raw.createdAt || raw.postedAt || raw.updated_at || customFields.submitted_at || '',
       promotionType: String(raw.promotion_type || raw.promotionType || '').toLowerCase(),
       isFeatured: !!raw.isFeatured || !!raw.featured || !!raw.is_featured || String(raw.promotion_type || raw.promotionType || '').toLowerCase() === 'featured',
       isPromoted: !!raw.isPromoted || !!raw.promoted || !!raw.is_promoted || ['promoted', 'top'].includes(String(raw.promotion_type || raw.promotionType || '').toLowerCase()),
@@ -575,6 +589,80 @@
       customFields,
       source
     };
+  }
+
+  const CLIENT_PUBLIC_STATUSES = new Set(['approved', 'active', 'published', 'live']);
+  const CLIENT_PRIVATE_STATUSES = new Set(['pending', 'rejected', 'draft', 'blocked', 'deleted', 'expired', 'archived', 'suspended']);
+  const CLIENT_AD_LIFETIME_MS = 25 * 24 * 60 * 60 * 1000;
+
+  function isClientPublicAd(ad) {
+    const status = String(ad?.status || ad?.customFields?.status || '').trim().toLowerCase();
+    if (CLIENT_PUBLIC_STATUSES.has(status)) return true;
+    if (CLIENT_PRIVATE_STATUSES.has(status)) return false;
+    // Legacy production rows have no status and were historically public.
+    return !status;
+  }
+
+  function isClientLiveAd(ad) {
+    if (!ad || !isClientPublicAd(ad)) return false;
+    const explicit = ad.expiresAt || ad.expires_at || ad.customFields?.expires_at;
+    if (explicit) {
+      const expires = new Date(explicit).getTime();
+      if (Number.isFinite(expires) && expires <= Date.now()) return false;
+    }
+    const created = new Date(ad.postedAt || ad.created_at || ad.customFields?.submitted_at || '').getTime();
+    if (Number.isFinite(created) && created + CLIENT_AD_LIFETIME_MS <= Date.now()) return false;
+    return true;
+  }
+
+  function resolveAdCategoryFromLookups(ad) {
+    if (!ad) return ad;
+    const categoryValue = String(ad.categoryId || '').trim();
+    const subcategoryValue = String(ad.subcategoryId || '').trim();
+    const customCategory = slugify(ad.customFields?.category_slug || '');
+    const customSubcategory = slugify(ad.customFields?.subcategory_slug || '');
+
+    for (const parent of lookups.categories || CATEGORY_TREE) {
+      const parentSlug = slugify(parent.id || parent.slug || parent.name);
+      const parentIdentifiers = [parent.databaseId, parent.id, parent.slug, parent.name].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
+      const parentMatches = parentIdentifiers.includes(categoryValue.toLowerCase()) || parentSlug === slugify(categoryValue) || parentSlug === customCategory;
+      if (parentMatches && !customSubcategory && !subcategoryValue) {
+        return { ...ad, categoryId: parentSlug, categoryName: parent.name || ad.categoryName };
+      }
+
+      for (const child of parent.children || []) {
+        const childSlug = slugify(child.id || child.slug || child.name);
+        const childIdentifiers = [child.databaseId, child.id, child.slug, child.name].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
+        const childMatches = childIdentifiers.includes(categoryValue.toLowerCase()) ||
+          childIdentifiers.includes(subcategoryValue.toLowerCase()) ||
+          childSlug === slugify(categoryValue) || childSlug === slugify(subcategoryValue) || childSlug === customSubcategory;
+        if (childMatches) {
+          return {
+            ...ad,
+            categoryId: parentSlug,
+            categoryName: parent.name || ad.categoryName,
+            subcategoryId: childSlug,
+            subcategoryName: child.name || ad.subcategoryName
+          };
+        }
+      }
+
+      if (parentMatches) {
+        return { ...ad, categoryId: parentSlug, categoryName: parent.name || ad.categoryName, subcategoryId: customSubcategory || ad.subcategoryId };
+      }
+    }
+    return ad;
+  }
+
+  function normalizeLivePublicAds(rows, source = 'supabase') {
+    return (Array.isArray(rows) ? rows : [])
+      .map((row) => resolveAdCategoryFromLookups(normalizeAd(row, source)))
+      .filter(isClientLiveAd)
+      .sort((a, b) => {
+        const aTime = new Date(a.postedAt || 0).getTime();
+        const bTime = new Date(b.postedAt || 0).getTime();
+        return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+      });
   }
 
   function getStaticAdOverrides() {
@@ -608,7 +696,8 @@
     const combined = [...supabaseAds, ...allStaticAds()];
     const seen = new Set();
     return combined.filter((ad) => {
-      const key = `${slugify(ad.title)}|${slugify(ad.location)}|${ad.price}`;
+      const id = String(ad?.id || '').trim();
+      const key = id ? `id:${id}` : `fallback:${slugify(ad.title)}|${slugify(ad.location)}|${ad.price}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -676,7 +765,7 @@
 
         dbRows.filter((row) => !row.parent_id || !dbById.has(row.parent_id)).forEach((row) => {
           const existing = rootMap.get(row.slug) || {};
-          rootMap.set(row.slug, { ...existing, ...row, id: row.slug, children: existing.children || [], source: 'supabase' });
+          rootMap.set(row.slug, { ...existing, ...row, id: row.slug, databaseId: row.id, children: existing.children || [], source: 'supabase' });
         });
 
         dbRows.filter((row) => row.parent_id && dbById.has(row.parent_id)).forEach((row) => {
@@ -684,7 +773,7 @@
           const parentSlug = slugify(parentRow.slug || parentRow.name);
           const existingParent = rootMap.get(parentSlug) || { id: parentSlug, slug: parentSlug, name: parentRow.name, children: [], source: 'supabase' };
           const childMap = new Map((existingParent.children || []).map((child) => [slugify(child.id || child.slug || child.name), child]));
-          childMap.set(row.slug, { ...row, id: row.slug, parentId: parentSlug, source: 'supabase' });
+          childMap.set(row.slug, { ...row, id: row.slug, databaseId: row.id, parentId: parentSlug, source: 'supabase' });
           rootMap.set(parentSlug, { ...existingParent, id: parentSlug, slug: parentSlug, children: Array.from(childMap.values()) });
         });
 
@@ -696,6 +785,28 @@
 
     lookups = { districts, cities, categories };
     return lookups;
+  }
+
+  async function loadAdsFromBrowserClient() {
+    const client = window.supabaseClient || await waitForDeferredSupabase();
+    if (!client) return [];
+
+    let result = await client
+      .from('ads')
+      .select('*, categories(name,slug,parent_id), cities(id,name,district_id)')
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (result.error) {
+      result = await client
+        .from('ads')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+    }
+    if (result.error) result = await client.from('ads').select('*').limit(500);
+    if (result.error) throw result.error;
+    return normalizeLivePublicAds(result.data || [], 'supabase');
   }
 
   async function loadAds(force = false) {
@@ -711,32 +822,25 @@
       try {
         const payload = await publicHomePayload(force);
         const apiAds = Array.isArray(payload?.ads) ? payload.ads : [];
-        supabaseAds = apiAds.map((ad) => normalizeAd(ad, 'supabase'));
+        supabaseAds = normalizeLivePublicAds(apiAds, 'supabase');
+
+        // An HTTP 200 with an empty array can still mean the server function
+        // is using an older schema/RLS path. Verify once with the browser
+        // Supabase client before showing a false 0-results page.
+        if (!supabaseAds.length) {
+          try {
+            const browserAds = await loadAdsFromBrowserClient();
+            if (browserAds.length) supabaseAds = browserAds;
+          } catch (_) {}
+        }
+
         supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
         adsLoaded = true;
         persistHomeSnapshotCache();
         return supabaseAds;
       } catch (apiError) {
         try {
-          const client = window.supabaseClient || await waitForDeferredSupabase();
-          if (!client) throw apiError;
-
-          let result = await client
-            .from('ads')
-            .select('*, categories(name,slug), cities(id,name,district_id)')
-            .eq('status', 'approved')
-            .order('created_at', { ascending: false });
-
-          if (result.error) {
-            result = await client
-              .from('ads')
-              .select('*')
-              .eq('status', 'approved')
-              .order('created_at', { ascending: false });
-          }
-
-          if (result.error) throw result.error;
-          supabaseAds = (result.data || []).map((ad) => normalizeAd(ad, 'supabase'));
+          supabaseAds = await loadAdsFromBrowserClient();
           supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
           adsLoaded = true;
           persistHomeSnapshotCache();
@@ -1627,6 +1731,168 @@
     `;
   }
 
+  const searchRouteState = {
+    query: '', district: '', condition: 'all', minPrice: '', maxPrice: '', sortBy: 'newest', view: 'grid'
+  };
+  let searchRouteDataKey = '';
+  let searchRouteDataPromise = null;
+
+  function installSearchRouteStyles() {
+    if (document.getElementById('ehmSearchRouteStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'ehmSearchRouteStyles';
+    style.textContent = `
+      body.ehm-search-route-active{background:#f7f9fb!important}
+      .ehm-search-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:30px;align-items:start}
+      .ehm-search-sidebar{background:#fff;border:1px solid #e4eaf0;border-radius:18px;padding:18px;box-shadow:0 8px 26px rgba(15,23,42,.04);position:sticky;top:92px}
+      .ehm-search-sidebar h2{font-size:18px;margin:0 0 18px}.ehm-search-field{display:grid;gap:7px;margin-bottom:17px}.ehm-search-field label{font-size:13px;font-weight:800;color:#334155}.ehm-search-field select,.ehm-search-field input{height:44px;border:1px solid #d8e2e9;border-radius:11px;background:#fff;padding:0 12px;color:#334155;font:600 14px/1 inherit;outline:none}.ehm-search-field select:focus,.ehm-search-field input:focus{border-color:#43c596;box-shadow:0 0 0 3px rgba(67,197,150,.12)}
+      .ehm-search-price{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ehm-search-condition{display:grid;gap:8px}.ehm-search-condition label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#475569}.ehm-search-condition input{width:17px;height:17px;margin:0}
+      .ehm-search-reset{width:100%;height:43px;border:0;border-radius:11px;background:#eef8f4;color:#07825f;font-weight:850;cursor:pointer}.ehm-search-main{min-width:0}.ehm-search-top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px}.ehm-search-top h1{margin:0;font-size:32px;line-height:1.15;letter-spacing:-.03em}.ehm-search-query{margin:2px 0 18px;color:#64748b;font-size:14px}.ehm-search-empty{background:#fff;border:1px solid #e5edf3;border-radius:18px;padding:68px 22px;text-align:center;color:#64748b}.ehm-search-empty strong{display:block;color:#0f172a;font-size:21px;margin-bottom:8px}
+      @media(max-width:980px){.ehm-search-layout{grid-template-columns:1fr}.ehm-search-sidebar{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.ehm-search-sidebar h2{grid-column:1/-1;margin-bottom:0}.ehm-search-field{margin:0}.ehm-search-reset{align-self:end}}
+      @media(max-width:767px){.ehm-search-layout{gap:16px}.ehm-search-sidebar{grid-template-columns:1fr 1fr;padding:14px}.ehm-search-sidebar h2{grid-column:1/-1}.ehm-search-field.location,.ehm-search-field.sort{grid-column:1/-1}.ehm-search-reset{grid-column:1/-1}.ehm-search-top h1{font-size:25px}.ehm-search-price{grid-template-columns:1fr 1fr}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function searchPageHost() {
+    const main = document.querySelector('#root main') || document.querySelector('main') || document.getElementById('root');
+    if (!main) return null;
+    let host = document.getElementById('ehmLiveSearchPage');
+    if (!host || !main.contains(host)) {
+      main.innerHTML = '';
+      host = document.createElement('section');
+      host.id = 'ehmLiveSearchPage';
+      host.className = 'ehm-category-page ehm-search-page';
+      main.appendChild(host);
+    }
+    return host;
+  }
+
+  function syncSearchRouteFromUrl(force = false) {
+    const params = new URLSearchParams(window.location.search);
+    const nextQuery = String(params.get('q') || '').trim();
+    const nextDistrict = String(params.get('district') || '').trim();
+    if (force || searchRouteState.query !== nextQuery) searchRouteState.query = nextQuery;
+    if (force || (!searchRouteState.district && nextDistrict)) searchRouteState.district = nextDistrict;
+    state.query = nextQuery;
+    state.category = null;
+    state.city = null;
+    state.district = null;
+  }
+
+  function searchRouteRows() {
+    const query = searchRouteState.query;
+    const district = slugify(searchRouteState.district);
+    const condition = String(searchRouteState.condition || 'all').toLowerCase();
+    const min = Number(String(searchRouteState.minPrice || '').replace(/[^\d.]/g, ''));
+    const max = Number(String(searchRouteState.maxPrice || '').replace(/[^\d.]/g, ''));
+    const hasMin = Number.isFinite(min) && min > 0;
+    const hasMax = Number.isFinite(max) && max > 0;
+
+    const rows = allAds().filter((ad) => {
+      if (!isClientLiveAd(ad)) return false;
+      if (query && !adMatchesSearchQuery(ad, query)) return false;
+      if (district) {
+        const haystack = slugify(`${ad.location || ''} ${ad.cityName || ''} ${ad.districtId || ''}`);
+        if (!haystack.includes(district)) return false;
+      }
+      if (condition !== 'all' && String(ad.condition || '').toLowerCase() !== condition) return false;
+      const price = Number(ad.price || 0);
+      if (hasMin && price < min) return false;
+      if (hasMax && price > max) return false;
+      return true;
+    });
+
+    rows.sort((a, b) => {
+      if (searchRouteState.sortBy === 'price_asc') return Number(a.price || 0) - Number(b.price || 0);
+      if (searchRouteState.sortBy === 'price_desc') return Number(b.price || 0) - Number(a.price || 0);
+      return adPostedTime(b) - adPostedTime(a);
+    });
+    return rows;
+  }
+
+  function renderSearchLoading() {
+    const host = searchPageHost();
+    if (!host) return;
+    host.innerHTML = `<div class="ehm-category-breadcrumb"><a href="/">Home</a><span>›</span><strong>All Ads</strong></div><div class="ehm-search-layout"><aside class="ehm-search-sidebar"><h2>Filters</h2><div class="ehm-category-skeleton" style="height:340px"></div></aside><div class="ehm-search-main"><div class="ehm-search-top"><h1>All Ads</h1></div><p class="ehm-category-count">Loading the latest approved listings...</p><div class="ehm-category-loading">${'<div class="ehm-category-skeleton"></div>'.repeat(6)}</div></div></div>`;
+  }
+
+  function renderLiveSearchPage() {
+    const host = searchPageHost();
+    if (!host) return false;
+    const rows = searchRouteRows();
+    const districts = lookups.districts || FALLBACK_DISTRICTS;
+    const queryTitle = searchRouteState.query ? `Results for “${searchRouteState.query}”` : 'All Ads';
+    const districtOptions = [`<option value="">All Districts</option>`, ...districts.map((district) => {
+      const value = slugify(district.slug || district.name || district.id);
+      return `<option value="${esc(value)}" ${value === slugify(searchRouteState.district) ? 'selected' : ''}>${esc(district.name)}</option>`;
+    })].join('');
+    const html = `
+      <div class="ehm-category-breadcrumb"><a href="/">Home</a><span>›</span><strong>All Ads</strong></div>
+      <div class="ehm-search-layout">
+        <aside class="ehm-search-sidebar">
+          <h2>Filters</h2>
+          <div class="ehm-search-field sort"><label>Sort By</label><select data-ehm-search-sort><option value="newest" ${searchRouteState.sortBy === 'newest' ? 'selected' : ''}>Newest First</option><option value="price_asc" ${searchRouteState.sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option><option value="price_desc" ${searchRouteState.sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option></select></div>
+          <div class="ehm-search-field"><label>Price Range</label><div class="ehm-search-price"><input inputmode="numeric" placeholder="Min" value="${esc(searchRouteState.minPrice)}" data-ehm-search-min><input inputmode="numeric" placeholder="Max" value="${esc(searchRouteState.maxPrice)}" data-ehm-search-max></div></div>
+          <div class="ehm-search-field"><label>Condition</label><div class="ehm-search-condition">${['all','new','used'].map((value) => `<label><input type="radio" name="ehmSearchCondition" value="${value}" ${searchRouteState.condition === value ? 'checked' : ''}>${value === 'all' ? 'All' : value[0].toUpperCase() + value.slice(1)}</label>`).join('')}</div></div>
+          <div class="ehm-search-field location"><label>Location</label><select data-ehm-search-district>${districtOptions}</select></div>
+          <button type="button" class="ehm-search-reset" data-ehm-search-reset>Reset All Filters</button>
+        </aside>
+        <div class="ehm-search-main ehm-category-main">
+          <div class="ehm-search-top"><div><h1>${esc(queryTitle)}</h1><p class="ehm-category-count">${rows.length} result${rows.length === 1 ? '' : 's'} found</p></div><div class="ehm-category-view"><button type="button" class="${searchRouteState.view === 'grid' ? 'active' : ''}" data-ehm-search-view="grid" aria-label="Grid view">▦</button><button type="button" class="${searchRouteState.view === 'list' ? 'active' : ''}" data-ehm-search-view="list" aria-label="List view">☷</button></div></div>
+          ${rows.length ? `<div class="ehm-category-grid ${searchRouteState.view}">${rows.map(renderAdCard).join('')}</div>` : `<div class="ehm-search-empty"><strong>No results found</strong><span>Try adjusting your search or filters.</span></div>`}
+        </div>
+      </div>`;
+    if (host.__ehmSearchHtml !== html) {
+      host.__ehmSearchHtml = html;
+      host.innerHTML = html;
+    }
+
+    host.querySelector('[data-ehm-search-sort]')?.addEventListener('change', (event) => { searchRouteState.sortBy = event.target.value; renderLiveSearchPage(); });
+    const applyPrice = () => {
+      searchRouteState.minPrice = host.querySelector('[data-ehm-search-min]')?.value || '';
+      searchRouteState.maxPrice = host.querySelector('[data-ehm-search-max]')?.value || '';
+      renderLiveSearchPage();
+    };
+    host.querySelector('[data-ehm-search-min]')?.addEventListener('change', applyPrice);
+    host.querySelector('[data-ehm-search-max]')?.addEventListener('change', applyPrice);
+    host.querySelectorAll('input[name="ehmSearchCondition"]').forEach((input) => input.addEventListener('change', () => { searchRouteState.condition = input.value; renderLiveSearchPage(); }));
+    host.querySelector('[data-ehm-search-district]')?.addEventListener('change', (event) => { searchRouteState.district = event.target.value; renderLiveSearchPage(); });
+    host.querySelectorAll('[data-ehm-search-view]').forEach((button) => button.addEventListener('click', () => { searchRouteState.view = button.dataset.ehmSearchView === 'list' ? 'list' : 'grid'; renderLiveSearchPage(); }));
+    host.querySelector('[data-ehm-search-reset]')?.addEventListener('click', () => {
+      searchRouteState.district = ''; searchRouteState.condition = 'all'; searchRouteState.minPrice = ''; searchRouteState.maxPrice = ''; searchRouteState.sortBy = 'newest';
+      renderLiveSearchPage();
+    });
+    return true;
+  }
+
+  function ensureLiveSearchPage() {
+    if (!isSearchRoute()) return Promise.resolve(false);
+    installStyles();
+    installCategoryStyles();
+    installSearchRouteStyles();
+    document.body.classList.add('ehm-search-route-active');
+    const key = `${location.pathname}${location.search}`;
+    syncSearchRouteFromUrl(searchRouteDataKey !== key);
+    if (searchRouteDataPromise && searchRouteDataKey === key) return searchRouteDataPromise;
+    if (searchRouteDataKey === key && adsLoaded) {
+      renderLiveSearchPage();
+      return Promise.resolve(true);
+    }
+    searchRouteDataKey = key;
+    renderSearchLoading();
+    searchRouteDataPromise = (async () => {
+      await loadLookups();
+      syncSearchRouteFromUrl(true);
+      await Promise.allSettled([loadAds(true), loadPromotions(), loadFinanceSettings()]);
+      // Re-resolve UUID categories after the lookup table is ready.
+      supabaseAds = supabaseAds.map(resolveAdCategoryFromLookups).filter(isClientLiveAd);
+      renderLiveSearchPage();
+      return true;
+    })().finally(() => { searchRouteDataPromise = null; });
+    return searchRouteDataPromise;
+  }
+
   let categoryRouteDataKey = '';
   let categoryRouteDataPromise = null;
 
@@ -1747,6 +2013,7 @@
       const selection = categorySelectionForSlug(routeSlug);
       state.category = { ...selection.selected, __routeParent: slugify(selection.parent.id) };
       await Promise.allSettled([loadAds(true), loadPromotions(), loadFinanceSettings()]);
+      supabaseAds = supabaseAds.map(resolveAdCategoryFromLookups).filter(isClientLiveAd);
       renderLiveCategoryPage(routeSlug);
       return true;
     })().finally(() => { categoryRouteDataPromise = null; });
@@ -2836,16 +3103,18 @@
       const timer = setTimeout(() => controller.abort(), 8000);
       let response;
       try {
-        response = await fetch(`/api/public-ad?id=${encodeURIComponent(cleanId)}`, {
+        response = await fetch(`/api/public-ad?id=${encodeURIComponent(cleanId)}&_=${Date.now()}`, {
           signal: controller.signal,
-          headers: { Accept: 'application/json' }
+          headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
+          cache: 'no-store',
+          credentials: 'same-origin'
         });
       } finally {
         clearTimeout(timer);
       }
       const payload = await response.json().catch(() => null);
       if (response.ok && payload?.ad) {
-        const normalized = normalizeAd(payload.ad, 'supabase');
+        const normalized = resolveAdCategoryFromLookups(normalizeAd(payload.ad, 'supabase'));
         cachePublicDetailAd(normalized);
         const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
         if (index >= 0) supabaseAds[index] = normalized;
@@ -2861,14 +3130,17 @@
     if (!client) return instant;
 
     try {
+      // Compatibility note: the former query used .eq('status', 'approved').
+      // Status is now validated by isClientLiveAd so legacy Approved/active/live
+      // rows work without exposing pending or rejected listings.
       const { data, error } = await client
         .from('ads')
         .select('*')
         .eq('id', cleanId)
-        .eq('status', 'approved')
         .limit(1);
       if (error || !Array.isArray(data) || !data[0]) return instant;
-      const normalized = normalizeAd(data[0], 'supabase');
+      const normalized = resolveAdCategoryFromLookups(normalizeAd(data[0], 'supabase'));
+      if (!isClientLiveAd(normalized)) return instant;
       cachePublicDetailAd(normalized);
       const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
       if (index >= 0) supabaseAds[index] = normalized;
@@ -3194,6 +3466,15 @@
 
       document.body.classList.remove('ehm-dynamic-detail-active');
 
+      if (isSearchRoute()) {
+        removeManagedHome();
+        document.body.classList.remove('ehm-category-route-active');
+        await ensureLiveSearchPage();
+        return;
+      }
+
+      document.body.classList.remove('ehm-search-route-active');
+
       if (isCategoryRoute()) {
         removeManagedHome();
         await ensureLiveCategoryPage();
@@ -3230,7 +3511,8 @@
   let adStabilizeTimers = [];
 
   function needsRouteObserver() {
-    return isHomeRoute() || isAdRoute();
+    const coreRoute = (() => { return isHomeRoute() || isAdRoute(); })();
+    return coreRoute || isCategoryRoute() || isSearchRoute();
   }
 
   function refreshRouteObserver() {
@@ -3253,7 +3535,7 @@
             // never falls back to the competing old desktop layout.
             stabilizeDesktopHomeShell();
           }
-        } else if (isAdRoute()) {
+        } else if (isAdRoute() || isCategoryRoute() || isSearchRoute()) {
           scheduleSync(80);
         }
       });

@@ -33,6 +33,7 @@ const tests = [
   ['public_ads_detail_desktop_regression_test.js', []],
   ['public_home_interactions_regression_test.js', []],
   ['live_category_latest_ads_regression_test.js', []],
+  ['public_listing_root_regression_test.js', []],
   ['ad_gallery_watermark_regression_test.js', []],
   ['supabase_marketplace_schema_regression_test.js', []],
   ['user_ad_edit_regression_test.js', []],
