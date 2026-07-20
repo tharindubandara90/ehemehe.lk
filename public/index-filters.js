@@ -385,21 +385,34 @@
     return `${DETAIL_ROUTE_CACHE_PREFIX}${encodeURIComponent(String(id || '').replace(/^static-/, ''))}`;
   }
 
-  function cachePublicDetailAd(ad) {
+  function isCompleteDetailAd(ad) {
+    return !!(ad && (ad.detailComplete === true || ad._detailComplete === true));
+  }
+
+  function cachePublicDetailAd(ad, options = {}) {
     if (!ad || ad.source !== 'supabase' || !ad.id) return false;
     const id = String(ad.id).replace(/^static-/, '');
-    detailAdCache.set(id, ad);
-    window.__ehmSelectedPublicAd = ad;
+    const complete = options.complete === true || isCompleteDetailAd(ad);
+    const cacheValue = { ...ad, detailComplete: complete, _detailComplete: complete };
+    detailAdCache.set(id, cacheValue);
+    window.__ehmSelectedPublicAd = cacheValue;
 
     try {
       if (!window.sessionStorage) return true;
-      let cachedAd = ad;
+      let cachedAd = cacheValue;
       let json = JSON.stringify({ savedAt: Date.now(), ad: cachedAd });
       // Avoid exceeding mobile-browser sessionStorage when a legacy listing
-      // contains large Base64 photos. The first image is enough for an instant
-      // first render; the normal Supabase request refreshes the complete ad.
+      // contains large Base64 photos. A trimmed cache must never be treated as
+      // a complete gallery, otherwise the page briefly renders 1/1 before the
+      // detail API returns every stored image.
       if (json.length > 700000) {
-        cachedAd = { ...ad, images: (ad.images || []).slice(0, 1), image: ad.image || ad.images?.[0] || '' };
+        cachedAd = {
+          ...cacheValue,
+          images: (cacheValue.images || []).slice(0, 1),
+          image: cacheValue.image || cacheValue.images?.[0] || '',
+          detailComplete: false,
+          _detailComplete: false
+        };
         json = JSON.stringify({ savedAt: Date.now(), ad: cachedAd });
       }
       window.sessionStorage.setItem(detailRouteCacheKey(id), json);
@@ -575,6 +588,13 @@
       districtId,
       image: image || AD_PLACEHOLDER,
       images: images.length ? images : [AD_PLACEHOLDER],
+      imageCount: Math.max(
+        Number(raw.imageCount || raw.image_count || raw._image_count || customFields.image_count || customFields.images_count || 0) || 0,
+        images.length,
+        image ? 1 : 0
+      ),
+      detailComplete: raw.detailComplete === true || raw._detailComplete === true,
+      _detailComplete: raw.detailComplete === true || raw._detailComplete === true,
       condition: raw.condition || customFields.condition || '',
       status: String(raw.status || customFields.status || '').trim().toLowerCase(),
       expiresAt: raw.expires_at || raw.expiresAt || customFields.expires_at || '',
@@ -3142,7 +3162,10 @@
       if (result.response.ok && result.payload?.ad) {
         const normalized = resolveAdCategoryFromLookups(normalizeAd(result.payload.ad, 'supabase'));
         normalized.detailVisibility = result.payload.visibility || 'public';
-        cachePublicDetailAd(normalized);
+        normalized.detailComplete = true;
+        normalized._detailComplete = true;
+        normalized.imageCount = Math.max(Number(normalized.imageCount || 0), Array.isArray(normalized.images) ? normalized.images.length : 0);
+        cachePublicDetailAd(normalized, { complete: true });
         const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
         if (index >= 0) supabaseAds[index] = normalized;
         else if (isClientLiveAd(normalized)) supabaseAds = [normalized, ...supabaseAds];
@@ -3182,7 +3205,10 @@
       }
       if (!publiclyLive && !ownerPreview) return instant;
       normalized.detailVisibility = ownerPreview ? 'owner-preview' : 'public';
-      cachePublicDetailAd(normalized);
+      normalized.detailComplete = true;
+      normalized._detailComplete = true;
+      normalized.imageCount = Math.max(Number(normalized.imageCount || 0), Array.isArray(normalized.images) ? normalized.images.length : 0);
+      cachePublicDetailAd(normalized, { complete: true });
       if (publiclyLive) {
         const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
         if (index >= 0) supabaseAds[index] = normalized;
@@ -3362,7 +3388,7 @@
       bindDynamicDetailGallery(host);
     }
     document.body.classList.add('ehm-dynamic-detail-active');
-    cachePublicDetailAd(ad);
+    cachePublicDetailAd(ad, { complete: isCompleteDetailAd(ad) });
     finishDynamicDetailPending();
     return true;
   }
@@ -3473,7 +3499,10 @@
         // queries before looking up the selected ad. Fetch the route ad first,
         // and use the click/session cache immediately when available.
         const instantAd = readPublicDetailAd(currentRouteAdId());
-        if (instantAd) renderDynamicAdDetail(instantAd);
+        // List/search cards cache only one thumbnail. Do not expose that
+        // incomplete cache as a temporary 1/1 gallery. Keep the loading shell
+        // visible until the detail API returns the authoritative image count.
+        if (isCompleteDetailAd(instantAd)) renderDynamicAdDetail(instantAd);
 
         const routeAdPromise = loadAdForCurrentRoute();
         const routeAd = await routeAdPromise;
@@ -3675,7 +3704,7 @@
       const rawId = link.getAttribute('data-ehm-ad-id') || href.replace(/^\/ad\//, '').split(/[?#]/)[0];
       const cleanId = decodeURIComponent(String(rawId || '')).replace(/^static-/, '');
       const selected = allAds().find((ad) => String(ad.id).replace(/^static-/, '') === cleanId);
-      if (selected?.source === 'supabase') cachePublicDetailAd(selected);
+      if (selected?.source === 'supabase') cachePublicDetailAd(selected, { complete: false });
       if (cleanId && !/^\d+$/.test(cleanId)) beginDynamicDetailPending();
     }, true);
 
