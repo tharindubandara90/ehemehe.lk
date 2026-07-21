@@ -24,7 +24,7 @@ assert(helper.includes('Contact Seller'), 'Seller contact block is missing');
 assert(helper.includes('data-ehm-detail-image'), 'Multi-image detail gallery is missing');
 assert(helper.includes('body.ehm-ad-detail-pending #root main'), 'Database ad route does not hide the temporary React not-found main area');
 assert(helper.includes('beginDynamicDetailPending();'), 'Pre-paint database detail loading guard is not activated');
-assert(helper.includes('cachePublicDetailAd(selected, { complete: false })'), 'Clicked live ad thumbnail cache is not marked incomplete before navigation');
+assert(helper.includes('cachePublicDetailAd(selected)'), 'Clicked live ad is not cached before navigation');
 assert(helper.includes('const routeAdPromise = loadAdForCurrentRoute();'), 'Selected ad is not fetched before background list/settings work');
 assert(helper.includes('Promise.allSettled([loadFinanceSettings(), loadPromotions(), loadAds()])'), 'Non-critical ad detail work is not deferred to the background');
 
@@ -51,8 +51,7 @@ function instrumentSource(source) {
     cachePublicDetailAd,
     readPublicDetailAd,
     beginDynamicDetailPending,
-    finishDynamicDetailPending,
-    isCompleteDetailAd
+    finishDynamicDetailPending
   };
 ` + source.slice(end);
 }

@@ -23,7 +23,7 @@
   }
   viewport.setAttribute(
     'content',
-    'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover'
+    'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover'
   );
 
   function correctDesktopViewportScale() {
@@ -93,12 +93,6 @@
       }
     </style>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://ieymsjeywkapqeniirlm.supabase.co" crossorigin>
-    <link rel="dns-prefetch" href="//ieymsjeywkapqeniirlm.supabase.co">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap">
     <meta name="description" content="ehemehe.lk - Sri Lanka's #1 Modern Marketplace. Buy, sell, and discover amazing deals.">
     <meta name="theme-color" content="#3DC697">
     <title>ehemehe.lk - Sri Lanka's Marketplace</title>
@@ -114,10 +108,9 @@
 (function () {
   var path = location.pathname.replace(/\/index\.html$/i, '/').replace(/\/+$/, '') || '/';
   if (path !== '/') return;
-  window.__EHM_PUBLIC_HOME_PROMISE = fetch('/api/public-home?limit=80&_=' + Date.now(), {
-    headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
-    credentials: 'same-origin',
-    cache: 'no-store'
+  window.__EHM_PUBLIC_HOME_PROMISE = fetch('/api/public-home?limit=80', {
+    headers: { Accept: 'application/json' },
+    credentials: 'same-origin'
   }).then(function (response) {
     if (!response.ok) throw new Error('Public home request failed');
     return response.json();
@@ -126,7 +119,7 @@
 </script>
 <script type="module">
 if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_BLOCK_APP_BOOT) {
-  await import('/js/index-BsKly-Vj.js?v=28d8a545517612a3');
+  await import('/js/index-BsKly-Vj.js?v=aae8fde117873601');
 }
 </script>
     <link rel="stylesheet" crossorigin="" href="css/index-DcB2eYwd.css">
@@ -141,11 +134,11 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_BLOCK_APP_BOOT) {
       }
     }
   </style>
-  <link rel="stylesheet" href="/post-ad-runtime.css?v=0dce3e5bde5dacf3">
+  <link rel="stylesheet" href="/post-ad-runtime.css?v=a06243215d410d7a">
   <link rel="stylesheet" href="/post-ad-form-fixes.css?v=1fd3aae4f0032f69">
-  <link rel="stylesheet" href="/brand-theme.css?v=419d8daec7f26d66">
+  <link rel="stylesheet" href="/brand-theme.css?v=10bb68c83f492557">
 <link rel="stylesheet" href="/auth-unified.css?v=6074283e9d8c1391">
-<link rel="stylesheet" href="/report-fixes.css?v=1c02262a5e8d8a43">
+<link rel="stylesheet" href="/report-fixes.css?v=6388ce3fac2caaa4">
 </head>
   <body>
     <div id="root"></div>
@@ -155,8 +148,7 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_BLOCK_APP_BOOT) {
 
 
   
-  <script src="/performance-safe.js?v=b898d50b18e404b3"></script>
-  <script src="./index-filters.js?v=84c7296c76b829ea"></script>
+  <script src="./index-filters.js?v=dba71b535a9f368d"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/supabase.js?v=828b6b4eb6050614"></script>
   <script src="/auth-session-bridge.js?v=8fb97c7526c033bc"></script>
@@ -164,8 +156,7 @@ if (!window.__EHM_AUTH_ONLY_ROUTE && !window.__EHM_BLOCK_APP_BOOT) {
 
   <script src="./post-ad-category-fields.js?v=725edf8c7526490c"></script>
   <script src="/brand-theme.js?v=c96bb70a24fc9780"></script>
-<script src="/post-ad-runtime.js?v=883d48243ff58e43"></script>
+<script src="/post-ad-runtime.js?v=aa64813e60c11f8e"></script>
 <script src="/auth-unified.js?v=a58a667864183ff3"></script>
-<script src="/report-fixes.js?v=6c159e6662eb6538"></script>
-<script src="/account-management.js?v=bba65616d0716e63"></script>
+<script src="/report-fixes.js?v=866151ee56955b31"></script>
 </body></html>

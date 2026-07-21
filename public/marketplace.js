@@ -42,7 +42,72 @@ const FALLBACK_CITIES = [
   {id:'kalutara-city', name:'Kalutara City', district_id:'kalutara'}
 ];
 
-const FALLBACK_ADS = [];
+const FALLBACK_ADS = [
+  {
+    id:'1', title:'2020 Toyota Prius Hybrid - Low Mileage', price:'8500000', category_id:'cars',
+    city_id:'colombo-city', status:'approved', condition:'Used', promoted:true, featured:true,
+    image_url:'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=900&auto=format&fit=crop',
+    description:'Excellent condition Toyota Prius Hybrid with full service history and low mileage.',
+    phone:'077 123 4567', created_at:new Date(Date.now()-86400000).toISOString(),
+    categories:{name:'Cars'}, cities:{id:'colombo-city', name:'Colombo', district_id:'colombo'}
+  },
+  {
+    id:'2', title:'Modern 3-Bedroom House in Kandy', price:'45000000', category_id:'property',
+    city_id:'kandy-city', status:'approved', condition:'New', featured:true,
+    image_url:'https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=900&auto=format&fit=crop',
+    description:'Luxury modern house with parking, garden and peaceful neighbourhood in Kandy.',
+    phone:'077 234 5678', created_at:new Date().toISOString(),
+    categories:{name:'Property'}, cities:{id:'kandy-city', name:'Kandy', district_id:'kandy'}
+  },
+  {
+    id:'3', title:'iPhone 15 Pro Max 256GB - Space Black', price:'520000', category_id:'mobiles',
+    city_id:'colombo-city', status:'approved', condition:'New', promoted:true, featured:true,
+    image_url:'https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=900&auto=format&fit=crop',
+    description:'Brand new sealed iPhone 15 Pro Max 256GB with Apple warranty.',
+    phone:'077 345 6789', created_at:new Date().toISOString(),
+    categories:{name:'Mobile Phones'}, cities:{id:'colombo-city', name:'Colombo', district_id:'colombo'}
+  },
+  {
+    id:'4', title:'Samsung 65" QLED 4K Smart TV', price:'485000', category_id:'electronics',
+    city_id:'gampaha-city', status:'approved', condition:'New', featured:true,
+    image_url:'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?q=80&w=900&auto=format&fit=crop',
+    description:'Samsung QLED 4K Smart TV with built-in apps, excellent picture quality.',
+    phone:'077 456 7890', created_at:new Date(Date.now()-3*86400000).toISOString(),
+    categories:{name:'Electronics'}, cities:{id:'gampaha-city', name:'Gampaha', district_id:'gampaha'}
+  },
+  {
+    id:'5', title:'Golden Retriever Puppies - 3 Months', price:'85000', category_id:'animals-pets',
+    city_id:'colombo-city', status:'approved', condition:'New', featured:true,
+    image_url:'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=900&auto=format&fit=crop',
+    description:'Healthy Golden Retriever puppies, vaccinated and ready for a loving home.',
+    phone:'077 567 8901', created_at:new Date().toISOString(),
+    categories:{name:'Animals & Pets'}, cities:{id:'colombo-city', name:'Colombo', district_id:'colombo'}
+  },
+  {
+    id:'6', title:'Software Engineer - Remote Position', price:'', category_id:'jobs',
+    city_id:'colombo-city', status:'approved', condition:'', promoted:true, featured:true,
+    image_url:'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=900&auto=format&fit=crop',
+    description:'Remote software engineering job opportunity for experienced developers.',
+    phone:'077 678 9012', created_at:new Date().toISOString(),
+    categories:{name:'Jobs'}, cities:{id:'colombo-city', name:'Colombo', district_id:'colombo'}
+  },
+  {
+    id:'7', title:'A-Level Physics Tuition - Online', price:'', category_id:'education',
+    city_id:'peradeniya', status:'approved', condition:'', featured:true,
+    image_url:'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=900&auto=format&fit=crop',
+    description:'Individual and group classes for A/L Physics with online support.',
+    phone:'077 789 0123', created_at:new Date().toISOString(),
+    categories:{name:'Education'}, cities:{id:'peradeniya', name:'Peradeniya', district_id:'kandy'}
+  },
+  {
+    id:'8', title:'Used Laptop - Core i5, 8GB RAM', price:'95000', category_id:'electronics',
+    city_id:'galle-city', status:'approved', condition:'Used', featured:true,
+    image_url:'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop',
+    description:'Clean used laptop in good working condition. Suitable for office and study.',
+    phone:'077 890 1234', created_at:new Date().toISOString(),
+    categories:{name:'Electronics'}, cities:{id:'galle-city', name:'Galle', district_id:'galle'}
+  }
+];
 
 function money(value){
   if(value === null || value === undefined || value === '') return 'Price on request';

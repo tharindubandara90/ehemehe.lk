@@ -37,36 +37,10 @@ function renderSimpleDynamicFields(){
   box.classList.remove('hidden');
   box.innerHTML='<h3>Category Details</h3><div class="grid">'+fields.map(([id,label])=>`<div class="field"><label>${label}</label><input class="input" data-simple-field="${id}"></div>`).join('')+'</div>';
 }
-let WATERMARK_LOGO_PROMISE=null;
-async function loadWatermarkLogo(){
-  if(WATERMARK_LOGO_PROMISE)return WATERMARK_LOGO_PROMISE;
-  WATERMARK_LOGO_PROMISE=new Promise((resolve)=>{
-    const img=new Image();
-    img.onload=()=>resolve(img);
-    img.onerror=()=>resolve(null);
-    img.src='/assets/ehemehe_watermark_center.png';
-  });
-  return WATERMARK_LOGO_PROMISE;
-}
-async function applyWatermark(ctx,w,h){
-  const logo=await loadWatermarkLogo();
-  if(!logo)return;
-  const logoWidth=Math.max(180,Math.min(Math.round(w*0.52),720));
-  const ratio=logo.naturalWidth&&logo.naturalHeight?logo.naturalHeight/logo.naturalWidth:0.236;
-  const logoHeight=Math.max(48,Math.round(logoWidth*ratio));
-  const x=Math.round((w-logoWidth)/2);
-  const y=Math.round((h-logoHeight)/2);
-  ctx.save();
-  ctx.globalCompositeOperation='source-over';
-  ctx.globalAlpha=0.24;
-  ctx.drawImage(logo,x,y,logoWidth,logoHeight);
-  ctx.restore();
-}
 async function simpleCompressImage(file){
   const bitmap=await createImageBitmap(file);
   const max=1600; let w=bitmap.width,h=bitmap.height; const r=Math.min(1,max/Math.max(w,h)); w=Math.round(w*r); h=Math.round(h*r);
   const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h; const ctx=canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(bitmap,0,0,w,h);
-  await applyWatermark(ctx,w,h);
   return canvas.toDataURL('image/jpeg',0.88);
 }
 async function handleSimpleImages(event){
@@ -361,13 +335,7 @@ async function submitAd(){
   const finance=isVehicleCategory()?calcFinance(el('price').value):null;
   const baseDescription=el('description').value.trim();
   const financeText=finance?`\n\nFinance Estimate:\nDown Payment: ${money(finance.downPayment)}\nMonthly Payment: ${money(finance.monthlyPayment)}\nFinance Company: ${FINANCE_SETTINGS.companyPhone}`:'';
-  const selectedCategoryRow=selectedCategory();
-  const parentCategoryRow=CATEGORIES.find(row=>String(row.id||'')===String(selectedCategoryRow.parent_id||''))||null;
-  const categorySlug=slug(parentCategoryRow?.slug||parentCategoryRow?.name||selectedCategoryRow.slug||selectedCategoryRow.name||'');
-  const categoryName=parentCategoryRow?.name||selectedCategoryRow.name||'';
-  const subcategorySlug=parentCategoryRow?slug(selectedCategoryRow.slug||selectedCategoryRow.name||''):'';
-  const subcategoryName=parentCategoryRow?String(selectedCategoryRow.name||''):'';
-  const customFields={...collectSimpleFields(),category_slug:categorySlug,category_name:categoryName,subcategory_slug:subcategorySlug,subcategory_name:subcategoryName,contact_phones:verifiedPhoneNumbers,verified_contact_phones:verifiedPhoneNumbers,contact_phone_verification_proof:phoneValidation.proof||'',image_count:SIMPLE_IMAGES.length,submitted_at:new Date().toISOString()};
+  const customFields={...collectSimpleFields(),contact_phones:verifiedPhoneNumbers,verified_contact_phones:verifiedPhoneNumbers,contact_phone_verification_proof:phoneValidation.proof||''};
   const payload={user_id:currentUser.id,title:el('title').value.trim(),price:el('price').value||null,category_id:el('category').value||null,city_id:el('city').value||null,phone:verifiedPhone,phone_verified:true,phone_verified_at:new Date().toISOString(),image_url:SIMPLE_IMAGES[0]||'',images:SIMPLE_IMAGES,custom_fields:customFields,description:(baseDescription+financeText).trim(),status:'pending'};
   if(finance){ Object.assign(payload,{finance_enabled:true,finance_downpayment:finance.downPayment,finance_monthly_payment:finance.monthlyPayment,finance_downpayment_percent:finance.downPaymentPercent,finance_annual_rate_percent:finance.annualRatePercent,finance_months:finance.months,finance_company_phone:FINANCE_SETTINGS.companyPhone}); }
   if(!payload.title){msg('Title required');return;}

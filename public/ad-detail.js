@@ -70,54 +70,15 @@
     }).join('')}</div></section>`;
   }
 
-  function renderGalleryMarkup(ad) {
-    const images = Array.isArray(ad.images) && ad.images.length ? ad.images : [];
-    const total = Math.max(1, images.length);
-    if (!images.length) return `<div class="no-image">No photo available</div><span class="image-count" data-gallery-count>1 / 1</span>`;
-    return `${images.length > 1 ? `<button class="gallery-nav gallery-nav-prev" type="button" aria-label="Previous image" data-gallery-prev>‹</button><button class="gallery-nav gallery-nav-next" type="button" aria-label="Next image" data-gallery-next>›</button>` : ''}<img src="${esc(images[0])}" fetchpriority="high" decoding="async" alt="${esc(ad.title)}" data-gallery-main><span class="image-count" data-gallery-count>1 / ${total}</span>${images.length > 1 ? `<div class="gallery-thumbs">${images.map((src, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-gallery-index="${index}" data-gallery-src="${esc(src)}"><img src="${esc(src)}" alt="${esc(ad.title)} image ${index + 1}"></button>`).join('')}</div>` : ''}`;
-  }
-
-  function bindGallery(ad) {
-    const gallery = app.querySelector('.gallery');
-    if (!gallery) return;
-    const images = Array.isArray(ad.images) && ad.images.length ? ad.images.filter(Boolean) : [];
-    if (!images.length) return;
-    const main = gallery.querySelector('[data-gallery-main]');
-    const count = gallery.querySelector('[data-gallery-count]');
-    const thumbs = Array.from(gallery.querySelectorAll('[data-gallery-index]'));
-    let currentIndex = 0;
-    const update = (index) => {
-      currentIndex = (index + images.length) % images.length;
-      if (main) main.src = images[currentIndex] || '';
-      if (count) count.textContent = `${currentIndex + 1} / ${images.length}`;
-      thumbs.forEach((button, buttonIndex) => button.classList.toggle('active', buttonIndex === currentIndex));
-    };
-    gallery.querySelector('[data-gallery-prev]')?.addEventListener('click', () => update(currentIndex - 1));
-    gallery.querySelector('[data-gallery-next]')?.addEventListener('click', () => update(currentIndex + 1));
-    thumbs.forEach((button, buttonIndex) => button.addEventListener('click', () => update(buttonIndex)));
-    let touchStartX = null;
-    gallery.addEventListener('touchstart', (event) => {
-      touchStartX = event.touches?.[0]?.clientX ?? null;
-    }, { passive: true });
-    gallery.addEventListener('touchend', (event) => {
-      if (touchStartX == null) return;
-      const touchEndX = event.changedTouches?.[0]?.clientX ?? touchStartX;
-      const deltaX = touchEndX - touchStartX;
-      touchStartX = null;
-      if (Math.abs(deltaX) < 35) return;
-      update(deltaX < 0 ? currentIndex + 1 : currentIndex - 1);
-    }, { passive: true });
-  }
-
   function render(raw, staticRows = []) {
     const ad = normalize(raw);
     const signature = JSON.stringify([ad.id, ad.title, ad.price, ad.images[0], ad.description]);
     if (signature === currentSignature) return;
     currentSignature = signature;
     document.title = `${ad.title} | ehemehe.lk`;
+    const image = ad.images[0] || '';
     const phoneLinks = ad.contactPhones.map((phone, index) => `<a href="tel:${esc(String(phone).replace(/[^+\d]/g,''))}"><span>${index ? `Contact ${index + 1}` : 'Primary Number'}</span><strong>${esc(phoneText(phone))}</strong></a>`).join('');
-    app.innerHTML = `<nav class="breadcrumb"><a href="/">Home</a><span>›</span><span>${esc(ad.title)}</span></nav><div class="ad-layout"><div class="ad-main"><section class="gallery">${renderGalleryMarkup(ad)}</section><section class="ad-card"><div class="title-row"><h1>${esc(ad.title)}</h1><button class="favorite" type="button" aria-label="Save ad">♡</button></div><div class="price">${money(ad.price)}</div>${finance(ad)}<div class="meta">${ad.condition ? `<span>${esc(ad.condition === 'new' ? 'New' : ad.condition === 'used' ? 'Used' : ad.condition)}</span>` : ''}${ad.location ? `<span>⌖ ${esc(ad.location)}</span>` : ''}${ad.createdAt ? `<span>◷ ${esc(compactDate(ad.createdAt))}</span>` : ''}${ad.viewCount ? `<span>◉ ${esc(ad.viewCount)} views</span>` : ''}</div><div class="description"><h2>Description</h2><p>${esc(ad.description)}</p></div></section>${similarCards(staticRows, ad)}</div><aside class="seller-card"><div class="seller-head"><div class="avatar">${esc(ad.sellerName.charAt(0).toUpperCase())}</div><div><strong>${esc(ad.sellerName)}</strong><small>Seller</small></div></div>${phoneLinks ? `<div class="phones">${phoneLinks}</div><a class="call-now" href="tel:${esc(String(ad.contactPhones[0]).replace(/[^+\d]/g,''))}">Call Now</a>` : ''}${ad.contactEmail ? `<a class="email-seller" href="mailto:${esc(ad.contactEmail)}">Send Message</a>` : ''}<p class="safety">♢ Never pay outside ehemehe.lk</p></aside></div>`;
-    bindGallery(ad);
+    app.innerHTML = `<nav class="breadcrumb"><a href="/">Home</a><span>›</span><span>${esc(ad.title)}</span></nav><div class="ad-layout"><div class="ad-main"><section class="gallery">${image ? `<img src="${esc(image)}" fetchpriority="high" decoding="async" alt="${esc(ad.title)}">` : '<div class="no-image">No photo available</div>'}<span class="image-count">1 / ${Math.max(1, ad.images.length)}</span></section><section class="ad-card"><div class="title-row"><h1>${esc(ad.title)}</h1><button class="favorite" type="button" aria-label="Save ad">♡</button></div><div class="price">${money(ad.price)}</div>${finance(ad)}<div class="meta">${ad.condition ? `<span>${esc(ad.condition === 'new' ? 'New' : ad.condition === 'used' ? 'Used' : ad.condition)}</span>` : ''}${ad.location ? `<span>⌖ ${esc(ad.location)}</span>` : ''}${ad.createdAt ? `<span>◷ ${esc(compactDate(ad.createdAt))}</span>` : ''}${ad.viewCount ? `<span>◉ ${esc(ad.viewCount)} views</span>` : ''}</div><div class="description"><h2>Description</h2><p>${esc(ad.description)}</p></div></section>${similarCards(staticRows, ad)}</div><aside class="seller-card"><div class="seller-head"><div class="avatar">${esc(ad.sellerName.charAt(0).toUpperCase())}</div><div><strong>${esc(ad.sellerName)}</strong><small>Seller</small></div></div>${phoneLinks ? `<div class="phones">${phoneLinks}</div><a class="call-now" href="tel:${esc(String(ad.contactPhones[0]).replace(/[^+\d]/g,''))}">Call Now</a>` : ''}${ad.contactEmail ? `<a class="email-seller" href="mailto:${esc(ad.contactEmail)}">Send Message</a>` : ''}<p class="safety">♢ Never pay outside ehemehe.lk</p></aside></div>`;
     window.scrollTo(0, 0);
   }
 
@@ -141,12 +102,23 @@
 
   async function boot() {
     if (!adId) return renderError();
-    const remote = await fetchJson(`/api/public-ad?id=${encodeURIComponent(adId)}`, 7000)
+    let staticRows = [];
+    const staticPromise = fetchJson('/static-ads.json?v=20260715-final-performance-fix', 2500)
+      .then((rows) => {
+        staticRows = Array.isArray(rows) ? rows : [];
+        const local = staticRows.find((row) => String(row.id) === String(adId));
+        if (local) render(local, staticRows);
+        return local;
+      }).catch(() => null);
+
+    const remotePromise = fetchJson(`/api/public-ad?id=${encodeURIComponent(adId)}`, 7000)
       .then((data) => {
-        if (data?.ad) render(data.ad, []);
+        if (data?.ad) render(data.ad, staticRows);
         return data?.ad || null;
       }).catch(() => null);
-    if (!remote) renderError();
+
+    const [local, remote] = await Promise.all([staticPromise, remotePromise]);
+    if (!local && !remote) renderError();
   }
 
   boot();

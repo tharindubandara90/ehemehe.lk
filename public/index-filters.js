@@ -44,7 +44,7 @@
   }
 
 
-  const STATIC_ADS = [];
+  const STATIC_ADS = [{"id":"1","title":"2020 Toyota Prius Hybrid - Low Mileage","description":"Well-maintained Toyota Prius Hybrid with only 35,000km on the odometer. Full service history available. Air conditioning, power windows, ABS brakes, and hybrid battery in excellent condition. Recently serviced with new tires.","price":8500000,"currency":"LKR","categoryId":"vehicles","subcategoryId":"cars","images":["https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop"],"location":"Colombo","seller":{"id":"s1","name":"Kamal Perera","phone":"+94 77 123 4567","email":"kamal@email.com","memberSince":"2024-01-15","totalAds":12,"verified":true},"condition":"used","postedAt":"2026-06-19","isFeatured":true,"isPromoted":true,"viewCount":342,"contactPhone":"+94 77 123 4567"},{"id":"2","title":"Modern 3-Bedroom House in Kandy","description":"Beautiful modern house in a prime location in Kandy. 3 bedrooms, 2 bathrooms, open-plan kitchen, large garden, and parking for 2 cars. Close to schools, hospitals, and shopping centers.","price":45000000,"currency":"LKR","categoryId":"property","subcategoryId":"houses","images":["https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop"],"location":"Kandy","seller":{"id":"s2","name":"Nadeesha Silva","phone":"+94 71 234 5678","email":"nadeesha@email.com","memberSince":"2024-03-22","totalAds":5,"verified":true},"condition":"new","postedAt":"2026-06-20","isFeatured":true,"isPromoted":false,"viewCount":189,"contactPhone":"+94 71 234 5678"},{"id":"3","title":"iPhone 15 Pro Max 256GB - Space Black","description":"Brand new iPhone 15 Pro Max 256GB in Space Black. Sealed box with full Apple warranty. Includes case and screen protector.","price":520000,"currency":"LKR","categoryId":"mobile-phones","subcategoryId":"phones","images":["https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&h=600&fit=crop"],"location":"Colombo","seller":{"id":"s3","name":"Ravindu Fernando","phone":"+94 76 345 6789","email":"ravindu@email.com","memberSince":"2024-06-10","totalAds":8,"verified":false},"condition":"new","postedAt":"2026-06-21","isFeatured":true,"isPromoted":true,"viewCount":567,"contactPhone":"+94 76 345 6789"},{"id":"4","title":"Samsung 65\" QLED 4K Smart TV","description":"Samsung 65-inch QLED 4K Smart TV with Quantum Dot technology. Stunning picture quality, built-in voice assistant, and all major streaming apps. Wall mount included.","price":485000,"currency":"LKR","categoryId":"electronics","subcategoryId":"tvs","images":["https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600&fit=crop"],"location":"Gampaha","seller":{"id":"s4","name":"Ishara Jayawardena","phone":"+94 70 456 7890","email":"ishara@email.com","memberSince":"2023-11-05","totalAds":22,"verified":true},"condition":"new","postedAt":"2026-06-18","isFeatured":true,"isPromoted":false,"viewCount":231,"contactPhone":"+94 70 456 7890"},{"id":"5","title":"Professional Guitar - Fender Stratocaster","description":"Fender American Professional II Stratocaster in 3-Color Sunburst. Rosewood fretboard, V-Mod II pickups. Comes with original hardshell case and all documentation.","price":650000,"currency":"LKR","categoryId":"sports-hobbies-kids","subcategoryId":"musical-instruments","images":["https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=600&fit=crop"],"location":"Colombo","seller":{"id":"s5","name":"Dilini Ratnayake","phone":"+94 78 567 8901","email":"dilini@email.com","memberSince":"2024-08-18","totalAds":3,"verified":false},"condition":"used","postedAt":"2026-06-17","isFeatured":false,"isPromoted":false,"viewCount":156,"contactPhone":"+94 78 567 8901"},{"id":"6","title":"Honda CB150R - Excellent Condition","description":"Honda CB150R ExMotion in Matte Black. Low mileage, single owner. Regular servicing at Honda center. Comes with full documentation and insurance.","price":1250000,"currency":"LKR","categoryId":"vehicles","subcategoryId":"motorbikes","images":["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop"],"location":"Galle","seller":{"id":"s1","name":"Kamal Perera","phone":"+94 77 123 4567","email":"kamal@email.com","memberSince":"2024-01-15","totalAds":12,"verified":true},"condition":"used","postedAt":"2026-06-16","isFeatured":false,"isPromoted":true,"viewCount":423,"contactPhone":"+94 77 123 4567"},{"id":"7","title":"MacBook Pro M3 14-inch 16GB/512GB","description":"Apple MacBook Pro 14-inch with M3 chip, 16GB RAM, 512GB SSD. Space Gray. Battery cycle count: 45. AppleCare+ until 2027. Perfect for professionals and developers.","price":890000,"currency":"LKR","categoryId":"electronics","subcategoryId":"computers-tablets","images":["https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=600&fit=crop"],"location":"Colombo","seller":{"id":"s3","name":"Ravindu Fernando","phone":"+94 76 345 6789","email":"ravindu@email.com","memberSince":"2024-06-10","totalAds":8,"verified":false},"condition":"used","postedAt":"2026-06-20","isFeatured":true,"isPromoted":false,"viewCount":312,"contactPhone":"+94 76 345 6789"},{"id":"8","title":"Golden Retriever Puppies - 3 Months","description":"Adorable Golden Retriever puppies, 3 months old. First vaccination done. Both parents are KC registered. Puppies are playful and well-socialized.","price":85000,"currency":"LKR","categoryId":"animals-pets","subcategoryId":"dogs","images":["https://images.unsplash.com/photo-1601979031925-424e53b6caaa?w=800&h=600&fit=crop"],"location":"Colombo","seller":{"id":"s5","name":"Dilini Ratnayake","phone":"+94 78 567 8901","email":"dilini@email.com","memberSince":"2024-08-18","totalAds":3,"verified":false},"condition":"new","postedAt":"2026-06-21","isFeatured":true,"isPromoted":false,"viewCount":891,"contactPhone":"+94 78 567 8901"},{"id":"9","title":"Modern Sofa Set - 7 Piece","description":"Elegant 7-piece sofa set in premium fabric. Includes 3-seater, 2-seater, 2 single chairs, and center table. Brand new, direct from manufacturer.","price":285000,"currency":"LKR","categoryId":"home-garden","subcategoryId":"furniture","images":["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop"],"location":"Kurunegala","seller":{"id":"s2","name":"Nadeesha Silva","phone":"+94 71 234 5678","email":"nadeesha@email.com","memberSince":"2024-03-22","totalAds":5,"verified":true},"condition":"new","postedAt":"2026-06-19","isFeatured":false,"isPromoted":false,"viewCount":167,"contactPhone":"+94 71 234 5678"},{"id":"10","title":"Software Engineer - Remote Position","description":"Leading tech company seeking experienced software engineers. React/Node.js preferred. Competitive salary + benefits. Full remote flexibility.","price":350000,"currency":"LKR","categoryId":"jobs","subcategoryId":"vacancies","images":["https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=600&fit=crop"],"location":"Colombo","seller":{"id":"s4","name":"Ishara Jayawardena","phone":"+94 70 456 7890","email":"ishara@email.com","memberSince":"2023-11-05","totalAds":22,"verified":true},"condition":"new","postedAt":"2026-06-21","isFeatured":true,"isPromoted":true,"viewCount":1245,"contactEmail":"careers@techcompany.lk"},{"id":"11","title":"Land for Sale - 10 Perches in Kadawatha","description":"Prime land for sale in Kadawatha. 10 perches, flat terrain, road access from both sides. Ideal for residential construction. Close to Colombo-Kandy highway.","price":12000000,"currency":"LKR","categoryId":"property","subcategoryId":"land","images":["https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&h=600&fit=crop"],"location":"Gampaha","seller":{"id":"s1","name":"Kamal Perera","phone":"+94 77 123 4567","email":"kamal@email.com","memberSince":"2024-01-15","totalAds":12,"verified":true},"condition":"new","postedAt":"2026-06-18","isFeatured":false,"isPromoted":false,"viewCount":289,"contactPhone":"+94 77 123 4567"},{"id":"12","title":"Professional Photography Services","description":"Event, portrait, product, and commercial photography. 10+ years experience. Portfolio available on request. Competitive rates for weddings and corporate events.","price":50000,"currency":"LKR","categoryId":"services","subcategoryId":"event","images":["https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=800&h=600&fit=crop"],"location":"Colombo","seller":{"id":"s3","name":"Ravindu Fernando","phone":"+94 76 345 6789","email":"ravindu@email.com","memberSince":"2024-06-10","totalAds":8,"verified":false},"condition":"new","postedAt":"2026-06-17","isFeatured":false,"isPromoted":false,"viewCount":98,"contactPhone":"+94 76 345 6789"},{"id":"13","title":"Nike Air Max 270 - White/Black","description":"Authentic Nike Air Max 270 in White/Black colorway. Size 10 UK. Never worn, still in original box. Bought from official Nike store.","price":32000,"currency":"LKR","categoryId":"fashion","subcategoryId":"shoes","images":["https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=600&fit=crop"],"location":"Colombo","seller":{"id":"s5","name":"Dilini Ratnayake","phone":"+94 78 567 8901","email":"dilini@email.com","memberSince":"2024-08-18","totalAds":3,"verified":false},"condition":"new","postedAt":"2026-06-20","isFeatured":false,"isPromoted":false,"viewCount":234,"contactPhone":"+94 78 567 8901"},{"id":"14","title":"Three Wheeler - Bajaj RE 205","description":"Bajaj RE 205 three-wheeler in excellent running condition. Recently serviced. Good for taxi or small business. Registration up to date.","price":680000,"currency":"LKR","categoryId":"vehicles","subcategoryId":"three-wheelers","images":["https://images.unsplash.com/photo-1590362891991-f776e747a588?w=800&h=600&fit=crop"],"location":"Galle","seller":{"id":"s2","name":"Nadeesha Silva","phone":"+94 71 234 5678","email":"nadeesha@email.com","memberSince":"2024-03-22","totalAds":5,"verified":true},"condition":"used","postedAt":"2026-06-15","isFeatured":false,"isPromoted":false,"viewCount":156,"contactPhone":"+94 71 234 5678"},{"id":"15","title":"A-Level Physics Tuition - Online","description":"Qualified teacher with 15 years experience offering online A-Level Physics tuition. Small batch sizes (max 10 students). Proven track record of A/L results.","price":5000,"currency":"LKR","categoryId":"education","subcategoryId":"tuition-classes","images":["https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&h=600&fit=crop"],"location":"Colombo","seller":{"id":"s4","name":"Ishara Jayawardena","phone":"+94 70 456 7890","email":"ishara@email.com","memberSince":"2023-11-05","totalAds":22,"verified":true},"condition":"new","postedAt":"2026-06-21","isFeatured":false,"isPromoted":false,"viewCount":78,"contactPhone":"+94 70 456 7890"},{"id":"16","title":"Industrial Sewing Machine - Juki","description":"Juki DDL-8100E industrial sewing machine with table and motor. Heavy-duty, perfect for garment manufacturing. Barely used, looks brand new.","price":185000,"currency":"LKR","categoryId":"business-industry-agriculture","subcategoryId":"industrial-machinery","images":["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop"],"location":"Gampaha","seller":{"id":"s1","name":"Kamal Perera","phone":"+94 77 123 4567","email":"kamal@email.com","memberSince":"2024-01-15","totalAds":12,"verified":true},"condition":"used","postedAt":"2026-06-16","isFeatured":false,"isPromoted":false,"viewCount":67,"contactPhone":"+94 77 123 4567"}];
 
   const FALLBACK_DISTRICTS = [
     'Colombo','Gampaha','Kalutara','Kandy','Matale','Nuwara Eliya','Galle','Matara','Hambantota','Jaffna','Kilinochchi','Mullaitivu','Vavuniya','Mannar','Trincomalee','Batticaloa','Ampara','Kurunegala','Puttalam','Anuradhapura','Polonnaruwa','Badulla','Monaragala','Ratnapura','Kegalle'
@@ -80,10 +80,7 @@
 
   const CATEGORY_TREE = [
     { id: 'vehicles', name: 'Vehicles', children: [
-      { id: 'cars', name: 'Cars' }, { id: 'vans', name: 'Vans' }, { id: 'suvs', name: 'SUVs' },
-      { id: 'motorbikes', name: 'Motorbikes' }, { id: 'three-wheelers', name: 'Three Wheelers' },
-      { id: 'buses', name: 'Buses' }, { id: 'lorries', name: 'Lorries' }, { id: 'boats', name: 'Boats' },
-      { id: 'heavy-equipment', name: 'Heavy Equipment' }, { id: 'vehicle-parts-accessories', name: 'Vehicle Parts & Accessories' }
+      { id: 'cars', name: 'Cars' }, { id: 'motorbikes', name: 'Motorbikes' }, { id: 'vans', name: 'Vans' }, { id: 'trucks', name: 'Trucks' }, { id: 'buses', name: 'Buses' }, { id: 'three-wheelers', name: 'Three Wheelers' }, { id: 'auto-parts-accessories', name: 'Auto Parts & Accessories' }
     ]},
     { id: 'property', name: 'Property', children: [
       { id: 'houses', name: 'Houses' }, { id: 'land', name: 'Land' }, { id: 'apartments', name: 'Apartments' }, { id: 'commercial-properties', name: 'Commercial Properties' }, { id: 'rooms-annexes', name: 'Rooms & Annexes' }
@@ -194,14 +191,12 @@
     });
   }
 
-  function publicHomePayload(force = false) {
-    if (force) publicHomePayloadPromise = null;
+  function publicHomePayload() {
     if (publicHomePayloadPromise) return publicHomePayloadPromise;
-    const bootstrap = !force ? window.__EHM_PUBLIC_HOME_PROMISE : null;
-    publicHomePayloadPromise = Promise.resolve(bootstrap || fetch('/api/public-home?limit=80' + '&_=' + Date.now(), {
-      headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
-      credentials: 'same-origin',
-      cache: 'no-store'
+    const bootstrap = window.__EHM_PUBLIC_HOME_PROMISE;
+    publicHomePayloadPromise = Promise.resolve(bootstrap || fetch('/api/public-home?limit=80', {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin'
     }).then((response) => {
       if (!response.ok) throw new Error(`Public home request failed (HTTP ${response.status})`);
       return response.json();
@@ -215,7 +210,7 @@
     return publicHomePayloadPromise;
   }
   const HOME_LIVE_SNAPSHOT_KEY = 'ehemehe:desktopHomeLiveSnapshot:v1';
-  const HOME_LIVE_SNAPSHOT_TTL_MS = 2 * 60 * 1000;
+  const HOME_LIVE_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000;
   let homeSnapshotHydrated = false;
   let desktopLiveDataSettled = false;
 
@@ -249,24 +244,6 @@
     };
   }
 
-  function detailAdIsComplete(ad) {
-    return !!(ad && (ad.detailComplete === true || ad._detailComplete === true));
-  }
-
-  function setDetailAdCacheEntry(ad) {
-    if (!ad?.id) return null;
-    const id = String(ad.id).replace(/^static-/, '');
-    const existing = detailAdCache.get(id);
-
-    // Home/search/category payloads contain only the card thumbnail. They may
-    // finish after the detail request and must never downgrade a complete
-    // multi-photo gallery back to an incomplete one-image cache entry.
-    if (detailAdIsComplete(existing) && !detailAdIsComplete(ad)) return existing;
-
-    detailAdCache.set(id, ad);
-    return ad;
-  }
-
   function persistHomeSnapshotCache() {
     try {
       const snapshot = {
@@ -289,7 +266,7 @@
       if (!Array.isArray(snapshot?.ads) || !Array.isArray(snapshot?.promotions)) return false;
 
       supabaseAds = snapshot.ads.map((ad) => normalizeAd(ad, 'supabase'));
-      supabaseAds.forEach((ad) => setDetailAdCacheEntry(ad));
+      supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
       adPromotions = snapshot.promotions.slice();
       if (snapshot.financeSettings && typeof snapshot.financeSettings === 'object') {
         financeSettings = { ...financeSettings, ...snapshot.financeSettings };
@@ -311,10 +288,6 @@
       .replace(/(^-|-$)/g, '');
   }
 
-  function isUuidLike(value) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
-  }
-
   function esc(value) {
     return String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -331,28 +304,6 @@
   function isHomeRoute() {
     const path = window.location.pathname.replace(/\/index\.html$/i, '/');
     return path === '/' || path === '';
-  }
-
-  function categoryRouteSlug() {
-    const path = window.location.pathname.replace(/\/index\.html$/i, '').replace(/\/+$/, '');
-    const match = path.match(/^\/category\/([^/]+)$/i);
-    if (!match) return '';
-    try { return slugify(decodeURIComponent(match[1])); }
-    catch (_) { return slugify(match[1]); }
-  }
-
-  function isCategoryRoute() {
-    return !!categoryRouteSlug();
-  }
-
-  function isSearchRoute() {
-    const path = window.location.pathname.replace(/\/index\.html$/i, '').replace(/\/+$/, '') || '/';
-    return path === '/search';
-  }
-
-  function searchRouteQuery() {
-    try { return new URLSearchParams(window.location.search).get('q') || ''; }
-    catch (_) { return ''; }
   }
 
 
@@ -403,34 +354,21 @@
     return `${DETAIL_ROUTE_CACHE_PREFIX}${encodeURIComponent(String(id || '').replace(/^static-/, ''))}`;
   }
 
-  function isCompleteDetailAd(ad) {
-    return detailAdIsComplete(ad);
-  }
-
-  function cachePublicDetailAd(ad, options = {}) {
+  function cachePublicDetailAd(ad) {
     if (!ad || ad.source !== 'supabase' || !ad.id) return false;
     const id = String(ad.id).replace(/^static-/, '');
-    const complete = options.complete === true || isCompleteDetailAd(ad);
-    const cacheValue = { ...ad, detailComplete: complete, _detailComplete: complete };
-    const canonicalCacheValue = setDetailAdCacheEntry(cacheValue) || cacheValue;
-    window.__ehmSelectedPublicAd = canonicalCacheValue;
+    detailAdCache.set(id, ad);
+    window.__ehmSelectedPublicAd = ad;
 
     try {
       if (!window.sessionStorage) return true;
-      let cachedAd = canonicalCacheValue;
+      let cachedAd = ad;
       let json = JSON.stringify({ savedAt: Date.now(), ad: cachedAd });
       // Avoid exceeding mobile-browser sessionStorage when a legacy listing
-      // contains large Base64 photos. A trimmed cache must never be treated as
-      // a complete gallery, otherwise the page briefly renders 1/1 before the
-      // detail API returns every stored image.
+      // contains large Base64 photos. The first image is enough for an instant
+      // first render; the normal Supabase request refreshes the complete ad.
       if (json.length > 700000) {
-        cachedAd = {
-          ...cacheValue,
-          images: (cacheValue.images || []).slice(0, 1),
-          image: cacheValue.image || cacheValue.images?.[0] || '',
-          detailComplete: false,
-          _detailComplete: false
-        };
+        cachedAd = { ...ad, images: (ad.images || []).slice(0, 1), image: ad.image || ad.images?.[0] || '' };
         json = JSON.stringify({ savedAt: Date.now(), ad: cachedAd });
       }
       window.sessionStorage.setItem(detailRouteCacheKey(id), json);
@@ -449,7 +387,7 @@
 
     const selected = window.__ehmSelectedPublicAd;
     if (selected && String(selected.id).replace(/^static-/, '') === cleanId) {
-      setDetailAdCacheEntry(selected);
+      detailAdCache.set(cleanId, selected);
       return selected;
     }
 
@@ -464,7 +402,7 @@
       }
       const normalized = parsed.ad.source === 'supabase' ? parsed.ad : normalizeAd(parsed.ad, 'supabase');
       if (String(normalized.id).replace(/^static-/, '') !== cleanId) return null;
-      setDetailAdCacheEntry(normalized);
+      detailAdCache.set(cleanId, normalized);
       return normalized;
     } catch (_) {
       return null;
@@ -477,7 +415,6 @@
     style.id = 'ehmAdDetailPendingStyles';
     style.textContent = `
       body.ehm-ad-detail-pending #root main{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
-      body.ehm-ad-detail-pending #ehmSellerPhone{display:none!important}
       #ehmAdDetailPendingShell{display:none;position:fixed;z-index:25;left:50%;top:52%;transform:translate(-50%,-50%);width:min(520px,calc(100vw - 40px));padding:28px 24px;border:1px solid #e6edf2;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(15,23,42,.10);text-align:center;color:#64748b}
       body.ehm-ad-detail-pending #ehmAdDetailPendingShell{display:block}
       #ehmAdDetailPendingShell .ehm-pending-spinner{width:42px;height:42px;margin:0 auto 15px;border:4px solid #dff6ee;border-top-color:#22b98b;border-radius:50%;animation:ehm-detail-spin .7s linear infinite}
@@ -489,31 +426,8 @@
     document.head?.appendChild?.(style);
   }
 
-  function renderedDetailMatchesCurrentRoute() {
-    if (!isAdRoute()) return false;
-    const host = document.getElementById('ehmDynamicAdDetail');
-    if (!host) return false;
-    const renderedId = String(host.dataset?.ehmRenderedAdId || '').replace(/^static-/, '');
-    const routeId = String(currentRouteAdId() || '').replace(/^static-/, '');
-    return Boolean(renderedId && routeId && renderedId === routeId && host.__ehmSignature);
-  }
-
-  function beginDynamicDetailPending(expectedAdId = '') {
+  function beginDynamicDetailPending() {
     if (!isDatabaseAdRoute()) return false;
-    const currentId = String(currentRouteAdId() || '').replace(/^static-/, '');
-    const expectedId = String(expectedAdId || currentId).replace(/^static-/, '');
-
-    // Stabilization timers, pageshow and background data refreshes call sync()
-    // several times. Once the current ad is already rendered, never cover it
-    // again with the loading shell. The shell is only for a genuinely new
-    // route/ad that has not rendered yet.
-    if ((!expectedId || expectedId === currentId) && renderedDetailMatchesCurrentRoute()) {
-      finishDynamicDetailPending();
-      return false;
-    }
-
-    document.getElementById('ehmSellerPhone')?.remove?.();
-
     const route = `${window.location.pathname}${window.location.search || ''}`;
     detailPendingRoute = route;
     installAdDetailPendingStyles();
@@ -600,7 +514,6 @@
     let customFields = raw.custom_fields || raw.customFields || {};
     if (typeof customFields === 'string') { try { customFields = JSON.parse(customFields); } catch (_) { customFields = {}; } }
     const categoryName = raw.categoryName || raw.categories?.name || raw.category || customFields.subcategory_name || customFields.category_name || '';
-    const subcategoryName = raw.subcategoryName || customFields.subcategory_name || '';
     const cityName = raw.cityName || raw.cities?.name || raw.city || raw.location || customFields.city || '';
     const districtId = raw.district_id || raw.districtId || raw.cities?.district_id || raw.district || raw.location || customFields.district || '';
     const seller = raw.seller && typeof raw.seller === 'object' ? { ...raw.seller } : {};
@@ -620,27 +533,17 @@
       description: raw.description || '',
       price: raw.price,
       currency: raw.currency || 'LKR',
-      categoryId: raw.categoryId || customFields.category_slug || raw.category_id || slugify(categoryName),
-      subcategoryId: raw.subcategoryId || customFields.subcategory_slug || raw.subcategory_id || '',
+      categoryId: raw.category_id || raw.categoryId || slugify(categoryName),
+      subcategoryId: raw.subcategory_id || raw.subcategoryId || '',
       categoryName,
-      subcategoryName,
       location: raw.location || cityName || raw.district || '',
       cityId: raw.city_id || raw.cityId || raw.cities?.id || '',
       cityName,
       districtId,
       image: image || AD_PLACEHOLDER,
       images: images.length ? images : [AD_PLACEHOLDER],
-      imageCount: Math.max(
-        Number(raw.imageCount || raw.image_count || raw._image_count || customFields.image_count || customFields.images_count || 0) || 0,
-        images.length,
-        image ? 1 : 0
-      ),
-      detailComplete: raw.detailComplete === true || raw._detailComplete === true,
-      _detailComplete: raw.detailComplete === true || raw._detailComplete === true,
-      condition: raw.condition || customFields.condition || '',
-      status: String(raw.status || customFields.status || '').trim().toLowerCase(),
-      expiresAt: raw.expires_at || raw.expiresAt || customFields.expires_at || '',
-      postedAt: raw.created_at || raw.createdAt || raw.postedAt || raw.updated_at || customFields.submitted_at || '',
+      condition: raw.condition || '',
+      postedAt: raw.created_at || raw.postedAt || raw.updated_at || '',
       promotionType: String(raw.promotion_type || raw.promotionType || '').toLowerCase(),
       isFeatured: !!raw.isFeatured || !!raw.featured || !!raw.is_featured || String(raw.promotion_type || raw.promotionType || '').toLowerCase() === 'featured',
       isPromoted: !!raw.isPromoted || !!raw.promoted || !!raw.is_promoted || ['promoted', 'top'].includes(String(raw.promotion_type || raw.promotionType || '').toLowerCase()),
@@ -651,80 +554,6 @@
       customFields,
       source
     };
-  }
-
-  const CLIENT_PUBLIC_STATUSES = new Set(['approved', 'active', 'published', 'live']);
-  const CLIENT_PRIVATE_STATUSES = new Set(['pending', 'rejected', 'draft', 'blocked', 'deleted', 'expired', 'archived', 'suspended']);
-  const CLIENT_AD_LIFETIME_MS = 25 * 24 * 60 * 60 * 1000;
-
-  function isClientPublicAd(ad) {
-    const status = String(ad?.status || ad?.customFields?.status || '').trim().toLowerCase();
-    if (CLIENT_PUBLIC_STATUSES.has(status)) return true;
-    if (CLIENT_PRIVATE_STATUSES.has(status)) return false;
-    // Legacy production rows have no status and were historically public.
-    return !status;
-  }
-
-  function isClientLiveAd(ad) {
-    if (!ad || !isClientPublicAd(ad)) return false;
-    const explicit = ad.expiresAt || ad.expires_at || ad.customFields?.expires_at;
-    if (explicit) {
-      const expires = new Date(explicit).getTime();
-      if (Number.isFinite(expires) && expires <= Date.now()) return false;
-    }
-    const created = new Date(ad.postedAt || ad.created_at || ad.customFields?.submitted_at || '').getTime();
-    if (Number.isFinite(created) && created + CLIENT_AD_LIFETIME_MS <= Date.now()) return false;
-    return true;
-  }
-
-  function resolveAdCategoryFromLookups(ad) {
-    if (!ad) return ad;
-    const categoryValue = String(ad.categoryId || '').trim();
-    const subcategoryValue = String(ad.subcategoryId || '').trim();
-    const customCategory = slugify(ad.customFields?.category_slug || '');
-    const customSubcategory = slugify(ad.customFields?.subcategory_slug || '');
-
-    for (const parent of lookups.categories || CATEGORY_TREE) {
-      const parentSlug = slugify(parent.id || parent.slug || parent.name);
-      const parentIdentifiers = [parent.databaseId, parent.id, parent.slug, parent.name].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
-      const parentMatches = parentIdentifiers.includes(categoryValue.toLowerCase()) || parentSlug === slugify(categoryValue) || parentSlug === customCategory;
-      if (parentMatches && !customSubcategory && !subcategoryValue) {
-        return { ...ad, categoryId: parentSlug, categoryName: parent.name || ad.categoryName };
-      }
-
-      for (const child of parent.children || []) {
-        const childSlug = slugify(child.id || child.slug || child.name);
-        const childIdentifiers = [child.databaseId, child.id, child.slug, child.name].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
-        const childMatches = childIdentifiers.includes(categoryValue.toLowerCase()) ||
-          childIdentifiers.includes(subcategoryValue.toLowerCase()) ||
-          childSlug === slugify(categoryValue) || childSlug === slugify(subcategoryValue) || childSlug === customSubcategory;
-        if (childMatches) {
-          return {
-            ...ad,
-            categoryId: parentSlug,
-            categoryName: parent.name || ad.categoryName,
-            subcategoryId: childSlug,
-            subcategoryName: child.name || ad.subcategoryName
-          };
-        }
-      }
-
-      if (parentMatches) {
-        return { ...ad, categoryId: parentSlug, categoryName: parent.name || ad.categoryName, subcategoryId: customSubcategory || ad.subcategoryId };
-      }
-    }
-    return ad;
-  }
-
-  function normalizeLivePublicAds(rows, source = 'supabase') {
-    return (Array.isArray(rows) ? rows : [])
-      .map((row) => resolveAdCategoryFromLookups(normalizeAd(row, source)))
-      .filter(isClientLiveAd)
-      .sort((a, b) => {
-        const aTime = new Date(a.postedAt || 0).getTime();
-        const bTime = new Date(b.postedAt || 0).getTime();
-        return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
-      });
   }
 
   function getStaticAdOverrides() {
@@ -758,8 +587,7 @@
     const combined = [...supabaseAds, ...allStaticAds()];
     const seen = new Set();
     return combined.filter((ad) => {
-      const id = String(ad?.id || '').trim();
-      const key = id ? `id:${id}` : `fallback:${slugify(ad.title)}|${slugify(ad.location)}|${ad.price}`;
+      const key = `${slugify(ad.title)}|${slugify(ad.location)}|${ad.price}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -789,7 +617,7 @@
       if (!window.supabaseClient) throw new Error('No Supabase client');
       const [dRes, cRes, cityRes] = await Promise.all([
         window.supabaseClient.from('districts').select('id,name,slug,is_active').eq('is_active', true).order('name'),
-        window.supabaseClient.from('categories').select('id,name,slug,parent_id,is_active').eq('is_active', true).order('name'),
+        window.supabaseClient.from('categories').select('id,name,slug,is_active').eq('is_active', true).order('name'),
         window.supabaseClient.from('cities').select('id,name,district_id,is_active').eq('is_active', true).order('name')
       ]);
 
@@ -810,36 +638,12 @@
       }
 
       if (Array.isArray(cRes.data) && cRes.data.length) {
-        const dbRows = cRes.data.map((row) => ({
-          ...row,
-          id: String(row.id || ''),
-          slug: slugify(row.slug || row.name),
-          name: String(row.name || row.slug || ''),
-          parent_id: row.parent_id ? String(row.parent_id) : ''
-        })).filter((row) => row.id && row.slug);
-        const dbById = new Map(dbRows.map((row) => [row.id, row]));
-        const rootMap = new Map(categories.map((category) => [slugify(category.id || category.slug || category.name), {
-          ...category,
-          id: slugify(category.id || category.slug || category.name),
-          slug: slugify(category.id || category.slug || category.name),
-          children: Array.isArray(category.children) ? category.children.map((child) => ({ ...child, id: slugify(child.id || child.slug || child.name), slug: slugify(child.id || child.slug || child.name) })) : []
-        }]));
-
-        dbRows.filter((row) => !row.parent_id || !dbById.has(row.parent_id)).forEach((row) => {
-          const existing = rootMap.get(row.slug) || {};
-          rootMap.set(row.slug, { ...existing, ...row, id: row.slug, databaseId: row.id, children: existing.children || [], source: 'supabase' });
+        const known = new Map(categories.map((c) => [slugify(c.id || c.slug || c.name), c]));
+        cRes.data.forEach((c) => {
+          const slug = slugify(c.slug || c.name);
+          if (!known.has(slug)) known.set(slug, { id: c.id, slug, name: c.name, children: [], source: 'supabase' });
         });
-
-        dbRows.filter((row) => row.parent_id && dbById.has(row.parent_id)).forEach((row) => {
-          const parentRow = dbById.get(row.parent_id);
-          const parentSlug = slugify(parentRow.slug || parentRow.name);
-          const existingParent = rootMap.get(parentSlug) || { id: parentSlug, slug: parentSlug, name: parentRow.name, children: [], source: 'supabase' };
-          const childMap = new Map((existingParent.children || []).map((child) => [slugify(child.id || child.slug || child.name), child]));
-          childMap.set(row.slug, { ...row, id: row.slug, databaseId: row.id, parentId: parentSlug, source: 'supabase' });
-          rootMap.set(parentSlug, { ...existingParent, id: parentSlug, slug: parentSlug, children: Array.from(childMap.values()) });
-        });
-
-        categories = Array.from(rootMap.values());
+        categories = Array.from(known.values());
       }
     } catch (e) {
       // Fallback data is enough for the current static site.
@@ -849,61 +653,41 @@
     return lookups;
   }
 
-  async function loadAdsFromBrowserClient() {
-    const client = window.supabaseClient || await waitForDeferredSupabase();
-    if (!client) return [];
-
-    let result = await client
-      .from('ads')
-      .select('*, categories(name,slug,parent_id), cities(id,name,district_id)')
-      .order('created_at', { ascending: false })
-      .limit(500);
-
-    if (result.error) {
-      result = await client
-        .from('ads')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(500);
-    }
-    if (result.error) result = await client.from('ads').select('*').limit(500);
-    if (result.error) throw result.error;
-    return normalizeLivePublicAds(result.data || [], 'supabase');
-  }
-
-  async function loadAds(force = false) {
-    if (force) {
-      adsLoaded = false;
-      adsLoadPromise = null;
-      publicHomePayloadPromise = null;
-    }
+  async function loadAds() {
     if (adsLoaded) return supabaseAds;
     if (adsLoadPromise) return adsLoadPromise;
 
     adsLoadPromise = (async () => {
       try {
-        const payload = await publicHomePayload(force);
+        const payload = await publicHomePayload();
         const apiAds = Array.isArray(payload?.ads) ? payload.ads : [];
-        supabaseAds = normalizeLivePublicAds(apiAds, 'supabase');
-
-        // An HTTP 200 with an empty array can still mean the server function
-        // is using an older schema/RLS path. Verify once with the browser
-        // Supabase client before showing a false 0-results page.
-        if (!supabaseAds.length) {
-          try {
-            const browserAds = await loadAdsFromBrowserClient();
-            if (browserAds.length) supabaseAds = browserAds;
-          } catch (_) {}
-        }
-
-        supabaseAds.forEach((ad) => setDetailAdCacheEntry(ad));
+        supabaseAds = apiAds.map((ad) => normalizeAd(ad, 'supabase'));
+        supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
         adsLoaded = true;
         persistHomeSnapshotCache();
         return supabaseAds;
       } catch (apiError) {
         try {
-          supabaseAds = await loadAdsFromBrowserClient();
-          supabaseAds.forEach((ad) => setDetailAdCacheEntry(ad));
+          const client = window.supabaseClient || await waitForDeferredSupabase();
+          if (!client) throw apiError;
+
+          let result = await client
+            .from('ads')
+            .select('*, categories(name,slug), cities(id,name,district_id)')
+            .eq('status', 'approved')
+            .order('created_at', { ascending: false });
+
+          if (result.error) {
+            result = await client
+              .from('ads')
+              .select('*')
+              .eq('status', 'approved')
+              .order('created_at', { ascending: false });
+          }
+
+          if (result.error) throw result.error;
+          supabaseAds = (result.data || []).map((ad) => normalizeAd(ad, 'supabase'));
+          supabaseAds.forEach((ad) => detailAdCache.set(String(ad.id), ad));
           adsLoaded = true;
           persistHomeSnapshotCache();
         } catch (_) {
@@ -1212,13 +996,9 @@
     const selected = slugify(category.id || category.slug || category.name);
     const selectedParent = slugify(category.parentId || '');
 
-    const rawAdCategory = String(ad.categoryId || ad.categoryName || '');
-    const rawAdSubcategory = String(ad.subcategoryId || '');
-    const adCategory = slugify(rawAdCategory);
-    const adSubcategory = slugify(rawAdSubcategory);
-    // UUID-only category IDs cannot be compared with public slugs. In that
-    // fallback case, allow the text/category-name matcher below to decide.
-    const hasCategoryIds = !!(adCategory || adSubcategory) && !isUuidLike(rawAdCategory) && !isUuidLike(rawAdSubcategory);
+    const adCategory = slugify(ad.categoryId || ad.categoryName || '');
+    const adSubcategory = slugify(ad.subcategoryId || '');
+    const hasCategoryIds = !!(adCategory || adSubcategory);
 
     // Exact matching first. This prevents wrong results like MacBook showing under Cars
     // just because "AppleCare" contains the letters "car".
@@ -1536,31 +1316,6 @@
     document.head.appendChild(style);
   }
 
-  function installCategoryStyles() {
-    if (document.getElementById('ehmCategoryRouteStyles')) return;
-    const style = document.createElement('style');
-    style.id = 'ehmCategoryRouteStyles';
-    style.textContent = `
-      body.ehm-category-route-active{background:#f7f9fb!important}
-      .ehm-category-page{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:22px 0 80px;color:#0f172a}
-      .ehm-category-breadcrumb{display:flex;align-items:center;gap:9px;margin:0 0 24px;font-size:14px;color:#64748b}.ehm-category-breadcrumb a{color:#0891b2;text-decoration:none}.ehm-category-breadcrumb strong{color:#0f172a}
-      .ehm-category-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:30px;align-items:start}
-      .ehm-category-sidebar{background:#fff;border:1px solid #e4eaf0;border-radius:18px;padding:18px;box-shadow:0 8px 26px rgba(15,23,42,.04);position:sticky;top:92px}
-      .ehm-category-sidebar h2{font-size:17px;margin:0 0 14px}.ehm-category-sidebar nav{display:grid;gap:4px}.ehm-category-sidebar a{padding:11px 12px;border-radius:11px;text-decoration:none;color:#475569;font-size:15px}.ehm-category-sidebar a.active{background:#e8faf3;color:#059669;font-weight:800}.ehm-category-sidebar a:hover{background:#f1f5f9}
-      .ehm-category-main{min-width:0}.ehm-category-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px}.ehm-category-heading h1{margin:0;font-size:32px;line-height:1.15;letter-spacing:-.03em}.ehm-category-count{margin:0 0 18px;color:#64748b;font-size:15px}
-      .ehm-category-view{display:flex;gap:7px}.ehm-category-view button{width:42px;height:42px;border:1px solid #dbe5ec;border-radius:11px;background:#fff;color:#94a3b8;font-size:19px;cursor:pointer}.ehm-category-view button.active{background:#e8faf3;color:#059669;border-color:#b7ead6}
-      .ehm-category-chips{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:22px}.ehm-category-chip{height:39px;border:1px solid #dbe5ec;border-radius:12px;padding:0 15px;background:#fff;color:#334155;font-weight:700;cursor:pointer}.ehm-category-chip.active{background:#43c596;color:#fff;border-color:#43c596}
-      .ehm-category-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.ehm-category-grid.list{grid-template-columns:1fr}.ehm-category-grid.list .ehm-ad-card{display:grid;grid-template-columns:220px minmax(0,1fr)}.ehm-category-grid.list .ehm-ad-img-wrap{height:100%;min-height:170px}
-      .ehm-category-main .ehm-ad-card{display:block;background:#fff;border:1px solid #e5edf3;border-radius:17px;overflow:hidden;text-decoration:none;color:#0f172a;box-shadow:0 8px 24px rgba(15,23,42,.055);transition:.18s ease}.ehm-category-main .ehm-ad-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(15,23,42,.10)}
-      .ehm-category-main .ehm-ad-img-wrap{position:relative;height:190px;background:#eef5f9;overflow:hidden}.ehm-category-main .ehm-ad-img{width:100%;height:100%;object-fit:cover;display:block}.ehm-category-main .ehm-ad-body{padding:14px 15px 16px}.ehm-category-main .ehm-ad-title{margin:0 0 9px;font-size:17px;line-height:1.35;font-weight:800;min-height:46px}.ehm-category-main .ehm-ad-price{font-size:21px;font-weight:900;color:#0f9f76;margin-bottom:8px}.ehm-category-main .ehm-ad-meta{display:flex;gap:9px;flex-wrap:wrap;color:#94a3b8;font-size:12px}.ehm-category-main .ehm-condition{display:inline-flex;margin-top:9px;padding:4px 8px;border-radius:7px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:800}
-      .ehm-category-main .ehm-badges{position:absolute;left:10px;right:10px;top:10px;display:flex;justify-content:space-between;gap:8px}.ehm-category-main .ehm-badge{display:inline-flex;border-radius:999px;padding:5px 9px;color:#fff;font-size:10px;font-weight:900;text-transform:uppercase}.ehm-category-main .ehm-badge.featured{background:#f59e0b}.ehm-category-main .ehm-badge.promoted{background:#06b6d4}.ehm-category-main .ehm-badge.top{background:#ef4444}.ehm-category-main .ehm-heart{position:absolute;right:10px;bottom:10px;width:38px;height:38px;border:0;border-radius:999px;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:23px;z-index:4;box-shadow:0 4px 14px rgba(15,23,42,.14)}
-      .ehm-category-empty{background:#fff;border:1px solid #e5edf3;border-radius:18px;padding:68px 22px;text-align:center;color:#64748b}.ehm-category-empty strong{display:block;color:#0f172a;font-size:21px;margin-bottom:8px}.ehm-category-loading{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.ehm-category-skeleton{height:320px;border-radius:17px;background:linear-gradient(100deg,#edf2f5 18%,#f8fafc 36%,#edf2f5 54%);background-size:220% 100%;animation:ehmHomeSkeleton 1.25s ease-in-out infinite}
-      @media(max-width:980px){.ehm-category-layout{grid-template-columns:1fr}.ehm-category-sidebar{display:none}.ehm-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-      @media(max-width:767px){.ehm-category-page{width:100%;padding:14px 12px 100px}.ehm-category-breadcrumb{font-size:12px;margin-bottom:15px}.ehm-category-heading{align-items:center}.ehm-category-heading h1{font-size:25px}.ehm-category-count{margin-bottom:14px}.ehm-category-chips{flex-wrap:nowrap;overflow:auto;padding-bottom:3px;margin-right:-12px}.ehm-category-chip{white-space:nowrap;min-width:max-content}.ehm-category-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.ehm-category-main .ehm-ad-img-wrap{height:135px}.ehm-category-main .ehm-ad-body{padding:11px}.ehm-category-main .ehm-ad-title{font-size:14px;min-height:38px}.ehm-category-main .ehm-ad-price{font-size:18px}.ehm-category-grid.list{grid-template-columns:1fr}.ehm-category-grid.list .ehm-ad-card{grid-template-columns:116px minmax(0,1fr)}.ehm-category-grid.list .ehm-ad-img-wrap{min-height:126px}.ehm-category-loading{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.ehm-category-skeleton{height:245px}}
-    `;
-    document.head.appendChild(style);
-  }
-
   function removeManagedHome() {
     document.getElementById('ehmMobileFilterbar')?.remove();
     document.getElementById('ehmMobileResults')?.remove();
@@ -1791,295 +1546,6 @@
         </div>
       </a>
     `;
-  }
-
-  const searchRouteState = {
-    query: '', district: '', condition: 'all', minPrice: '', maxPrice: '', sortBy: 'newest', view: 'grid'
-  };
-  let searchRouteDataKey = '';
-  let searchRouteDataPromise = null;
-
-  function installSearchRouteStyles() {
-    if (document.getElementById('ehmSearchRouteStyles')) return;
-    const style = document.createElement('style');
-    style.id = 'ehmSearchRouteStyles';
-    style.textContent = `
-      body.ehm-search-route-active{background:#f7f9fb!important}
-      .ehm-search-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:30px;align-items:start}
-      .ehm-search-sidebar{background:#fff;border:1px solid #e4eaf0;border-radius:18px;padding:18px;box-shadow:0 8px 26px rgba(15,23,42,.04);position:sticky;top:92px}
-      .ehm-search-sidebar h2{font-size:18px;margin:0 0 18px}.ehm-search-field{display:grid;gap:7px;margin-bottom:17px}.ehm-search-field label{font-size:13px;font-weight:800;color:#334155}.ehm-search-field select,.ehm-search-field input{height:44px;border:1px solid #d8e2e9;border-radius:11px;background:#fff;padding:0 12px;color:#334155;font:600 14px/1 inherit;outline:none}.ehm-search-field select:focus,.ehm-search-field input:focus{border-color:#43c596;box-shadow:0 0 0 3px rgba(67,197,150,.12)}
-      .ehm-search-price{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ehm-search-condition{display:grid;gap:8px}.ehm-search-condition label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#475569}.ehm-search-condition input{width:17px;height:17px;margin:0}
-      .ehm-search-reset{width:100%;height:43px;border:0;border-radius:11px;background:#eef8f4;color:#07825f;font-weight:850;cursor:pointer}.ehm-search-main{min-width:0}.ehm-search-top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px}.ehm-search-top h1{margin:0;font-size:32px;line-height:1.15;letter-spacing:-.03em}.ehm-search-query{margin:2px 0 18px;color:#64748b;font-size:14px}.ehm-search-empty{background:#fff;border:1px solid #e5edf3;border-radius:18px;padding:68px 22px;text-align:center;color:#64748b}.ehm-search-empty strong{display:block;color:#0f172a;font-size:21px;margin-bottom:8px}
-      @media(max-width:980px){.ehm-search-layout{grid-template-columns:1fr}.ehm-search-sidebar{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.ehm-search-sidebar h2{grid-column:1/-1;margin-bottom:0}.ehm-search-field{margin:0}.ehm-search-reset{align-self:end}}
-      @media(max-width:767px){.ehm-search-layout{gap:16px}.ehm-search-sidebar{grid-template-columns:1fr 1fr;padding:14px}.ehm-search-sidebar h2{grid-column:1/-1}.ehm-search-field.location,.ehm-search-field.sort{grid-column:1/-1}.ehm-search-reset{grid-column:1/-1}.ehm-search-top h1{font-size:25px}.ehm-search-price{grid-template-columns:1fr 1fr}}
-    `;
-    document.head.appendChild(style);
-  }
-
-  function searchPageHost() {
-    const main = document.querySelector('#root main') || document.querySelector('main') || document.getElementById('root');
-    if (!main) return null;
-    let host = document.getElementById('ehmLiveSearchPage');
-    if (!host || !main.contains(host)) {
-      main.innerHTML = '';
-      host = document.createElement('section');
-      host.id = 'ehmLiveSearchPage';
-      host.className = 'ehm-category-page ehm-search-page';
-      main.appendChild(host);
-    }
-    return host;
-  }
-
-  function syncSearchRouteFromUrl(force = false) {
-    const params = new URLSearchParams(window.location.search);
-    const nextQuery = String(params.get('q') || '').trim();
-    const nextDistrict = String(params.get('district') || '').trim();
-    if (force || searchRouteState.query !== nextQuery) searchRouteState.query = nextQuery;
-    if (force || (!searchRouteState.district && nextDistrict)) searchRouteState.district = nextDistrict;
-    state.query = nextQuery;
-    state.category = null;
-    state.city = null;
-    state.district = null;
-  }
-
-  function searchRouteRows() {
-    const query = searchRouteState.query;
-    const district = slugify(searchRouteState.district);
-    const condition = String(searchRouteState.condition || 'all').toLowerCase();
-    const min = Number(String(searchRouteState.minPrice || '').replace(/[^\d.]/g, ''));
-    const max = Number(String(searchRouteState.maxPrice || '').replace(/[^\d.]/g, ''));
-    const hasMin = Number.isFinite(min) && min > 0;
-    const hasMax = Number.isFinite(max) && max > 0;
-
-    const rows = allAds().filter((ad) => {
-      if (!isClientLiveAd(ad)) return false;
-      if (query && !adMatchesSearchQuery(ad, query)) return false;
-      if (district) {
-        const haystack = slugify(`${ad.location || ''} ${ad.cityName || ''} ${ad.districtId || ''}`);
-        if (!haystack.includes(district)) return false;
-      }
-      if (condition !== 'all' && String(ad.condition || '').toLowerCase() !== condition) return false;
-      const price = Number(ad.price || 0);
-      if (hasMin && price < min) return false;
-      if (hasMax && price > max) return false;
-      return true;
-    });
-
-    rows.sort((a, b) => {
-      if (searchRouteState.sortBy === 'price_asc') return Number(a.price || 0) - Number(b.price || 0);
-      if (searchRouteState.sortBy === 'price_desc') return Number(b.price || 0) - Number(a.price || 0);
-      return adPostedTime(b) - adPostedTime(a);
-    });
-    return rows;
-  }
-
-  function renderSearchLoading() {
-    const host = searchPageHost();
-    if (!host) return;
-    host.innerHTML = `<div class="ehm-category-breadcrumb"><a href="/">Home</a><span>›</span><strong>All Ads</strong></div><div class="ehm-search-layout"><aside class="ehm-search-sidebar"><h2>Filters</h2><div class="ehm-category-skeleton" style="height:340px"></div></aside><div class="ehm-search-main"><div class="ehm-search-top"><h1>All Ads</h1></div><p class="ehm-category-count">Loading the latest approved listings...</p><div class="ehm-category-loading">${'<div class="ehm-category-skeleton"></div>'.repeat(6)}</div></div></div>`;
-  }
-
-  function renderLiveSearchPage() {
-    const host = searchPageHost();
-    if (!host) return false;
-    const rows = searchRouteRows();
-    const districts = lookups.districts || FALLBACK_DISTRICTS;
-    const queryTitle = searchRouteState.query ? `Results for “${searchRouteState.query}”` : 'All Ads';
-    const districtOptions = [`<option value="">All Districts</option>`, ...districts.map((district) => {
-      const value = slugify(district.slug || district.name || district.id);
-      return `<option value="${esc(value)}" ${value === slugify(searchRouteState.district) ? 'selected' : ''}>${esc(district.name)}</option>`;
-    })].join('');
-    const html = `
-      <div class="ehm-category-breadcrumb"><a href="/">Home</a><span>›</span><strong>All Ads</strong></div>
-      <div class="ehm-search-layout">
-        <aside class="ehm-search-sidebar">
-          <h2>Filters</h2>
-          <div class="ehm-search-field sort"><label>Sort By</label><select data-ehm-search-sort><option value="newest" ${searchRouteState.sortBy === 'newest' ? 'selected' : ''}>Newest First</option><option value="price_asc" ${searchRouteState.sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option><option value="price_desc" ${searchRouteState.sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option></select></div>
-          <div class="ehm-search-field"><label>Price Range</label><div class="ehm-search-price"><input inputmode="numeric" placeholder="Min" value="${esc(searchRouteState.minPrice)}" data-ehm-search-min><input inputmode="numeric" placeholder="Max" value="${esc(searchRouteState.maxPrice)}" data-ehm-search-max></div></div>
-          <div class="ehm-search-field"><label>Condition</label><div class="ehm-search-condition">${['all','new','used'].map((value) => `<label><input type="radio" name="ehmSearchCondition" value="${value}" ${searchRouteState.condition === value ? 'checked' : ''}>${value === 'all' ? 'All' : value[0].toUpperCase() + value.slice(1)}</label>`).join('')}</div></div>
-          <div class="ehm-search-field location"><label>Location</label><select data-ehm-search-district>${districtOptions}</select></div>
-          <button type="button" class="ehm-search-reset" data-ehm-search-reset>Reset All Filters</button>
-        </aside>
-        <div class="ehm-search-main ehm-category-main">
-          <div class="ehm-search-top"><div><h1>${esc(queryTitle)}</h1><p class="ehm-category-count">${rows.length} result${rows.length === 1 ? '' : 's'} found</p></div><div class="ehm-category-view"><button type="button" class="${searchRouteState.view === 'grid' ? 'active' : ''}" data-ehm-search-view="grid" aria-label="Grid view">▦</button><button type="button" class="${searchRouteState.view === 'list' ? 'active' : ''}" data-ehm-search-view="list" aria-label="List view">☷</button></div></div>
-          ${rows.length ? `<div class="ehm-category-grid ${searchRouteState.view}">${rows.map(renderAdCard).join('')}</div>` : `<div class="ehm-search-empty"><strong>No results found</strong><span>Try adjusting your search or filters.</span></div>`}
-        </div>
-      </div>`;
-    if (host.__ehmSearchHtml !== html) {
-      host.__ehmSearchHtml = html;
-      host.innerHTML = html;
-    }
-
-    host.querySelector('[data-ehm-search-sort]')?.addEventListener('change', (event) => { searchRouteState.sortBy = event.target.value; renderLiveSearchPage(); });
-    const applyPrice = () => {
-      searchRouteState.minPrice = host.querySelector('[data-ehm-search-min]')?.value || '';
-      searchRouteState.maxPrice = host.querySelector('[data-ehm-search-max]')?.value || '';
-      renderLiveSearchPage();
-    };
-    host.querySelector('[data-ehm-search-min]')?.addEventListener('change', applyPrice);
-    host.querySelector('[data-ehm-search-max]')?.addEventListener('change', applyPrice);
-    host.querySelectorAll('input[name="ehmSearchCondition"]').forEach((input) => input.addEventListener('change', () => { searchRouteState.condition = input.value; renderLiveSearchPage(); }));
-    host.querySelector('[data-ehm-search-district]')?.addEventListener('change', (event) => { searchRouteState.district = event.target.value; renderLiveSearchPage(); });
-    host.querySelectorAll('[data-ehm-search-view]').forEach((button) => button.addEventListener('click', () => { searchRouteState.view = button.dataset.ehmSearchView === 'list' ? 'list' : 'grid'; renderLiveSearchPage(); }));
-    host.querySelector('[data-ehm-search-reset]')?.addEventListener('click', () => {
-      searchRouteState.district = ''; searchRouteState.condition = 'all'; searchRouteState.minPrice = ''; searchRouteState.maxPrice = ''; searchRouteState.sortBy = 'newest';
-      renderLiveSearchPage();
-    });
-    return true;
-  }
-
-  function ensureLiveSearchPage() {
-    if (!isSearchRoute()) return Promise.resolve(false);
-    installStyles();
-    installCategoryStyles();
-    installSearchRouteStyles();
-    document.body.classList.add('ehm-search-route-active');
-    const key = `${location.pathname}${location.search}`;
-    syncSearchRouteFromUrl(searchRouteDataKey !== key);
-    if (searchRouteDataPromise && searchRouteDataKey === key) return searchRouteDataPromise;
-    if (searchRouteDataKey === key && adsLoaded) {
-      renderLiveSearchPage();
-      return Promise.resolve(true);
-    }
-    searchRouteDataKey = key;
-    renderSearchLoading();
-    searchRouteDataPromise = (async () => {
-      await loadLookups();
-      syncSearchRouteFromUrl(true);
-      await Promise.allSettled([loadAds(true), loadPromotions(), loadFinanceSettings()]);
-      // Re-resolve UUID categories after the lookup table is ready.
-      supabaseAds = supabaseAds.map(resolveAdCategoryFromLookups).filter(isClientLiveAd);
-      renderLiveSearchPage();
-      return true;
-    })().finally(() => { searchRouteDataPromise = null; });
-    return searchRouteDataPromise;
-  }
-
-  let categoryRouteDataKey = '';
-  let categoryRouteDataPromise = null;
-
-  function categorySelectionForSlug(routeSlug) {
-    const wanted = slugify(routeSlug);
-    for (const parent of lookups.categories || CATEGORY_TREE) {
-      const parentSlug = slugify(parent.id || parent.slug || parent.name);
-      if (parentSlug === wanted) {
-        return { parent: { ...parent, id: parentSlug, slug: parentSlug, type: 'parent' }, selected: { ...parent, id: parentSlug, slug: parentSlug, type: 'parent' } };
-      }
-      const child = (parent.children || []).find((row) => slugify(row.id || row.slug || row.name) === wanted);
-      if (child) {
-        return {
-          parent: { ...parent, id: parentSlug, slug: parentSlug, type: 'parent' },
-          selected: { ...child, id: wanted, slug: wanted, parentId: parentSlug, type: 'child' }
-        };
-      }
-    }
-    const title = wanted.replace(/-/g, ' ').replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
-    const fallback = { id: wanted, slug: wanted, name: title || 'Category', children: [], type: 'parent' };
-    return { parent: fallback, selected: fallback };
-  }
-
-  function categoryPageHost() {
-    const main = document.querySelector('#root main') || document.querySelector('main') || document.getElementById('root');
-    if (!main) return null;
-    let host = document.getElementById('ehmLiveCategoryPage');
-    if (!host || !main.contains(host)) {
-      main.innerHTML = '';
-      host = document.createElement('section');
-      host.id = 'ehmLiveCategoryPage';
-      host.className = 'ehm-category-page';
-      main.appendChild(host);
-    }
-    return host;
-  }
-
-  function renderCategoryLoading(routeSlug) {
-    const host = categoryPageHost();
-    if (!host) return;
-    const selection = categorySelectionForSlug(routeSlug);
-    host.innerHTML = `<div class="ehm-category-breadcrumb"><a href="/">Home</a><span>›</span><strong>${esc(selection.parent.name)}</strong></div><div class="ehm-category-layout"><aside class="ehm-category-sidebar"><h2>Categories</h2><nav>${(lookups.categories || CATEGORY_TREE).map((row) => `<a href="/category/${esc(slugify(row.id || row.slug || row.name))}" class="${slugify(row.id || row.slug || row.name) === slugify(selection.parent.id) ? 'active' : ''}">${esc(row.name)}</a>`).join('')}</nav></aside><div class="ehm-category-main"><div class="ehm-category-heading"><h1>${esc(selection.parent.name)}</h1></div><p class="ehm-category-count">Loading the latest approved listings...</p><div class="ehm-category-loading">${'<div class="ehm-category-skeleton"></div>'.repeat(6)}</div></div></div>`;
-  }
-
-  function renderLiveCategoryPage(routeSlug) {
-    const host = categoryPageHost();
-    if (!host) return false;
-    const selection = categorySelectionForSlug(routeSlug);
-    const parent = selection.parent;
-    if (!state.category || (state.category.__routeParent !== slugify(parent.id))) {
-      state.category = { ...selection.selected, __routeParent: slugify(parent.id) };
-    }
-    const rows = filteredAds();
-    const parentSlug = slugify(parent.id || parent.slug || parent.name);
-    const selectedSlug = slugify(state.category?.id || state.category?.slug || state.category?.name || parentSlug);
-    const categories = lookups.categories || CATEGORY_TREE;
-    const chips = [
-      `<button type="button" class="ehm-category-chip ${state.category?.type === 'parent' ? 'active' : ''}" data-ehm-category-filter="${esc(parentSlug)}" data-ehm-category-type="parent">All</button>`,
-      ...(parent.children || []).map((child) => {
-        const childSlug = slugify(child.id || child.slug || child.name);
-        return `<button type="button" class="ehm-category-chip ${state.category?.type === 'child' && selectedSlug === childSlug ? 'active' : ''}" data-ehm-category-filter="${esc(childSlug)}" data-ehm-category-type="child">${esc(child.name)}</button>`;
-      })
-    ].join('');
-    const html = `
-      <div class="ehm-category-breadcrumb"><a href="/">Home</a><span>›</span><strong>${esc(parent.name)}</strong></div>
-      <div class="ehm-category-layout">
-        <aside class="ehm-category-sidebar"><h2>Categories</h2><nav>${categories.map((row) => {
-          const rowSlug = slugify(row.id || row.slug || row.name);
-          return `<a href="/category/${esc(rowSlug)}" class="${rowSlug === parentSlug ? 'active' : ''}">${esc(row.name)}</a>`;
-        }).join('')}</nav></aside>
-        <div class="ehm-category-main">
-          <div class="ehm-category-heading"><h1>${esc(parent.name)}</h1><div class="ehm-category-view"><button type="button" class="${state.view === 'grid' ? 'active' : ''}" data-ehm-category-view="grid" aria-label="Grid view">▦</button><button type="button" class="${state.view === 'list' ? 'active' : ''}" data-ehm-category-view="list" aria-label="List view">☷</button></div></div>
-          <p class="ehm-category-count">${rows.length} listing${rows.length === 1 ? '' : 's'} found</p>
-          <div class="ehm-category-chips">${chips}</div>
-          ${rows.length ? `<div class="ehm-category-grid ${state.view}">${rows.map(renderAdCard).join('')}</div>` : `<div class="ehm-category-empty"><strong>No ads found</strong><span>No approved live listings are available in this category yet.</span></div>`}
-        </div>
-      </div>`;
-    if (host.__ehmCategoryHtml !== html) {
-      host.__ehmCategoryHtml = html;
-      host.innerHTML = html;
-    }
-    host.querySelectorAll('[data-ehm-category-filter]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const filterSlug = slugify(button.dataset.ehmCategoryFilter);
-        if (button.dataset.ehmCategoryType === 'parent') {
-          state.category = { ...parent, id: parentSlug, slug: parentSlug, type: 'parent', __routeParent: parentSlug };
-        } else {
-          const child = (parent.children || []).find((row) => slugify(row.id || row.slug || row.name) === filterSlug);
-          if (child) state.category = { ...child, id: filterSlug, slug: filterSlug, parentId: parentSlug, type: 'child', __routeParent: parentSlug };
-        }
-        renderLiveCategoryPage(routeSlug);
-      });
-    });
-    host.querySelectorAll('[data-ehm-category-view]').forEach((button) => {
-      button.addEventListener('click', () => {
-        state.view = button.dataset.ehmCategoryView === 'list' ? 'list' : 'grid';
-        renderLiveCategoryPage(routeSlug);
-      });
-    });
-    return true;
-  }
-
-  function ensureLiveCategoryPage() {
-    const routeSlug = categoryRouteSlug();
-    if (!routeSlug) return Promise.resolve(false);
-    installStyles();
-    installCategoryStyles();
-    document.body.classList.add('ehm-category-route-active');
-    if (categoryRouteDataPromise && categoryRouteDataKey === routeSlug) return categoryRouteDataPromise;
-    if (categoryRouteDataKey === routeSlug && adsLoaded) {
-      renderLiveCategoryPage(routeSlug);
-      return Promise.resolve(true);
-    }
-    renderCategoryLoading(routeSlug);
-    categoryRouteDataKey = routeSlug;
-    categoryRouteDataPromise = (async () => {
-      await loadLookups();
-      const selection = categorySelectionForSlug(routeSlug);
-      state.category = { ...selection.selected, __routeParent: slugify(selection.parent.id) };
-      await Promise.allSettled([loadAds(true), loadPromotions(), loadFinanceSettings()]);
-      supabaseAds = supabaseAds.map(resolveAdCategoryFromLookups).filter(isClientLiveAd);
-      renderLiveCategoryPage(routeSlug);
-      return true;
-    })().finally(() => { categoryRouteDataPromise = null; });
-    return categoryRouteDataPromise;
   }
 
   function closeModal() {
@@ -3147,118 +2613,40 @@
     }
   }
 
-  async function currentRouteAccessToken() {
-    let client = window.supabaseClient;
-    if (!client && typeof window.waitForSupabaseClient === 'function') {
-      try { client = await window.waitForSupabaseClient(1800); } catch (_) { client = null; }
-    }
-    if (!client?.auth?.getSession) return '';
-    try {
-      const { data } = await client.auth.getSession();
-      return data?.session?.access_token || '';
-    } catch (_) {
-      return '';
-    }
-  }
-
-  async function fetchRouteAdApi(cleanId, accessToken = '') {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    try {
-      const headers = { Accept: 'application/json', 'Cache-Control': 'no-cache' };
-      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-      const response = await fetch(`/api/public-ad?id=${encodeURIComponent(cleanId)}&_=${Date.now()}`, {
-        signal: controller.signal,
-        headers,
-        cache: 'no-store',
-        credentials: 'same-origin'
-      });
-      const payload = await response.json().catch(() => null);
-      return { response, payload };
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
   async function loadAdForCurrentRoute() {
     const rawId = currentRouteAdId();
     if (!rawId) return null;
     const cleanId = String(rawId).replace(/^static-/, '');
 
-    const existing = allAds().find((ad) => String(ad.id) === rawId || String(ad.id) === cleanId) || null;
-    const cached = readPublicDetailAd(cleanId) || null;
-    const instant = cached || existing;
-    if (/^\d+$/.test(cleanId)) return instant;
+    const existing = allAds().find((ad) => String(ad.id) === rawId || String(ad.id) === cleanId);
+    if (existing) return existing;
 
-    // Home/search payloads intentionally include one thumbnail only. Always
-    // refresh the selected listing from the detail API so its complete photo
-    // count and all proxy image URLs are available to the gallery. Public ads
-    // load without auth first; a signed-in owner/staff member gets one secure
-    // retry so pending My Ads previews do not incorrectly show "Ad not found".
-    try {
-      let result = await fetchRouteAdApi(cleanId, '');
-      if ((!result.response.ok || !result.payload?.ad) && [401, 403, 404].includes(result.response.status)) {
-        const token = await currentRouteAccessToken();
-        if (token) result = await fetchRouteAdApi(cleanId, token);
-      }
-      if (result.response.ok && result.payload?.ad) {
-        const normalized = resolveAdCategoryFromLookups(normalizeAd(result.payload.ad, 'supabase'));
-        normalized.detailVisibility = result.payload.visibility || 'public';
-        normalized.detailComplete = true;
-        normalized._detailComplete = true;
-        normalized.imageCount = Math.max(Number(normalized.imageCount || 0), Array.isArray(normalized.images) ? normalized.images.length : 0);
-        cachePublicDetailAd(normalized, { complete: true });
-        const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
-        if (index >= 0) supabaseAds[index] = normalized;
-        else if (isClientLiveAd(normalized)) supabaseAds = [normalized, ...supabaseAds];
-        return normalized;
-      }
-    } catch (_) {}
+    const cached = readPublicDetailAd(cleanId);
+    if (cached) return cached;
+    if (/^\d+$/.test(cleanId)) return null;
 
     let client = window.supabaseClient;
     if (!client && typeof window.waitForSupabaseClient === 'function') {
       try { client = await window.waitForSupabaseClient(2500); } catch (_) { client = null; }
     }
-    if (!client) return instant;
+    if (!client) return null;
 
     try {
-      // Compatibility note: the former query used .eq('status', 'approved').
-      // Status is now validated by isClientLiveAd so legacy Approved/active/live
-      // rows work without exposing pending or rejected listings.
       const { data, error } = await client
         .from('ads')
         .select('*')
         .eq('id', cleanId)
+        .eq('status', 'approved')
         .limit(1);
-      if (error || !Array.isArray(data) || !data[0]) return instant;
-      const normalized = resolveAdCategoryFromLookups(normalizeAd(data[0], 'supabase'));
-      const publiclyLive = isClientLiveAd(normalized);
-      let ownerPreview = false;
-      if (!publiclyLive) {
-        try {
-          const { data: userData } = await client.auth.getUser();
-          const userId = String(userData?.user?.id || '');
-          const ownerIds = [
-            data[0]?.user_id, data[0]?.owner_user_id, data[0]?.owner_id, data[0]?.seller_id,
-            data[0]?.profile_id, data[0]?.created_by, normalized.customFields?.owner_user_id
-          ].filter(Boolean).map(String);
-          ownerPreview = !!userId && ownerIds.includes(userId);
-        } catch (_) {}
-      }
-      if (!publiclyLive && !ownerPreview) return instant;
-      normalized.detailVisibility = ownerPreview ? 'owner-preview' : 'public';
-      normalized.detailComplete = true;
-      normalized._detailComplete = true;
-      normalized.imageCount = Math.max(Number(normalized.imageCount || 0), Array.isArray(normalized.images) ? normalized.images.length : 0);
-      cachePublicDetailAd(normalized, { complete: true });
-      if (publiclyLive) {
-        const index = supabaseAds.findIndex((ad) => String(ad.id) === String(normalized.id));
-        if (index >= 0) supabaseAds[index] = normalized;
-        else supabaseAds = [normalized, ...supabaseAds];
+      if (error || !Array.isArray(data) || !data[0]) return null;
+      const normalized = normalizeAd(data[0], 'supabase');
+      cachePublicDetailAd(normalized);
+      if (!supabaseAds.some((ad) => String(ad.id) === String(normalized.id))) {
+        supabaseAds = [normalized, ...supabaseAds];
       }
       return normalized;
     } catch (_) {
-      return instant;
+      return null;
     }
   }
 
@@ -3315,9 +2703,9 @@
       <div class="ehm-dynamic-breadcrumb"><a href="/">Home</a><span>›</span><span>${esc(ad.categoryName || ad.customFields?.category_name || 'Marketplace')}</span><span>›</span><strong>${esc(ad.title)}</strong></div>
       <div class="ehm-dynamic-layout">
         <div class="ehm-dynamic-main">
-          <section class="ehm-dynamic-gallery" data-ehm-gallery>
-            <div class="ehm-dynamic-main-image" data-ehm-gallery-stage>${images.length > 1 ? `<button type="button" class="ehm-dynamic-gallery-nav ehm-dynamic-gallery-prev" aria-label="Previous image" data-ehm-detail-prev>‹</button><button type="button" class="ehm-dynamic-gallery-nav ehm-dynamic-gallery-next" aria-label="Next image" data-ehm-detail-next>›</button>` : ''}<img id="ehmDynamicMainImage" src="${esc(mainImage)}" alt="${esc(ad.title)}" data-ehm-detail-main-image onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'">${images.length ? `<span class="ehm-dynamic-image-count" data-ehm-detail-count>1 / ${images.length}</span>` : ''}</div>
-            ${images.length > 1 ? `<div class="ehm-dynamic-thumbs">${images.map((src, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-ehm-detail-image="${esc(src)}" data-ehm-detail-index="${index}"><img src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'"></button>`).join('')}</div>` : ''}
+          <section class="ehm-dynamic-gallery">
+            <div class="ehm-dynamic-main-image"><img id="ehmDynamicMainImage" src="${esc(mainImage)}" alt="${esc(ad.title)}" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'"></div>
+            ${images.length > 1 ? `<div class="ehm-dynamic-thumbs">${images.map((src, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-ehm-detail-image="${esc(src)}"><img src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${AD_PLACEHOLDER}'"></button>`).join('')}</div>` : ''}
           </section>
           <section class="ehm-dynamic-card ehm-dynamic-summary">
             <div class="ehm-dynamic-title-row"><h1>${esc(ad.title)}</h1><button type="button" class="ehm-dynamic-heart${isFavoriteId(ad.id) ? ' active' : ''}" data-ehm-favorite-id="${esc(ad.id)}" aria-label="Save ad" aria-pressed="${isFavoriteId(ad.id) ? 'true' : 'false'}"><span data-ehm-heart-icon>${isFavoriteId(ad.id) ? '♥' : '♡'}</span></button></div>
@@ -3349,8 +2737,7 @@
       .ehm-dynamic-breadcrumb{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:13px;color:#64748b;margin:0 0 18px}.ehm-dynamic-breadcrumb a{color:#0891b2;text-decoration:none}.ehm-dynamic-breadcrumb strong{max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .ehm-dynamic-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}.ehm-dynamic-main{min-width:0;display:grid;gap:18px}.ehm-dynamic-side{display:grid;gap:18px;position:sticky;top:92px}
       .ehm-dynamic-card,.ehm-dynamic-gallery{background:#fff;border:1px solid #e6edf2;border-radius:18px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,.06)}.ehm-dynamic-card{padding:22px}.ehm-dynamic-card h2{margin:0 0 16px;font-size:18px;color:#0f172a}
-      .ehm-dynamic-main-image{position:relative;height:min(56vw,520px);min-height:300px;background:#edf3f6;display:flex;align-items:center;justify-content:center}.ehm-dynamic-main-image img{width:100%;height:100%;object-fit:contain;display:block}.ehm-dynamic-no-image{color:#94a3b8;font-weight:700}
-      .ehm-dynamic-gallery-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:44px;height:44px;border:0;border-radius:999px;background:rgba(15,23,42,.72);color:#fff;font-size:28px;line-height:1;display:grid;place-items:center;cursor:pointer}.ehm-dynamic-gallery-prev{left:14px}.ehm-dynamic-gallery-next{right:14px}.ehm-dynamic-image-count{position:absolute;left:14px;bottom:14px;padding:7px 10px;border-radius:999px;background:rgba(15,23,42,.74);color:#fff;font-size:12px;font-weight:800}
+      .ehm-dynamic-main-image{height:min(56vw,520px);min-height:300px;background:#edf3f6;display:flex;align-items:center;justify-content:center}.ehm-dynamic-main-image img{width:100%;height:100%;object-fit:contain;display:block}.ehm-dynamic-no-image{color:#94a3b8;font-weight:700}
       .ehm-dynamic-thumbs{display:flex;gap:10px;padding:12px;overflow:auto}.ehm-dynamic-thumbs button{width:76px;height:58px;min-width:76px;padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:#eef2f5}.ehm-dynamic-thumbs button.active{border-color:#22b98b}.ehm-dynamic-thumbs img{width:100%;height:100%;object-fit:cover}
       .ehm-dynamic-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.ehm-dynamic-title-row h1{font-size:28px;line-height:1.25;margin:0;color:#0f172a}.ehm-dynamic-heart{width:44px;height:44px;min-width:44px;border:1px solid #dce5eb;border-radius:12px;background:#fff;font-size:26px;color:#94a3b8}.ehm-dynamic-price{font-size:30px;font-weight:900;color:#0f9f76;margin:15px 0}
       .ehm-dynamic-meta{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:20px}.ehm-dynamic-meta span{padding:7px 10px;border-radius:9px;background:#f1f5f9;color:#475569;font-size:13px;font-weight:700}.ehm-dynamic-meta span:first-child{background:#dcfce7;color:#15803d}
@@ -3359,43 +2746,19 @@
       .ehm-dynamic-specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 22px}.ehm-dynamic-specs div{padding:13px 0;border-bottom:1px solid #edf1f4}.ehm-dynamic-specs span{display:block;color:#64748b;font-size:13px;margin-bottom:4px}.ehm-dynamic-specs strong{font-size:15px;color:#0f172a;overflow-wrap:anywhere}
       .ehm-dynamic-contact h2{font-size:20px}.ehm-dynamic-seller-name{display:grid;gap:3px;padding:0 0 14px}.ehm-dynamic-seller-name strong{font-size:16px}.ehm-dynamic-seller-name span{font-size:12px;color:#64748b;overflow-wrap:anywhere}.ehm-dynamic-phones{display:grid;gap:8px;margin-bottom:14px}.ehm-dynamic-phones a{display:flex;justify-content:space-between;gap:10px;padding:11px;border:1px solid #dfe8ed;border-radius:11px;text-decoration:none}.ehm-dynamic-phones span{font-size:12px;color:#64748b}.ehm-dynamic-phones strong{color:#0f172a}.ehm-dynamic-call,.ehm-dynamic-message{display:flex;height:50px;align-items:center;justify-content:center;border-radius:12px;text-decoration:none;font-weight:900;margin-top:10px}.ehm-dynamic-call{background:#22b98b;color:#fff}.ehm-dynamic-message{border:2px solid #22b98b;color:#0f9f76;background:#fff}.ehm-dynamic-safety p{margin:0;color:#64748b;line-height:1.55}
       @media(max-width:900px){.ehm-dynamic-layout{grid-template-columns:1fr}.ehm-dynamic-side{position:static}.ehm-dynamic-main-image{height:52vw;min-height:260px}}
-      @media(max-width:767px){.ehm-dynamic-detail{padding:12px 12px 100px!important}.ehm-dynamic-breadcrumb{margin-bottom:12px}.ehm-dynamic-card{padding:16px;border-radius:15px}.ehm-dynamic-gallery{border-radius:15px}.ehm-dynamic-main-image{height:72vw;min-height:220px}.ehm-dynamic-gallery-nav{width:40px;height:40px;font-size:24px}.ehm-dynamic-image-count{left:10px;bottom:10px}.ehm-dynamic-title-row h1{font-size:21px}.ehm-dynamic-price{font-size:24px}.ehm-dynamic-finance{grid-template-columns:1fr}.ehm-dynamic-specs{grid-template-columns:1fr}.ehm-dynamic-side{gap:14px}.ehm-dynamic-layout,.ehm-dynamic-main{gap:14px}}
+      @media(max-width:767px){.ehm-dynamic-detail{padding:12px 12px 100px!important}.ehm-dynamic-breadcrumb{margin-bottom:12px}.ehm-dynamic-card{padding:16px;border-radius:15px}.ehm-dynamic-gallery{border-radius:15px}.ehm-dynamic-main-image{height:72vw;min-height:220px}.ehm-dynamic-title-row h1{font-size:21px}.ehm-dynamic-price{font-size:24px}.ehm-dynamic-finance{grid-template-columns:1fr}.ehm-dynamic-specs{grid-template-columns:1fr}.ehm-dynamic-side{gap:14px}.ehm-dynamic-layout,.ehm-dynamic-main{gap:14px}}
     `;
     document.head.appendChild(style);
   }
 
   function bindDynamicDetailGallery(host) {
-    const buttons = Array.from(host.querySelectorAll('[data-ehm-detail-image]'));
-    const image = host.querySelector('#ehmDynamicMainImage');
-    const count = host.querySelector('[data-ehm-detail-count]');
-    if (!image || !buttons.length) return;
-    const sources = buttons.map((button) => button.getAttribute('data-ehm-detail-image') || '').filter(Boolean);
-    if (!sources.length) return;
-    let currentIndex = Math.max(0, buttons.findIndex((button) => button.classList.contains('active')));
-    const setActive = (index) => {
-      currentIndex = (index + sources.length) % sources.length;
-      image.src = sources[currentIndex] || AD_PLACEHOLDER;
-      if (count) count.textContent = `${currentIndex + 1} / ${sources.length}`;
-      buttons.forEach((button, buttonIndex) => button.classList.toggle('active', buttonIndex === currentIndex));
-    };
-    buttons.forEach((button, buttonIndex) => {
-      button.addEventListener('click', () => setActive(buttonIndex));
+    host.querySelectorAll('[data-ehm-detail-image]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const image = host.querySelector('#ehmDynamicMainImage');
+        if (image) image.src = button.getAttribute('data-ehm-detail-image') || '';
+        host.querySelectorAll('[data-ehm-detail-image]').forEach((item) => item.classList.toggle('active', item === button));
+      });
     });
-    host.querySelector('[data-ehm-detail-prev]')?.addEventListener('click', () => setActive(currentIndex - 1));
-    host.querySelector('[data-ehm-detail-next]')?.addEventListener('click', () => setActive(currentIndex + 1));
-    const stage = host.querySelector('[data-ehm-gallery-stage]');
-    let touchStartX = null;
-    stage?.addEventListener('touchstart', (event) => {
-      touchStartX = event.touches?.[0]?.clientX ?? null;
-    }, { passive: true });
-    stage?.addEventListener('touchend', (event) => {
-      if (touchStartX == null) return;
-      const endX = event.changedTouches?.[0]?.clientX ?? touchStartX;
-      const deltaX = endX - touchStartX;
-      touchStartX = null;
-      if (Math.abs(deltaX) < 35) return;
-      setActive(deltaX < 0 ? currentIndex + 1 : currentIndex - 1);
-    }, { passive: true });
   }
 
   function renderDynamicAdDetail(ad) {
@@ -3423,7 +2786,6 @@
     }
 
     host.__ehmSignature = signature;
-    host.dataset.ehmRenderedAdId = String(ad.id || currentRouteAdId() || '').replace(/^static-/, '');
     const html = dynamicDetailHtml(ad);
     if (host.__ehmHtml !== html) {
       host.__ehmHtml = html;
@@ -3431,7 +2793,7 @@
       bindDynamicDetailGallery(host);
     }
     document.body.classList.add('ehm-dynamic-detail-active');
-    cachePublicDetailAd(ad, { complete: isCompleteDetailAd(ad) });
+    cachePublicDetailAd(ad);
     finishDynamicDetailPending();
     return true;
   }
@@ -3470,39 +2832,17 @@
 
   function injectSellerPhoneAboveCall() {
     if (!isAdRoute()) return false;
-    const existing = document.getElementById('ehmSellerPhone');
-
-    // While the authoritative ad is loading there is no seller card yet.
-    // Searching the whole document used to match the footer's telephone link
-    // and insert the seller phone panel inside the footer. Never inject during
-    // this state, and remove any stale panel left by an earlier timer.
-    if (document.body.classList.contains('ehm-ad-detail-pending') || document.getElementById('ehmAdDetailPendingShell')) {
-      existing?.remove();
-      return false;
-    }
-
     if (document.getElementById('ehmDynamicAdDetail')) {
-      existing?.remove();
+      document.getElementById('ehmSellerPhone')?.remove();
       return false;
     }
 
-    // Limit discovery to the actual page content. Footer/header telephone
-    // links are not ad seller actions and must never be used as anchors.
-    const detailScope = document.querySelector('#root main, main');
-    if (!detailScope) {
-      existing?.remove();
-      return false;
-    }
-
-    const callButton = Array.from(detailScope.querySelectorAll('a[href^="tel:"], a, button')).find((node) => {
-      if(node.closest?.('#ehmSellerPhone, footer, header, nav'))return false;
+    const callButton = Array.from(document.querySelectorAll('a[href^="tel:"], a, button')).find((node) => {
+      if(node.closest?.('#ehmSellerPhone'))return false;
       const text = String(node.textContent || '').replace(/\s+/g, ' ').trim();
       return /^call now$/i.test(text) || /^call$/i.test(text) || String(node.getAttribute?.('href') || '').startsWith('tel:');
     });
-    if (!callButton || !callButton.parentElement) {
-      existing?.remove();
-      return false;
-    }
+    if (!callButton || !callButton.parentElement) return false;
 
     const ad = currentAdForDetail();
     const hrefPhone = String(callButton.getAttribute?.('href') || '').replace(/^tel:/i, '').trim();
@@ -3511,6 +2851,7 @@
       ad?.contactPhone, ad?.contact_phone, ad?.phone, ad?.phone_number, ad?.seller?.phone, hrefPhone
     ].map(value=>String(value||'').trim()).filter(Boolean)));
 
+    const existing = document.getElementById('ehmSellerPhone');
     if (!phones.length) { if (existing) existing.remove(); return false; }
 
     const content = `<div class="ehm-seller-phone-heading">Contact Number${phones.length===1?'':'s'}</div><div class="ehm-seller-phone-list">${phones.map((phone,index)=>{
@@ -3557,17 +2898,13 @@
       if (isAdRoute()) {
         openAdPageAtTop();
         removeManagedHome();
+        beginDynamicDetailPending();
 
-        // Always try the authoritative complete cache before creating any
-        // loading UI. This matters when React temporarily remounts the route:
-        // the already-visible ad can be restored in the same task without a
-        // loading-card flash.
+        // The old flow waited for the complete ads list and finance/settings
+        // queries before looking up the selected ad. Fetch the route ad first,
+        // and use the click/session cache immediately when available.
         const instantAd = readPublicDetailAd(currentRouteAdId());
-        if (isCompleteDetailAd(instantAd)) {
-          renderDynamicAdDetail(instantAd);
-        } else {
-          beginDynamicDetailPending();
-        }
+        if (instantAd) renderDynamicAdDetail(instantAd);
 
         const routeAdPromise = loadAdForCurrentRoute();
         const routeAd = await routeAdPromise;
@@ -3603,23 +2940,6 @@
 
       document.body.classList.remove('ehm-dynamic-detail-active');
 
-      if (isSearchRoute()) {
-        removeManagedHome();
-        document.body.classList.remove('ehm-category-route-active');
-        await ensureLiveSearchPage();
-        return;
-      }
-
-      document.body.classList.remove('ehm-search-route-active');
-
-      if (isCategoryRoute()) {
-        removeManagedHome();
-        await ensureLiveCategoryPage();
-        return;
-      }
-
-      document.body.classList.remove('ehm-category-route-active');
-
       if (!isMobile()) {
         removeManagedHome();
         if (isHomeRoute()) await ensureDesktopHome();
@@ -3648,8 +2968,7 @@
   let adStabilizeTimers = [];
 
   function needsRouteObserver() {
-    const coreRoute = (() => { return isHomeRoute() || isAdRoute(); })();
-    return coreRoute || isCategoryRoute() || isSearchRoute();
+    return isHomeRoute() || isAdRoute();
   }
 
   function refreshRouteObserver() {
@@ -3672,7 +2991,7 @@
             // never falls back to the competing old desktop layout.
             stabilizeDesktopHomeShell();
           }
-        } else if (isAdRoute() || isCategoryRoute() || isSearchRoute()) {
+        } else if (isAdRoute()) {
           scheduleSync(80);
         }
       });
@@ -3769,8 +3088,8 @@
       const rawId = link.getAttribute('data-ehm-ad-id') || href.replace(/^\/ad\//, '').split(/[?#]/)[0];
       const cleanId = decodeURIComponent(String(rawId || '')).replace(/^static-/, '');
       const selected = allAds().find((ad) => String(ad.id).replace(/^static-/, '') === cleanId);
-      if (selected?.source === 'supabase') cachePublicDetailAd(selected, { complete: false });
-      if (cleanId && !/^\d+$/.test(cleanId)) beginDynamicDetailPending(cleanId);
+      if (selected?.source === 'supabase') cachePublicDetailAd(selected);
+      if (cleanId && !/^\d+$/.test(cleanId)) beginDynamicDetailPending();
     }, true);
 
     document.addEventListener('submit', (event) => {

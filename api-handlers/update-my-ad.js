@@ -2,7 +2,7 @@ const {
   json, supabasePublicKey, supabaseAdminConfig
 } = require('../lib/otp-utils');
 
-function readLargeBody(req, maxBytes = 5 * 1024 * 1024) {
+function readLargeBody(req, maxBytes = 5.5 * 1024 * 1024) {
   const parseValue = (value) => {
     if (value === undefined || value === null || value === '') return {};
     if (Buffer.isBuffer(value)) value = value.toString('utf8');
@@ -117,23 +117,25 @@ async function resolveCityId(districtName, cityName, currentCityId) {
   }
 }
 
-function validateImage(value) {
-  const image = String(value || '');
-  if (!image) return '';
-  if (!/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(image)) {
-    throw new Error('The replacement photo format is not supported.');
+function validateImages(value) {
+  let images = value;
+  if (typeof images === 'string') {
+    try { images = JSON.parse(images); } catch (_) { images = [images]; }
   }
-  if (Buffer.byteLength(image, 'utf8') > 4.2 * 1024 * 1024) {
-    throw new Error('The replacement photo is too large. Choose a smaller image.');
-  }
-  return image;
-}
-
-function validateImages(values) {
-  if (!Array.isArray(values)) return [];
-  const images = values.map(validateImage).filter(Boolean).slice(0, 10);
-  if (images.length > 10) throw new Error('You can upload up to 10 photos.');
-  return images;
+  if (!Array.isArray(images)) throw new Error('Invalid photo list.');
+  if (images.length > 10) throw new Error('Maximum 10 photos are allowed.');
+  let totalBytes = 0;
+  return images.map((item) => {
+    const image = String(item || '').trim();
+    if (!image) return '';
+    const supportedData = /^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(image);
+    const supportedUrl = /^(?:https?:\/\/|\/api\/ad-image\?)/i.test(image);
+    if (!supportedData && !supportedUrl) throw new Error('One of the photo formats is not supported.');
+    const bytes = Buffer.byteLength(image, 'utf8');
+    totalBytes += bytes;
+    if (supportedData && bytes > 4.2 * 1024 * 1024) throw new Error('One of the selected photos is too large.');
+    return image;
+  }).filter(Boolean).slice(0, 10).map((image) => image);
 }
 
 async function updateAd(id, payload) {
@@ -194,17 +196,14 @@ module.exports = async function handler(req, res) {
 
     const now = new Date().toISOString();
     const custom = parseJson(existing.custom_fields, {});
-    const replacementImages = validateImages(body.images);
-    const replacementImage = replacementImages[0] || validateImage(body.image);
-    let images = parseJson(existing.images, []);
-    if (!Array.isArray(images)) images = [];
-    images = images.filter(Boolean);
-
-    const effectiveImageCount = Math.max(
-      Number(custom.image_count || custom.images_count || 0) || 0,
-      images.length,
-      existing.image_url ? 1 : 0
-    );
+    const images = body.images !== undefined
+      ? validateImages(body.images)
+      : (() => {
+          let current = parseJson(existing.images, []);
+          if (!Array.isArray(current)) current = [];
+          if (!current.length && existing.image_url) current = [existing.image_url];
+          return current.slice(0, 10);
+        })();
 
     const payload = {
       title,
@@ -221,21 +220,13 @@ module.exports = async function handler(req, res) {
         owner_user_id: user.id,
         user_edited_at: now,
         previous_status_before_edit: existing.status || 'pending',
-        requires_admin_review: true,
-        image_count: replacementImages.length
-          ? replacementImages.length
-          : (replacementImage ? Math.max(1, effectiveImageCount) : effectiveImageCount)
+        requires_admin_review: true
       },
       updated_at: now
     };
 
-    if (replacementImages.length) {
-      payload.image_url = replacementImages[0];
-      payload.images = replacementImages;
-    } else if (replacementImage) {
-      payload.image_url = replacementImage;
-      payload.images = [replacementImage, ...images.slice(1, 10)];
-    }
+    payload.image_url = images[0] || null;
+    payload.images = images;
 
     const ad = await updateAd(id, payload);
     return json(res, 200, {

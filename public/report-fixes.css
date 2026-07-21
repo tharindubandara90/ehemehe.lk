@@ -4,15 +4,8 @@ footer.ehm-unified-footer{display:block!important;background:#0f172a!important;c
 .ehm-unified-footer *{box-sizing:border-box}.ehm-footer-inner{width:min(1180px,calc(100% - 32px));margin:auto;display:grid;grid-template-columns:minmax(210px,1.25fr) repeat(3,minmax(135px,1fr));gap:36px;padding:46px 0 38px}.ehm-footer-brand,.ehm-footer-col{min-width:0}.ehm-footer-brand img{width:154px;max-width:100%;height:auto;display:block;filter:brightness(0) invert(1);opacity:.95}.ehm-footer-brand p{font-size:13px;line-height:1.65;color:#94a3b8;max-width:270px;margin:14px 0}.ehm-footer-social{display:flex;gap:9px;flex-wrap:wrap}.ehm-footer-social a{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.08);display:grid;place-items:center;color:#e2e8f0;text-decoration:none;font-weight:800}.ehm-footer-social a:hover{background:var(--ehm-green);color:#fff}.ehm-footer-col h3{font-size:14px;color:#fff;margin:2px 0 14px}.ehm-footer-col a{display:block;color:#94a3b8;text-decoration:none;font-size:13px;line-height:1.45;padding:4px 0}.ehm-footer-col a:hover{color:#6ee7c1}.ehm-footer-bottom{border-top:1px solid rgba(255,255,255,.1)}.ehm-footer-bottom>div{width:min(1180px,calc(100% - 32px));margin:auto;min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:18px;font-size:12px;color:#64748b}.ehm-footer-contact{display:flex;gap:16px;flex-wrap:wrap;justify-content:flex-end}.ehm-footer-contact a{color:#94a3b8;text-decoration:none}
 @media(max-width:1147px) and (min-width:768px){.ehm-footer-inner{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.ehm-footer-brand{grid-column:1/-1;display:grid;grid-template-columns:180px minmax(0,1fr);column-gap:24px;align-items:start}.ehm-footer-brand p{margin-top:0;max-width:520px}.ehm-footer-social{grid-column:2}}
 @media(max-width:767px){body:not(.ehm-legal-route) footer.ehm-unified-footer{display:none!important}.ehm-footer-inner{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 18px;padding:34px 0}.ehm-footer-brand{grid-column:1/-1}.ehm-footer-col h3{margin-bottom:10px}.ehm-footer-bottom>div{padding:16px 0;display:grid;text-align:center;justify-content:center}.ehm-footer-contact{justify-content:center}}
-/* Keep the managed My Ads mount visible. The previous global display:none rule also
-   matched the exact native list after JavaScript converted it into #ehm-real-my-ads,
-   so the cards loaded successfully but remained permanently invisible. */
-body.ehm-dashboard-ads-route #ehm-real-my-ads,
-body.ehm-dashboard-ads-route [data-ehm-dashboard-list="managed"]{display:flex!important;flex-direction:column!important;gap:1rem!important;visibility:visible!important;opacity:1!important;min-height:112px}
-body.ehm-dashboard-ads-route #ehm-real-my-ads:empty::before,
-body.ehm-dashboard-ads-route [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEzNzoxNg"]:empty::before{content:"Loading your ads…";display:flex;align-items:center;justify-content:center;min-height:112px;padding:24px;border:1px solid var(--ehm-border);border-radius:16px;background:#fff;color:var(--ehm-muted);font-size:14px;font-weight:650}
-body.ehm-dashboard-ads-route #ehm-real-my-ads[data-ehm-dashboard-settled="1"]:empty::before,
-body.ehm-dashboard-ads-route [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEzNzoxNg"][data-ehm-dashboard-settled="1"]:empty::before{content:"No ads submitted yet"}
+/* Hide bundled demo dashboard content before the real account data replaces it. */
+body.ehm-dashboard-ads-route [data-yw="c3JjL3BhZ2VzL0Rhc2hib2FyZFBhZ2UudHN4QDEzNzoxNg"]{display:none!important}
 body.ehm-dashboard-favorites-route main .space-y-4{display:none!important}
 /* Dashboard consistency and real-account controls. */
 .ehm-dashboard-actions{display:flex;gap:8px;align-items:center}.ehm-dashboard-delete{border:1px solid #fecdd3!important;background:#fff1f2!important;color:#dc2626!important;border-radius:9px!important;padding:8px 11px!important;font-weight:750!important}.ehm-dashboard-delete:hover{background:#ffe4e6!important}.ehm-managed-favorites{display:grid;gap:12px}.ehm-favorite-row{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:14px;align-items:center;background:#fff;border:1px solid var(--ehm-border);border-radius:16px;padding:12px}.ehm-favorite-row a{text-decoration:none}.ehm-favorite-row img{width:82px;height:82px;object-fit:cover;border-radius:12px;background:#eef2f5}.ehm-favorite-row h3{margin:0 0 5px;font-size:15px;color:var(--ehm-ink)}.ehm-favorite-row strong{color:#0891b2}.ehm-remove-favorite{border:1px solid #fecdd3;background:#fff1f2;color:#dc2626;border-radius:10px;padding:9px 11px;font-weight:750;cursor:pointer}.ehm-settings-status{min-height:20px;font-size:13px;margin-top:9px}.ehm-settings-status.success{color:#047857}.ehm-settings-status.error{color:#b91c1c}.ehm-delete-account-card{margin-top:28px;padding:20px;border:1px solid #fecaca;border-radius:16px;background:#fff7f7}.ehm-delete-account-card h3{margin:0 0 6px;color:#991b1b}.ehm-delete-account-card p{font-size:13px;color:#7f1d1d;margin:0 0 14px}.ehm-delete-account-button{border:0;border-radius:11px;background:#dc2626;color:#fff;padding:11px 15px;font-weight:800;cursor:pointer}.ehm-active-dashboard-link{background:#ecfdf5!important;color:#059669!important}.ehm-mobile-bottom-nav a[data-ehm-active="true"]{color:#10b981!important}.ehm-all-categories-back{display:inline-flex;align-items:center;margin:8px 0 16px;padding:8px 12px;border:1px solid #dbe7ec;border-radius:9px;color:#0f9f76;background:#fff;text-decoration:none;font-size:13px;font-weight:700}
@@ -31,29 +24,3 @@ body.ehm-route-help main input[type="text"],body.ehm-route-help main input[type=
 [data-yw="c3JjL3BhZ2VzL0hlbHBQYWdlLnRzeEA3MDoxMg"]>svg{margin-top:0!important;align-self:center!important}
 [data-yw="c3JjL3BhZ2VzL1Bvc3RBZFBhZ2UudHN4QDEzNjoxOA"]>*{min-width:0}
 header a[class*="btn"],header button[class*="btn"]{align-items:center;justify-content:center}
-
-/* Account deletion: visible and usable on desktop, tablet, and mobile. */
-.ehm-delete-account-v2{max-width:32rem;margin-top:28px!important;padding:18px 20px!important;display:flex;align-items:center;justify-content:space-between;gap:18px;background:#fff7f7!important;border:1px solid #fecaca!important}
-.ehm-delete-account-v2 h3{font-size:16px;line-height:1.3;margin:0 0 5px!important;color:#991b1b!important}
-.ehm-delete-account-v2 p{font-size:13px;line-height:1.5;margin:0!important;color:#7f1d1d!important}
-.ehm-delete-account-v2 .ehm-delete-account-button{flex:0 0 auto;min-height:43px;white-space:nowrap}
-html.ehm-account-modal-open,html.ehm-account-modal-open body{overflow:hidden!important}
-.ehm-account-modal[hidden]{display:none!important}
-.ehm-account-modal{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:20px}
-.ehm-account-modal-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.58);backdrop-filter:blur(3px)}
-.ehm-account-modal-dialog{position:relative;width:min(100%,440px);max-height:calc(100vh - 32px);overflow:auto;border-radius:20px;background:#fff;padding:28px;box-shadow:0 28px 80px rgba(15,23,42,.28);font-family:inherit;color:#0f172a}
-.ehm-account-modal-close{position:absolute;top:12px;right:14px;width:36px;height:36px;border:0;border-radius:50%;background:#f1f5f9;color:#475569;font-size:25px;line-height:1;cursor:pointer}
-.ehm-account-warning-icon{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#fee2e2;color:#dc2626;font-size:25px;font-weight:900;margin-bottom:16px}
-.ehm-account-modal-dialog h2{font-size:21px;line-height:1.3;margin:0 42px 10px 0;font-weight:800}
-.ehm-account-modal-dialog>p{font-size:14px;line-height:1.55;color:#64748b;margin:0 0 18px}
-.ehm-account-modal-dialog label{display:block;font-size:13px;font-weight:700;color:#334155;margin-bottom:8px}
-.ehm-account-modal-dialog input{display:block;width:100%;height:48px;border:1px solid #cbd5e1;border-radius:11px;padding:0 13px;font:700 15px/1 inherit;letter-spacing:.08em;outline:none;box-sizing:border-box}
-.ehm-account-modal-dialog input:focus{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
-.ehm-account-delete-status{min-height:21px;margin-top:9px;font-size:13px;color:#64748b}
-.ehm-account-delete-status.error{color:#b91c1c}.ehm-account-delete-status.success{color:#047857}
-.ehm-account-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
-.ehm-account-modal-actions button{min-height:43px;border-radius:10px;padding:0 15px;font-weight:800;cursor:pointer}
-.ehm-account-cancel-button{border:1px solid #cbd5e1;background:#fff;color:#334155}
-.ehm-account-confirm-button{border:0;background:#dc2626;color:#fff}
-.ehm-account-confirm-button:disabled{cursor:not-allowed;opacity:.45}
-@media(max-width:640px){.ehm-delete-account-v2{max-width:none;display:block;padding:16px!important}.ehm-delete-account-v2 .ehm-delete-account-button{width:100%;margin-top:14px}.ehm-account-modal{padding:12px;align-items:end}.ehm-account-modal-dialog{width:100%;border-radius:20px 20px 14px 14px;padding:24px 18px calc(20px + env(safe-area-inset-bottom))}.ehm-account-modal-actions{display:grid;grid-template-columns:1fr 1fr}.ehm-account-modal-actions button{width:100%;padding:0 10px}}
