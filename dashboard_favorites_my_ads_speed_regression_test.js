@@ -76,8 +76,8 @@ function jsonResponse(ok, payload, status = ok ? 200 : 400) {
     calls.push(url);
     if (url.endsWith('/auth/v1/user')) return jsonResponse(true, { id: 'user-fast' });
     if (url.includes('/rest/v1/ads?')) {
-      assert(url.includes('user_id=eq.user-fast'), 'My Ads query is not filtered by the signed-in user at Supabase.');
-      return jsonResponse(true, [{ id: 'owned-fast', user_id: 'user-fast', title: 'Fast row' }]);
+      assert(!decodeURIComponent(url).includes('images'), 'My Ads compact query includes heavy images.');
+      return jsonResponse(true, [{ id: 'owned-fast', user_id: 'generic-import-user', title: 'Fast row', custom_fields: { owner_user_id: 'user-fast' } }]);
     }
     throw new Error(`Unexpected URL ${url}`);
   };
@@ -90,7 +90,7 @@ function jsonResponse(ok, payload, status = ok ? 200 : 400) {
   assert.strictEqual(res.statusCode, 200);
   assert.deepStrictEqual(JSON.parse(res.body).ads.map((row) => row.id), ['owned-fast']);
   assert.strictEqual(calls.filter((url) => url.includes('/rest/v1/ads?')).length, 1,
-    'Fast My Ads path performed an unnecessary full marketplace scan.');
+    'My Ads compact path performed unnecessary schema retries.');
   assert.strictEqual(res.headers['cache-control'], 'no-store');
 
   global.fetch = oldFetch;

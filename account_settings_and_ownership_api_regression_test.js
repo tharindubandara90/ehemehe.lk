@@ -76,7 +76,7 @@ function jsonResponse(ok, payload, status = ok ? 200 : 400) {
       if (url.endsWith('/auth/v1/user')) return jsonResponse(true, { id: 'new-user' });
       if (url.includes('/rest/v1/ads?')) {
         return jsonResponse(true, [
-          { id: 'owned', user_id: 'new-user', title: 'Owned ad', view_count: 12 },
+          { id: 'owned', user_id: 'shared-import-owner', custom_fields: { owner_user_id: 'new-user', submitted_at: '2026-07-19T00:00:00Z' }, title: 'Owned ad', view_count: 12 },
           { id: 'other', user_id: 'another-user', title: 'Other ad', view_count: 900 },
           { id: 'legacy', custom_fields: { owner_user_id: 'another-user' }, title: 'Legacy sample' }
         ]);

@@ -2,7 +2,7 @@ const {
   json, supabasePublicKey, supabaseAdminConfig
 } = require('../lib/otp-utils');
 
-function readLargeBody(req, maxBytes = 5.5 * 1024 * 1024) {
+function readLargeBody(req, maxBytes = 5 * 1024 * 1024) {
   const parseValue = (value) => {
     if (value === undefined || value === null || value === '') return {};
     if (Buffer.isBuffer(value)) value = value.toString('utf8');
@@ -117,25 +117,16 @@ async function resolveCityId(districtName, cityName, currentCityId) {
   }
 }
 
-function validateImages(value) {
-  let images = value;
-  if (typeof images === 'string') {
-    try { images = JSON.parse(images); } catch (_) { images = [images]; }
+function validateImage(value) {
+  const image = String(value || '');
+  if (!image) return '';
+  if (!/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(image)) {
+    throw new Error('The replacement photo format is not supported.');
   }
-  if (!Array.isArray(images)) throw new Error('Invalid photo list.');
-  if (images.length > 10) throw new Error('Maximum 10 photos are allowed.');
-  let totalBytes = 0;
-  return images.map((item) => {
-    const image = String(item || '').trim();
-    if (!image) return '';
-    const supportedData = /^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(image);
-    const supportedUrl = /^(?:https?:\/\/|\/api\/ad-image\?)/i.test(image);
-    if (!supportedData && !supportedUrl) throw new Error('One of the photo formats is not supported.');
-    const bytes = Buffer.byteLength(image, 'utf8');
-    totalBytes += bytes;
-    if (supportedData && bytes > 4.2 * 1024 * 1024) throw new Error('One of the selected photos is too large.');
-    return image;
-  }).filter(Boolean).slice(0, 10).map((image) => image);
+  if (Buffer.byteLength(image, 'utf8') > 4.2 * 1024 * 1024) {
+    throw new Error('The replacement photo is too large. Choose a smaller image.');
+  }
+  return image;
 }
 
 async function updateAd(id, payload) {
@@ -196,14 +187,9 @@ module.exports = async function handler(req, res) {
 
     const now = new Date().toISOString();
     const custom = parseJson(existing.custom_fields, {});
-    const images = body.images !== undefined
-      ? validateImages(body.images)
-      : (() => {
-          let current = parseJson(existing.images, []);
-          if (!Array.isArray(current)) current = [];
-          if (!current.length && existing.image_url) current = [existing.image_url];
-          return current.slice(0, 10);
-        })();
+    const replacementImage = validateImage(body.image);
+    let images = parseJson(existing.images, []);
+    if (!Array.isArray(images)) images = [];
 
     const payload = {
       title,
@@ -225,8 +211,10 @@ module.exports = async function handler(req, res) {
       updated_at: now
     };
 
-    payload.image_url = images[0] || null;
-    payload.images = images;
+    if (replacementImage) {
+      payload.image_url = replacementImage;
+      payload.images = [replacementImage, ...images.slice(1, 10)];
+    }
 
     const ad = await updateAd(id, payload);
     return json(res, 200, {

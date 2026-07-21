@@ -24,16 +24,23 @@ function customFields(row) {
   return {};
 }
 
-function belongsToUser(row, userId) {
+function isCanonicalOwnedAd(row, userId) {
   const custom = customFields(row);
-  return [
-    row.user_id,
-    row.owner_id,
-    row.seller_id,
-    row.profile_id,
-    row.created_by,
-    custom.owner_user_id
-  ].some((value) => String(value || '') === String(userId));
+  const canonicalOwner = String(custom.owner_user_id || '').trim();
+  if (canonicalOwner) return canonicalOwner === String(userId);
+
+  // Compatibility for ads created by earlier EheMehe publishers: accept the
+  // row-level owner only when the ad also contains the submission/contact
+  // metadata written by the authenticated Post Ad flow. This intentionally
+  // excludes imported/demo marketplace rows that may share a generic user_id.
+  const rowOwner = String(row.user_id || '').trim();
+  const hasSubmissionProof = Boolean(
+    custom.submitted_at ||
+    custom.phone_verification_proof ||
+    (Array.isArray(custom.verified_contact_phones) && custom.verified_contact_phones.length) ||
+    (Array.isArray(custom.contact_phones) && custom.contact_phones.length)
+  );
+  return rowOwner === String(userId) && hasSubmissionProof;
 }
 
 function missingColumnOrTable(data, message) {
@@ -42,24 +49,23 @@ function missingColumnOrTable(data, message) {
 }
 
 async function readOwnedAds(url, key, userId) {
-  // Keep the dashboard response compact. Full Base64 image arrays are loaded
-  // lazily through /api/ad-image, so My Ads can paint without downloading
-  // every photo before the list becomes visible.
+  // Fetch compact metadata only. Ownership is decided from the canonical
+  // custom_fields.owner_user_id marker, not from a possibly shared/imported
+  // user_id value. Images remain lazy through /api/ad-image.
   const selects = [
     'id,user_id,title,description,price,status,condition,created_at,updated_at,view_count,custom_fields',
     'id,user_id,title,description,price,status,condition,city,district,created_at,updated_at,view_count,views,custom_fields',
     'id,user_id,title,description,price,status,condition,created_at,custom_fields',
     'id,user_id,title,description,price,status,created_at,custom_fields',
-    'id,user_id,title,price,status,created_at'
+    'id,user_id,title,price,status,created_at,custom_fields'
   ];
 
   let lastError = null;
   for (const select of selects) {
     const params = new URLSearchParams({
       select,
-      user_id: `eq.${userId}`,
       order: 'created_at.desc',
-      limit: '200'
+      limit: '500'
     });
     const response = await fetch(`${url}/rest/v1/ads?${params.toString()}`, {
       headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }
@@ -68,7 +74,7 @@ async function readOwnedAds(url, key, userId) {
 
     if (response.ok) {
       return (Array.isArray(data) ? data : [])
-        .filter((row) => belongsToUser(row, userId))
+        .filter((row) => isCanonicalOwnedAd(row, userId))
         .map((row) => ({
           ...row,
           image_url: `/api/ad-image?id=${encodeURIComponent(String(row.id || ''))}&index=0`,
@@ -81,27 +87,9 @@ async function readOwnedAds(url, key, userId) {
     if (!missingColumnOrTable(data, message)) throw lastError;
   }
 
-  // Compatibility fallback for an older database. This path is only used when
-  // compact projections cannot be resolved from the schema cache.
-  const response = await fetch(
-    `${url}/rest/v1/ads?select=*&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=200`,
-    { headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' } }
-  );
-  const data = await response.json().catch(() => []);
-  if (!response.ok) {
-    const fallbackMessage = data.message || data.details || lastError?.message || 'Could not read your ads.';
-    if (missingColumnOrTable(data, fallbackMessage)) throw new Error('DATABASE_SCHEMA_MISSING_ADS');
-    throw new Error(fallbackMessage);
-  }
-  return (Array.isArray(data) ? data : [])
-    .filter((row) => belongsToUser(row, userId))
-    .map((row) => ({
-      ...row,
-      image_url: `/api/ad-image?id=${encodeURIComponent(String(row.id || ''))}&index=0`,
-      images: []
-    }));
+  if (lastError) throw lastError;
+  return [];
 }
-
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { ok: false, message: 'Method not allowed' });

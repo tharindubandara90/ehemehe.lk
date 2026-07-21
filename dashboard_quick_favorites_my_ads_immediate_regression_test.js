@@ -7,7 +7,7 @@ const runtime = fs.readFileSync('public/post-ad-runtime.js', 'utf8');
 
 assert(report.includes("'view favorites': '/dashboard/favorites'"),
   'Dashboard View Favorites quick action is not mapped to the Favorites route.');
-assert(runtime.includes("const DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v2:'"),
+assert(runtime.includes("const DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v3:'"),
   'My Ads has no user-specific immediate cache.');
 assert(runtime.includes('function ensureDashboardAdsPanel()'),
   'My Ads loading/list panel is not created immediately on /dashboard/ads.');
@@ -62,13 +62,12 @@ function jsonResponse(ok, payload, status = ok ? 200 : 400) {
     if (String(url).endsWith('/auth/v1/user')) return jsonResponse(true, { id: 'user-fast-2' });
     if (String(url).includes('/rest/v1/ads?')) {
       const decoded = decodeURIComponent(String(url));
-      assert(decoded.includes('user_id=eq.user-fast-2'), 'My Ads query is not filtered server-side by user.');
       assert(!decoded.includes('select=*'), 'Fast My Ads path still downloads full rows.');
       assert(!decoded.includes('images') && !decoded.includes('image_url'),
         'Fast My Ads path still downloads heavy image columns.');
       return jsonResponse(true, [{
-        id: 'owned-fast-2', user_id: 'user-fast-2', title: 'Fast dashboard ad', price: 1000,
-        status: 'approved', created_at: '2026-07-19T00:00:00Z', custom_fields: {}
+        id: 'owned-fast-2', user_id: 'shared-import-owner', title: 'Fast dashboard ad', price: 1000,
+        status: 'approved', created_at: '2026-07-19T00:00:00Z', custom_fields: { owner_user_id: 'user-fast-2' }
       }]);
     }
     throw new Error(`Unexpected URL ${url}`);

@@ -421,23 +421,4 @@ body.ehm-modal-open{overflow:hidden!important}
   .ehm-edit-actions{position:sticky;bottom:0;padding-top:10px;background:#fff}
   .ehm-edit-actions button{flex:1;padding-inline:10px}
 }
-
-/* User ad edit: multi-photo gallery (maximum 10) */
-.ehm-edit-photos-section{padding:14px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc}
-.ehm-edit-photos-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
-.ehm-edit-photos-head strong{display:block;color:#334155;font-size:13px}
-.ehm-edit-photos-head small{display:block;margin-top:4px;color:#94a3b8;font-size:11px;font-weight:600;line-height:1.4}
-.ehm-edit-photo-count{flex:0 0 auto;color:#0f766e;background:#ecfdf5;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800}
-.ehm-edit-gallery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px}
-.ehm-edit-photo-card{position:relative;aspect-ratio:1/1;overflow:hidden;border:1px solid #cbd5e1;border-radius:12px;background:#e2e8f0}
-.ehm-edit-photo-card img{width:100%;height:100%;object-fit:cover;display:block}
-.ehm-edit-main-badge{position:absolute;left:6px;bottom:6px;padding:3px 6px;border-radius:999px;color:#fff;background:rgba(15,23,42,.82);font-size:9px;font-weight:800}
-.ehm-edit-remove-photo{position:absolute;top:5px;right:5px;display:grid;place-items:center;width:27px;height:27px;border:0;border-radius:50%;color:#fff;background:#ef4444;font-size:18px;line-height:1;cursor:pointer;box-shadow:0 4px 12px rgba(15,23,42,.25)}
-.ehm-edit-no-photos{grid-column:1/-1;padding:22px;border:1px dashed #cbd5e1;border-radius:12px;color:#94a3b8;text-align:center;font-size:12px}
-.ehm-edit-upload-label{display:flex!important;flex-direction:column;gap:7px}
-.ehm-edit-upload-label input{padding:8px!important;background:#fff}
-.ehm-edit-upload-label input:disabled{opacity:.55;cursor:not-allowed}
-@media(max-width:640px){
-  .ehm-edit-gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-  .ehm-edit-photos-head{flex-direction:column}
-}
+.ehm-dashboard-error button{margin-top:10px;border:0;border-radius:10px;padding:10px 16px;background:#2fbd91;color:#fff;font-weight:700;cursor:pointer}

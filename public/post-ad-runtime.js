@@ -11,7 +11,7 @@
   const MAX_PHONES = 5;
   const MAX_IMAGES = 10;
   const AD_PLACEHOLDER = '/assets/ad-placeholder.svg';
-  const DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v2:';
+  const DASHBOARD_ADS_CACHE_PREFIX = 'ehemehe:myAdsCache:v3:';
   const DASHBOARD_ADS_CACHE_TTL_MS = 15 * 60 * 1000;
 
   const runtime = {
@@ -24,6 +24,7 @@
     dashboardLoadedAt: 0,
     dashboardAds: [],
     dashboardCacheUserId: '',
+    dashboardError: '',
     authChecking: false,
     authAllowed: false,
     authRedirected: false,
@@ -233,14 +234,10 @@
     input.addEventListener('change', async () => {
       const current = Array.isArray(existingImages) ? existingImages : [];
       const available = Math.max(0, MAX_IMAGES - current.length);
-      const selectedFiles = Array.from(input.files || []);
-      const files = selectedFiles.slice(0, available);
+      const files = Array.from(input.files || []).slice(0, available);
       const next = [...current];
 
       try {
-        if (selectedFiles.length > available) {
-          message(`You can add only ${available} more photo${available === 1 ? '' : 's'}. Maximum ${MAX_IMAGES} photos.`, 'error');
-        }
         if (!files.length) return;
         message('Optimizing selected photos...', 'pending');
 
@@ -1307,44 +1304,12 @@
     document.body.classList.remove('ehm-modal-open');
   }
 
-  function normalizeEditImages(value, fallback = '') {
-    let images = value;
-    if (typeof images === 'string') {
-      try { images = JSON.parse(images); } catch (_) { images = [images]; }
-    }
-    if (!Array.isArray(images)) images = [];
-    const cleanImages = images.map((item) => String(item || '').trim()).filter(Boolean);
-    if (!cleanImages.length && fallback) cleanImages.push(String(fallback));
-    return cleanImages.slice(0, MAX_IMAGES);
-  }
-
-  function renderEditImages(modal) {
-    const gallery = modal?.querySelector('.ehm-edit-gallery');
-    const count = modal?.querySelector('.ehm-edit-photo-count');
-    const input = modal?.querySelector('[name="photos"]');
-    if (!gallery) return;
-    const images = Array.isArray(modal.__ehmEditImages) ? modal.__ehmEditImages : [];
-    if (count) count.textContent = `${images.length} / ${MAX_IMAGES} photos`;
-    if (input) input.disabled = images.length >= MAX_IMAGES;
-    gallery.innerHTML = images.length ? images.map((source, index) => `
-      <div class="ehm-edit-photo-card" data-ehm-edit-photo-index="${index}">
-        <img src="${esc(source)}" alt="Ad photo ${index + 1}" onerror="this.src='${AD_PLACEHOLDER}'">
-        ${index === 0 ? '<span class="ehm-edit-main-badge">Main</span>' : ''}
-        <button type="button" class="ehm-edit-remove-photo" data-ehm-remove-photo="${index}" aria-label="Remove photo ${index + 1}">×</button>
-      </div>`).join('') : '<div class="ehm-edit-no-photos">No photos selected</div>';
-  }
-
-  async function loadOwnedAdDetails(adId) {
-    const authSession = await session();
-    if (!authSession?.access_token) throw new Error('Log in to edit your ad.');
-    const response = await fetch(`/api/my-ad-detail?id=${encodeURIComponent(String(adId || ''))}`, {
-      headers: { Accept: 'application/json', Authorization: `Bearer ${authSession.access_token}` }
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || result.ok === false || !result.ad) {
-      throw new Error(result.message || 'Could not load the ad photos.');
-    }
-    return normalizeDashboardAd(result.ad);
+  function setEditPreview(source) {
+    const preview = document.querySelector('#ehm-edit-ad-modal .ehm-edit-preview');
+    if (!preview) return;
+    preview.innerHTML = source
+      ? `<img src="${esc(source)}" alt="Ad photo preview">`
+      : '<span>No photo</span>';
   }
 
   function fileToOptimizedImage(file) {
@@ -1382,32 +1347,21 @@
     });
   }
 
-  async function openEditModal(adId) {
-    const summaryAd = runtime.dashboardAds.find((row) => String(row.id || row.localId || '') === String(adId || ''));
-    if (!summaryAd?.id) {
+  function openEditModal(adId) {
+    const ad = runtime.dashboardAds.find((row) => String(row.id || row.localId || '') === String(adId || ''));
+    if (!ad?.id) {
       dashboardNotice('This ad is still syncing. Reload the page and try again.', 'error');
       return;
-    }
-
-    dashboardNotice('Loading your ad photos...', 'pending');
-    let ad = summaryAd;
-    try {
-      ad = await loadOwnedAdDetails(summaryAd.id);
-      const index = runtime.dashboardAds.findIndex((row) => String(row.id || '') === String(ad.id || ''));
-      if (index >= 0) runtime.dashboardAds[index] = { ...runtime.dashboardAds[index], ...ad };
-    } catch (error) {
-      dashboardNotice(error.message || 'Could not load all ad photos. You can still edit the other details.', 'error');
     }
 
     closeEditModal();
     const custom = ad.custom_fields || {};
     const district = ad.district || custom.district || '';
     const city = ad.city || custom.city || '';
-    const initialImages = normalizeEditImages(ad.images, ad.image_url || '');
+    const image = ad.image_url || ad.images?.[0] || '';
     const modal = document.createElement('div');
     modal.id = 'ehm-edit-ad-modal';
     modal.className = 'ehm-edit-ad-modal';
-    modal.__ehmEditImages = initialImages;
     modal.innerHTML = `
       <div class="ehm-edit-ad-dialog" role="dialog" aria-modal="true" aria-labelledby="ehm-edit-ad-title">
         <div class="ehm-edit-ad-head">
@@ -1438,14 +1392,10 @@
             <label class="ehm-edit-wide">Description
               <textarea name="description" rows="6" maxlength="10000" required>${esc(ad.description || '')}</textarea>
             </label>
-            <div class="ehm-edit-wide ehm-edit-photos-section">
-              <div class="ehm-edit-photos-head">
-                <div><strong>Ad photos</strong><small>Remove existing photos or add new photos. Maximum ${MAX_IMAGES} photos in total.</small></div>
-                <span class="ehm-edit-photo-count">0 / ${MAX_IMAGES} photos</span>
-              </div>
-              <div class="ehm-edit-gallery"></div>
-              <label class="ehm-edit-upload-label">Add photos
-                <input name="photos" type="file" multiple accept="image/jpeg,image/png,image/webp">
+            <div class="ehm-edit-wide ehm-edit-photo-row">
+              <div class="ehm-edit-preview">${image ? `<img src="${esc(image)}" alt="Current ad photo">` : '<span>No photo</span>'}</div>
+              <label>Change main photo <small>Optional. Existing photo stays unless you choose a new one.</small>
+                <input name="photo" type="file" accept="image/jpeg,image/png,image/webp">
               </label>
             </div>
           </div>
@@ -1459,57 +1409,35 @@
       </div>`;
     document.body.appendChild(modal);
     document.body.classList.add('ehm-modal-open');
-    renderEditImages(modal);
 
     const districtField = modal.querySelector('[name="district"]');
     const cityField = modal.querySelector('[name="city"]');
     districtField?.addEventListener('change', () => {
       cityField.innerHTML = cityOptions(districtField.value, '');
     });
-    modal.querySelector('[name="photos"]')?.addEventListener('change', async (event) => {
-      const input = event.target;
-      const errorNode = modal.querySelector('.ehm-edit-error');
-      const available = Math.max(0, MAX_IMAGES - modal.__ehmEditImages.length);
-      const selected = Array.from(input.files || []);
-      if (!selected.length) return;
-      if (selected.length > available) {
-        errorNode.textContent = `You can add only ${available} more photo${available === 1 ? '' : 's'}. Maximum ${MAX_IMAGES} photos.`;
-        errorNode.className = 'ehm-edit-error error';
-        input.value = '';
+    modal.querySelector('[name="photo"]')?.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        setEditPreview(image);
         return;
       }
+      const errorNode = modal.querySelector('.ehm-edit-error');
       try {
-        errorNode.textContent = 'Preparing selected photos...';
+        errorNode.textContent = 'Preparing photo...';
         errorNode.className = 'ehm-edit-error pending';
-        const additions = [];
-        for (const file of selected) additions.push(await fileToOptimizedImage(file));
-        const next = [...modal.__ehmEditImages, ...additions].slice(0, MAX_IMAGES);
-        const estimated = next.reduce((sum, value) => sum + String(value || '').length, 0);
-        if (estimated > 4_200_000) throw new Error('The selected photos are too large together. Remove a photo or choose smaller images.');
-        modal.__ehmEditImages = next;
-        renderEditImages(modal);
-        errorNode.textContent = `${next.length} photo${next.length === 1 ? '' : 's'} ready.`;
-        errorNode.className = 'ehm-edit-error pending';
+        const optimized = await fileToOptimizedImage(file);
+        event.target.dataset.optimizedImage = optimized;
+        setEditPreview(optimized);
+        errorNode.textContent = '';
+        errorNode.className = 'ehm-edit-error';
       } catch (error) {
-        errorNode.textContent = error.message || 'Could not prepare the selected photos.';
+        event.target.value = '';
+        delete event.target.dataset.optimizedImage;
+        errorNode.textContent = error.message || 'Could not prepare the photo.';
         errorNode.className = 'ehm-edit-error error';
-      } finally {
-        input.value = '';
       }
     });
-    modal.addEventListener('click', (event) => {
-      const remove = event.target.closest('[data-ehm-remove-photo]');
-      if (!remove) return;
-      const index = Number(remove.dataset.ehmRemovePhoto);
-      if (!Number.isInteger(index) || index < 0) return;
-      modal.__ehmEditImages.splice(index, 1);
-      renderEditImages(modal);
-      const errorNode = modal.querySelector('.ehm-edit-error');
-      errorNode.textContent = `${modal.__ehmEditImages.length} photo${modal.__ehmEditImages.length === 1 ? '' : 's'} remaining.`;
-      errorNode.className = 'ehm-edit-error pending';
-    });
     modal.querySelector('[name="title"]')?.focus();
-    dashboardNotice('', 'success');
   }
 
   async function submitEditForm(form) {
@@ -1525,9 +1453,7 @@
     errorNode.className = 'ehm-edit-error';
 
     try {
-      const modal = form.closest('#ehm-edit-ad-modal');
-      const editImages = normalizeEditImages(modal?.__ehmEditImages || []);
-      if (editImages.length > MAX_IMAGES) throw new Error(`Maximum ${MAX_IMAGES} photos are allowed.`);
+      const photo = form.querySelector('[name="photo"]');
       const payload = {
         id: String(data.get('id') || ''),
         title: String(data.get('title') || ''),
@@ -1535,9 +1461,9 @@
         condition: String(data.get('condition') || ''),
         district: String(data.get('district') || ''),
         city: String(data.get('city') || ''),
-        description: String(data.get('description') || ''),
-        images: editImages
+        description: String(data.get('description') || '')
       };
+      if (photo?.dataset.optimizedImage) payload.image = photo.dataset.optimizedImage;
 
       const response = await fetch('/api/update-my-ad', {
         method: 'PATCH',
@@ -1563,8 +1489,8 @@
         district: payload.district,
         city: payload.city,
         status: 'pending',
-        image_url: payload.images[0] || '',
-        images: payload.images,
+        image_url: payload.image || updated.image_url,
+        images: payload.image ? [payload.image, ...(updated.images || []).slice(1)] : updated.images,
         updated_at: result.ad?.updated_at || new Date().toISOString()
       });
 
@@ -1710,6 +1636,14 @@
     const normalizedId = String(userId || '');
     if (!normalizedId || runtime.dashboardCacheUserId === normalizedId) return runtime.dashboardAds;
     runtime.dashboardCacheUserId = normalizedId;
+    // v1/v2 cached rows may contain marketplace/demo ads from the previous
+    // permissive ownership implementation. Never hydrate those stale caches.
+    try {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i) || '';
+        if (/^ehemehe:myAdsCache:v[12]:/.test(key)) localStorage.removeItem(key);
+      }
+    } catch (_) {}
     const cached = readDashboardAdsCache(normalizedId);
     if (cached.length) {
       runtime.dashboardAds = cached;
@@ -1730,18 +1664,22 @@
       hydrateDashboardAdsCache(authSession.user.id);
 
       let remote = [];
+      runtime.dashboardError = '';
       try {
-        // The same authenticated account API is used in compact mode: fetch('/api/my-ads')
         const response = await fetch('/api/my-ads?summary=1', {
           headers: {
             'Accept': 'application/json',
             'Authorization': `Bearer ${authSession.access_token}`
           },
-          credentials: 'same-origin'
+          credentials: 'same-origin',
+          cache: 'no-store'
         });
         const data = await response.json().catch(() => ({}));
-        if (response.ok && data.ok !== false && Array.isArray(data.ads)) remote = data.ads;
-      } catch (_) {}
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Could not load your ads.');
+        if (Array.isArray(data.ads)) remote = data.ads;
+      } catch (error) {
+        runtime.dashboardError = error?.message || 'Could not load your ads.';
+      }
 
       const local = localAds().filter((ad) => String(ad.userId) === String(authSession.user.id));
       const byId = new Map();
@@ -1799,10 +1737,16 @@
     panel.innerHTML = rows.length
       ? rows.map(adCard).join('')
       : settled
-        ? `<div class="ehm-dashboard-empty">
-            <strong>No ads submitted yet</strong>
-            <span>Your published ads will appear here.</span>
-          </div>`
+        ? runtime.dashboardError
+          ? `<div class="ehm-dashboard-empty ehm-dashboard-error">
+              <strong>Could not load your ads</strong>
+              <span>${esc(runtime.dashboardError)}</span>
+              <button type="button" data-ehm-retry-my-ads>Try again</button>
+            </div>`
+          : `<div class="ehm-dashboard-empty">
+              <strong>No ads submitted yet</strong>
+              <span>Your published ads will appear here.</span>
+            </div>`
         : `<div class="ehm-dashboard-empty ehm-dashboard-loading">
             <strong>Loading your ads…</strong>
             <span>Your listings are being prepared.</span>
@@ -1811,26 +1755,27 @@
 
   function ensureDashboardAdsPanel() {
     if (route() !== '/dashboard/ads') return null;
-    const myAdsHeading = Array.from(document.querySelectorAll('h1,h2'))
-      .find((node) => labelKey(node.textContent) === 'my ads' && node.offsetParent !== null);
+    const headings = Array.from(document.querySelectorAll('h1,h2'));
+    const myAdsHeading = headings.find((node) => labelKey(node.textContent) === 'my ads');
     if (!myAdsHeading) return null;
 
-    const main = myAdsHeading.closest('main') || myAdsHeading.parentElement?.parentElement || myAdsHeading.parentElement;
-    if (!main) return null;
+    // Keep the same ownership container used by the original working dashboard.
+    // closest('main') can resolve to the full app shell on some responsive builds,
+    // which caused the managed list to be inserted outside the visible tab.
+    const section = myAdsHeading.parentElement?.parentElement || myAdsHeading.parentElement;
+    if (!section) return null;
 
-    main.querySelectorAll('.space-y-4').forEach((list) => {
-      if (list.querySelector('button, article, img')) list.style.display = 'none';
-    });
+    const nativeList = Array.from(section.children)
+      .find((child) => child.classList?.contains('space-y-4'));
+    if (nativeList) nativeList.style.display = 'none';
 
-    let panel = main.querySelector('#ehm-real-my-ads');
+    let panel = section.querySelector('#ehm-real-my-ads');
     if (!panel) {
       panel = document.createElement('div');
       panel.id = 'ehm-real-my-ads';
       panel.className = 'ehm-real-my-ads';
       panel.setAttribute('aria-live', 'polite');
-      const headerRow = myAdsHeading.parentElement;
-      if (headerRow?.parentElement === main) headerRow.insertAdjacentElement('afterend', panel);
-      else main.appendChild(panel);
+      section.appendChild(panel);
     }
     paintDashboardAds(panel, runtime.dashboardAds, runtime.dashboardLoadedAt > 0);
     return panel;
@@ -1839,7 +1784,7 @@
   async function renderDashboard() {
     if (!route().startsWith('/dashboard')) return;
 
-    const panel = ensureDashboardAdsPanel();
+    let panel = ensureDashboardAdsPanel();
     const authSession = window.__EHM_AUTH_SESSION?.user ? window.__EHM_AUTH_SESSION : null;
     if (authSession?.user) {
       const cached = hydrateDashboardAdsCache(authSession.user.id);
@@ -1850,7 +1795,11 @@
     updateDashboardCount(ads.length);
     updateDashboardOverview(ads);
     wireNativeDashboardEditButtons(ads);
-    if (panel?.isConnected && route() === '/dashboard/ads') paintDashboardAds(panel, ads, true);
+
+    // React may mount/recreate the dashboard tab while the request is in flight.
+    // Always resolve the current visible panel again before painting the result.
+    if (route() === '/dashboard/ads') panel = ensureDashboardAdsPanel();
+    if (panel?.isConnected) paintDashboardAds(panel, ads, true);
   }
 
   // -------------------------- Lifecycle -----------------------------------
@@ -1933,6 +1882,14 @@
   document.addEventListener('click', interceptNavigation, true);
 
   document.addEventListener('click', (event) => {
+    const retryButton = event.target?.closest?.('[data-ehm-retry-my-ads]');
+    if (retryButton) {
+      event.preventDefault();
+      runtime.dashboardLoadedAt = 0;
+      runtime.dashboardError = '';
+      loadDashboardAds(true).then(() => scheduleRuntimeTick(0)).catch(() => scheduleRuntimeTick(0));
+      return;
+    }
     const deleteButton = event.target?.closest?.('[data-ehm-delete-ad]');
     if (deleteButton) {
       event.preventDefault();
